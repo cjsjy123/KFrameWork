@@ -1,4 +1,4 @@
-﻿#define TOLUA
+﻿//#define TOLUA
 #define TOLUA_EDIT
 using UnityEngine;
 using System.Collections;
