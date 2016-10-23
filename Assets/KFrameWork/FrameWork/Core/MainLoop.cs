@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace KFrameWork
 {
-
+    [ScriptInitOrderAtt(-10000)]
     public class MainLoop : MonoBehaviour
     {
         public bool OpenLog =true;

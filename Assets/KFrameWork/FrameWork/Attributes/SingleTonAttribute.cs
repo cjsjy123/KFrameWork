@@ -109,32 +109,5 @@ namespace KUtils
 
     }
 
-    [AttributeUsage(AttributeTargets.Class)]
-    public class PreFabSingleton:SingleTonAttribute
-    {
-        private string _prefabpath;
-
-        public string PrefabPath
-        {
-            get
-            {
-                return _prefabpath;
-            }
-            private set
-            {
-                _prefabpath = value;
-            }
-        }
-
-        public PreFabSingleton() : base() { }
-
-        public PreFabSingleton(string path, int init = -1, int destroy = -1)
-            : base(init,destroy)
-        {
-            PrefabPath = path;
-        }
-
- 
-    }
 
 }

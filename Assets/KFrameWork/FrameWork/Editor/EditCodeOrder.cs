@@ -4,29 +4,42 @@ using System.Collections.Generic;
 using System;
 using KFrameWork;
 using KUtils;
+using System.Reflection;
 #if UNITY_EDITOR
 using UnityEditor;
 
 [InitializeOnLoad]
 public class EditCodeOrder {
 
-    const int FrameWorkExecOrder = -10000;
-
-
     static EditCodeOrder() {
-        string scriptName = typeof(MainLoop).Name;
 
-        // Iterate through all scripts (Might be a better way to do this?)
+        Dictionary<string,int> targetList = new Dictionary<string, int>();
+
+        var baseTp=typeof(MainLoop);
+        var asm = baseTp .Assembly;
+        var types = asm.GetTypes();
+
+        foreach(var tp in types)
+        {
+            bool define = Attribute.IsDefined(tp,typeof(ScriptInitOrderAtt));
+
+            if(define)
+            {
+                ScriptInitOrderAtt att = tp.GetCustomAttributes(typeof(ScriptInitOrderAtt), true)[0] as ScriptInitOrderAtt;
+                targetList.Add(tp.Name,att.Order);
+            }
+        }
+
+  
         foreach (MonoScript monoScript in MonoImporter.GetAllRuntimeMonoScripts())
         {
-            // If found our script
-            if (monoScript.name == scriptName)
+
+            if (targetList.ContainsKey(monoScript.name))
             {
-                // And it's not at the execution time we want already
-                // (Without this we will get stuck in an infinite loop)
-                if (MonoImporter.GetExecutionOrder(monoScript) != FrameWorkExecOrder)
+                int order = targetList[monoScript.name];
+                if (MonoImporter.GetExecutionOrder(monoScript) != order)
                 {
-                    MonoImporter.SetExecutionOrder(monoScript, FrameWorkExecOrder);
+                    MonoImporter.SetExecutionOrder(monoScript, order);
                 }
                 break;
             }

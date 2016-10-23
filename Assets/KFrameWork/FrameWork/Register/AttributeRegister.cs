@@ -11,7 +11,6 @@ public class AttributeRegister
     public static void Register( GameFrameWork frameWork)
     {
         frameWork.RegisterHandler(RegisterType.ClassAttr, typeof(SingleTonAttribute), Register_Singleton);
-        frameWork.RegisterHandler(RegisterType.ClassAttr, typeof(PreFabSingleton), Register_PrefabSingleton);
         frameWork.RegisterHandler(RegisterType.ClassAttr, typeof(GameServiceAttribute), Register_JustCallContrustion);
         frameWork.RegisterHandler(RegisterType.ClassAttr, typeof(GSReceiverAttribute), Register_JustCallContrustion);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(LoopEventAttribute), Register_LoopEvent);
@@ -78,12 +77,6 @@ public class AttributeRegister
 
     }
 
-    private static void Register_PrefabSingleton(object att, object target)
-    {
-       // Type atttp = typeof(PreFabSingleton);
-        //PreFabSingleton attval = att as PreFabSingleton;
-
-    }
 
     private static void Register_LoopEvent(object att,object target)
     {
