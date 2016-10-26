@@ -5,36 +5,53 @@ using KUtils;
 
 namespace KFrameWork
 {
-    public class TimeCommond:BaseCommond<TimeCommond>
+    public class FrameCommand:BaseCommand<FrameCommand>
     {
 
-        private float m_delay;
+        protected int _frame;
 
-        private float m_starttime;
+        public int FrameCount
+        {
+            get
+            {
+                return _frame;
+            }
+        }
+
+        private long m_startFrame;
 
         private System.Action Callback;
 
 
-        protected TimeCommond()
+        protected FrameCommand()
         {
-
+            
         }
 
-        public static TimeCommond Create(System.Action cbk, float time)
+        [FrameWokAwakeAttribute]
+        private static void PreLoad(int v)
         {
-            TimeCommond commond = null;
+            for(int i=0;i < FrameWorkDebug.Preload_ParamsCount;++i)
+            {
+                KObjectPool.mIns.Push(new FrameCommand());
+            }
+        }
+
+        public static FrameCommand Create(System.Action cbk, int delayFrame=1)
+        {
+            FrameCommand Command = null;
             if(KObjectPool.mIns != null)
             {
-                commond =KObjectPool.mIns.Pop<TimeCommond>();
+                Command =KObjectPool.mIns.Pop<FrameCommand>();
             }
 
-            if(commond == null)
-                commond = new TimeCommond();
+            if(Command == null)
+                Command = new FrameCommand();
 
-            commond.m_delay = time;
-            commond.Callback = cbk;
+            Command._frame = delayFrame;
+            Command.Callback = cbk;
 
-            return commond;
+            return Command;
 
         }
 
@@ -45,7 +62,7 @@ namespace KFrameWork
                 if(!this.m_bExcuted)
                 {
                     base.Excute();
-                    this.m_starttime = GameSyncCtr.mIns.FrameWorkTime;
+                    this.m_startFrame = GameSyncCtr.mIns.RenderFrameCount;
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
                     MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
                 }
@@ -59,7 +76,7 @@ namespace KFrameWork
 
         private void _ConfirmFrameDone(int value)
         {
-            if(GameSyncCtr.mIns.FrameWorkTime  - this.m_starttime >= this.m_delay)
+            if(GameSyncCtr.mIns.RenderFrameCount - this.m_startFrame >= FrameCount)
             {
                 MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
 
@@ -74,23 +91,22 @@ namespace KFrameWork
                 {
                     this.m_isBatching =true;
                     this.Next.Excute();
-                    //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+                  //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
                 }
             }
         }
-            
+
+
 
         public override void ReleaseToPool ()
         {
             base.ReleaseToPool();
-            this.m_delay = 0;
+            this._frame = 0;
             this.Callback = null;
-
         }
 
         public override void RemovedFromPool ()
         {
-            base.RemovedFromPool();
             this._CMD = null;
             this._Gparams = null;
             this._RParams = null;
@@ -114,7 +130,7 @@ namespace KFrameWork
             }
         }
 
-        protected override TimeCommond OperatorAdd (ICommond other)
+        protected override FrameCommand OperatorAdd (ICommand other)
         {
             if(this != other)
             {
@@ -123,7 +139,7 @@ namespace KFrameWork
             return this;
         }
 
-        protected override TimeCommond OperatorReduce (ICommond other)
+        protected override FrameCommand OperatorReduce (ICommand other)
         {
             if(this != other)
             {
@@ -135,3 +151,4 @@ namespace KFrameWork
 
     }
 }
+

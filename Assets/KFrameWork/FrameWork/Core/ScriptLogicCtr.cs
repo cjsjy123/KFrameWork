@@ -175,14 +175,14 @@ namespace KFrameWork
 
         public static ScriptLogicCtr mIns;
 
-        private Queue<ICommond> CommondQueue = new Queue<ICommond>(64);
+        private Queue<ICommand> CommandQueue = new Queue<ICommand>(64);
 
         private Dictionary<int ,Dictionary<int,ScriptPkg>> ScriptDic = new Dictionary<int, Dictionary<int, ScriptPkg>>();
 
 
         public ScriptLogicCtr()
         {
-            //MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,DispathCommond);
+            //MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,DispathCommand);
         }
 
         public void RegisterLogicFunc<T>(int CMD, Action<AbstractParams> callback,T value) where T:new()
@@ -286,14 +286,14 @@ namespace KFrameWork
             }
         }
 
-        public void PushCommond(ICommond command)
+        public void PushCommand(ICommand command)
         {
 
             if(command.CMD.HasValue)
             {
-                CommondQueue.Enqueue(command);
+                CommandQueue.Enqueue(command);
 
-                DispathCommond();
+                DispathCommand();
             }
             else
             {
@@ -301,13 +301,13 @@ namespace KFrameWork
             }
         }
 
-        private void DispathCommond()
+        private void DispathCommand()
         {
             try
             {
-                while(CommondQueue != null && CommondQueue.Count >0)
+                while(CommandQueue != null && CommandQueue.Count >0)
                 {
-                    ICommond cmd = CommondQueue.Dequeue();
+                    ICommand cmd = CommandQueue.Dequeue();
 
                     if(this.ScriptDic.ContainsKey(cmd.CMD.Value))
                     {

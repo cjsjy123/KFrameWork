@@ -87,6 +87,15 @@ namespace KFrameWork
 
         END,
     }
+
+    public enum FSMRunningType
+    {
+        Frame,
+        DelayTime,
+        DelayFrame,
+        WhenInitInvoke,
+        WhenEnableInvoke,
+    }
         
 
 }

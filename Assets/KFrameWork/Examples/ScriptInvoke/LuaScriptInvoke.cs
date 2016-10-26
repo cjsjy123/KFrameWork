@@ -18,7 +18,7 @@ public class LuaScriptInvoke : UnityMonoBehaviour {
         {
             yield return new WaitForSeconds(1f);
 
-            ScriptCommond cmd = ScriptCommond.Create(50,2);
+            ScriptCommand cmd = ScriptCommand.Create(50,2);
             cmd.CallParms.WriteLong((long)123);
             cmd.CallParms.WriteString("你好");
             cmd.Excute();
@@ -35,7 +35,7 @@ public class LuaScriptInvoke : UnityMonoBehaviour {
         string arg_2 = p.ReadString();
         LogMgr.LogFormat("enter Invoke_NOR arg1 ={0},arg2={1}",arg_1,arg_2);
 
-        ScriptCommond cmd = ScriptCommond.Create(51,2);
+        ScriptCommand cmd = ScriptCommand.Create(51,2);
 
         cmd.CallParms.WriteShort((short)88);
         cmd.CallParms.WriteUnityObject(MainLoop.getLoop());

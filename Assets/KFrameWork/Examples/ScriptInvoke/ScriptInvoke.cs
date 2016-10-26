@@ -37,7 +37,7 @@ public class ScriptInvoke : UnityMonoBehaviour {
 //        KBaseState k =new KBaseState();
 //        KBaseState k1 =new KBaseState();
 //
-//        ScriptCommond cmd = ScriptCommond.Create((int)AttrtiDataCMD.LevlUp_CMD,1);
+//        ScriptCommand cmd = ScriptCommand.Create((int)AttrtiDataCMD.LevlUp_CMD,1);
 //        cmd.CallParms.PushInt(123);
 //        cmd.Excute();
 
@@ -51,7 +51,7 @@ public class ScriptInvoke : UnityMonoBehaviour {
         {
             yield return new WaitForSeconds(1f);
 
-            ScriptCommond cmd = ScriptCommond.Create(100,2);
+            ScriptCommand cmd = ScriptCommand.Create(100,2);
             cmd.CallParms.WriteLong((long)9);
             cmd.CallParms.WriteObject(null);
             cmd.CallParms.WriteLong((long)2);
@@ -70,7 +70,7 @@ public class ScriptInvoke : UnityMonoBehaviour {
         var arg_3 = p.ReadLong();
         LogMgr.LogFormat("enter Invoke_NOR arg1 ={0},arg2={1} arg3={2}",arg_1,arg_2,arg_3);
 
-        ScriptCommond cmd = ScriptCommond.Create(101,2);
+        ScriptCommand cmd = ScriptCommand.Create(101,2);
 
         cmd.CallParms.WriteShort((short)12);
         cmd.CallParms.WriteUnityObject(MainLoop.getLoop());

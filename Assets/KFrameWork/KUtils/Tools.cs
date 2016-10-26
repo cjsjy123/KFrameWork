@@ -54,6 +54,13 @@ namespace KUtils
             return (long)( DateTime.Now -startTime).TotalMilliseconds;
         }
 
+        public static void Swap<T>(ref T t ,ref T r) where T:struct
+        {
+            T temp = t;
+            t= r;
+            r = temp;
+        }
+
         public static float ByteToMB(long bdata)
         {
             return bdata / mb;

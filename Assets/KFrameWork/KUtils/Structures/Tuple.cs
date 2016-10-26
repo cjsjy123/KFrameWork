@@ -7,49 +7,13 @@ using Object = System.Object;
 namespace KUtils
 {
 
-    public struct KVTuple<T, U> : IEquatable<KVTuple<T, U>>, IPool
+    public struct KVTuple<T, U> : IEquatable<KVTuple<T, U>>
     {
 
         public T Key;
 
         public U Value;
 
-//        public KVTuple()
-//        {
-//            Key =default(T);
-//            Value = default(U);
-//        }
-//
-//        public KVTuple(T t,U u)
-//        {
-//            this.Key=t;
-//            this.Value =u;
-//        }
-
-
-        public void AwakeFromPool() { 
-
-        }
-
-        public void ReleaseToPool()
-        {
-            if (KObjectPool.mIns != null)
-            {
-                KObjectPool.mIns.Push(this);
-            }
-            else
-            {
-                LogMgr.Log("对象池未初始化");
-            }
-            
-        }
-
-        public void RemovedFromPool()
-        {
-            this.Key=default(T);
-            this.Value =default(U);
- 
-        }
 
         /// <summary>
         /// only check Key
@@ -65,24 +29,21 @@ namespace KUtils
             return true;
         }
     }
+        
 
-    public class Tuple <T,Y>: IEquatable<Tuple<T,Y>>
-    {
-        public T k1;
-        public Y k2;
-        public bool Equals(Tuple<T, Y> other)
-        {
-            if (!k1.Equals(other.k1)) return false;
-            if (!k2.Equals(other.k2)) return false;
-            return true;
-        }
-    }
-
-    public class Tuple<T, Y,K> : IEquatable<Tuple<T, Y,K>>
+    public struct Tuple<T,Y,K> : IEquatable<Tuple<T, Y,K>>
     {
         public T k1;
         public Y k2;
         public K k3;
+
+        public Tuple(T t,Y y,K k)
+        {
+            this.k1=  t;
+            this.k2=  y;
+            this.k3 = k;
+        }
+
         public bool Equals(Tuple<T, Y, K> other)
         {
             if (!k1.Equals(other.k1)) return false;

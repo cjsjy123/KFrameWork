@@ -5,21 +5,21 @@ using System;
 
 namespace KFrameWork
 {
-    public class BatchCommond:BaseCommond<BatchCommond>
+    public class BatchCommand:BaseCommand<BatchCommand>
     {
 
-        protected BatchCommond()
+        protected BatchCommand()
         {
             
         }
 
-        public static BatchCommond Create(params ICommond[] cmds)
+        public static BatchCommand Create(params ICommand[] cmds)
         {
-            BatchCommond cmd = new BatchCommond();
+            BatchCommand cmd = new BatchCommand();
 
             if(cmds != null && cmds.Length >0)
             {
-                ICommond next = cmd;
+                ICommand next = cmd;
                 for(int i =0; i < cmds.Length;++i)
                 {
                     if(cmds[i] != cmd)
@@ -33,18 +33,18 @@ namespace KFrameWork
             return cmd;
         }
 
-        public static BatchCommond Create()
+        public static BatchCommand Create()
         {
-            BatchCommond cmd = new BatchCommond();
+            BatchCommand cmd = new BatchCommand();
             return cmd;
         }
 
-        public void Add(ICommond cmd)
+        public void Add(ICommand cmd)
         {
             this._Add(cmd);
         }
 
-        public void Remove(ICommond cmd)
+        public void Remove(ICommand cmd)
         {
             this._Remove(cmd);
         }
@@ -77,7 +77,7 @@ namespace KFrameWork
             }
         }
 
-        protected override BatchCommond OperatorAdd (ICommond other)
+        protected override BatchCommand OperatorAdd (ICommand other)
         {
 
             if(this != other)
@@ -87,7 +87,7 @@ namespace KFrameWork
             return this;
         }
 
-        protected override BatchCommond OperatorReduce (ICommond other)
+        protected override BatchCommand OperatorReduce (ICommand other)
         {
             if(this != other)
             {

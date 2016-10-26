@@ -1,13 +1,17 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using KFrameWork;
 using KUtils;
+
 
 public class OtherScriptInvoke : UnityMonoBehaviour {
 
 	// Use this for initialization
     protected override  void Start () {
         base.Start();
+       
+
 	}
 
 
@@ -46,7 +50,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
             Profiler.BeginSample("Test Frame CMD");
-            FrameCommond  cmd = FrameCommond.Create(Done,2);
+            FrameCommand  cmd = FrameCommand.Create(Done,2);
             cmd.Excute();
             Profiler.EndSample();
         }
@@ -56,10 +60,10 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
             Profiler.BeginSample("Test Multi Frame CMD");
-            FrameCommond  cmd = FrameCommond.Create(Done,2);
-            cmd+=FrameCommond.Create(Done,1);
-            cmd+=FrameCommond.Create(Done,2);
-            cmd+=FrameCommond.Create(Done,3);
+            FrameCommand  cmd = FrameCommand.Create(Done,2);
+            cmd+=FrameCommand.Create(Done,1);
+            cmd+=FrameCommand.Create(Done,2);
+            cmd+=FrameCommand.Create(Done,3);
             cmd.Excute();
             Profiler.EndSample();
         }
@@ -69,12 +73,12 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
             Profiler.BeginSample("Test Multi Script CMD");
-            ScriptCommond cmd = ScriptCommond.Create(10,2);
+            ScriptCommand cmd = ScriptCommand.Create(10,2);
             cmd.CallParms.WriteUnityObject(this);
             cmd.CallParms.WriteFloat(1f);
             for(int i=0; i <10;++i)
             {
-                ScriptCommond temp = ScriptCommond.Create(10,2);
+                ScriptCommand temp = ScriptCommand.Create(10,2);
                 temp.CallParms.WriteUnityObject(this);
                 temp.CallParms.WriteFloat(1f);
                 cmd+=temp;
@@ -89,16 +93,16 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("Batch Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
             Profiler.BeginSample("Test Batch CMD");
-            ScriptCommond cmd1 = ScriptCommond.Create(10,2);
+            ScriptCommand cmd1 = ScriptCommand.Create(10,2);
             cmd1.CallParms.WriteUnityObject(this);
             cmd1.CallParms.WriteFloat(1f);
 
-            ScriptCommond cmd2 = ScriptCommond.Create(10,2);
+            ScriptCommand cmd2 = ScriptCommand.Create(10,2);
             cmd2.CallParms.WriteUnityObject(this);
             cmd2.CallParms.WriteFloat(23f);
 
-            BatchCommond batch1 = BatchCommond.Create(FrameCommond.Create(Done,1),cmd1);
-            BatchCommond batch2 = BatchCommond.Create(FrameCommond.Create(Done,2),cmd2);
+            BatchCommand batch1 = BatchCommand.Create(FrameCommand.Create(Done,1),cmd1);
+            BatchCommand batch2 = BatchCommand.Create(FrameCommand.Create(Done,2),cmd2);
             batch1+= batch2;
             batch1.Excute();
             Profiler.EndSample();
@@ -109,7 +113,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("BatchFrame Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
             Profiler.BeginSample("Test Batch Frame CMD");
-            BatchCommond batch1 = BatchCommond.Create(FrameCommond.Create(Done,1),FrameCommond.Create(Done,1),FrameCommond.Create(Done,1),FrameCommond.Create(Done,1));
+            BatchCommand batch1 = BatchCommand.Create(FrameCommand.Create(Done,1),FrameCommand.Create(Done,1),FrameCommand.Create(Done,1),FrameCommand.Create(Done,1));
             batch1.Excute();
             Profiler.EndSample();
         }
@@ -120,7 +124,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
 
             Profiler.BeginSample("Test time Cmd ");
 
-            TimeCommond cmd = TimeCommond.Create(TimeDone,0.4f);
+            TimeCommand cmd = TimeCommand.Create(TimeDone,0.4f);
             cmd.Excute();
 
             Profiler.EndSample();
@@ -133,7 +137,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             StartCoroutine(YieldCall());
             Profiler.EndSample();
             Profiler.BeginSample("Test Both Frame Op -frame cmd");
-            FrameCommond  cmd = FrameCommond.Create(Done,1);
+            FrameCommand  cmd = FrameCommand.Create(Done,1);
             cmd.Excute();
             Profiler.EndSample();
         }

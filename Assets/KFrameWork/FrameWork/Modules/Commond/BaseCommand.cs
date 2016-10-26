@@ -7,9 +7,9 @@ using KUtils;
 namespace KFrameWork
 {
 
-    public abstract class CacheCommond:ICommond
+    public abstract class CacheCommand:ICommand
     {
-        protected static Dictionary<int,Queue<ICommond>> CMDCache ;
+        protected static Dictionary<int,Queue<ICommand>> CMDCache ;
 
         public abstract void Release (bool force);
 
@@ -46,8 +46,8 @@ namespace KFrameWork
             }
         }
 
-        private ICommond _Next;
-        public ICommond Next
+        private ICommand _Next;
+        public ICommand Next
         {
             get
             {
@@ -92,7 +92,7 @@ namespace KFrameWork
         }
     }
 
-    public abstract class BaseCommond<T> :CacheCommond,KUtils.IPool where T:BaseCommond<T> {
+    public abstract class BaseCommand<T> :CacheCommand,KUtils.IPool where T:BaseCommand<T> {
 
        
 
@@ -104,15 +104,15 @@ namespace KFrameWork
         public static void Preload(int value)
         {
             if(CMDCache == null)
-                CMDCache = new Dictionary<int, Queue<ICommond>>(16);
+                CMDCache = new Dictionary<int, Queue<ICommand>>(16);
         }
 
 
-        protected static U Spawn<U>(int CMD_ID)  where U:BaseCommond<T>
+        protected static U Spawn<U>(int CMD_ID)  where U:BaseCommand<T>
         {
             if(CMDCache != null && CMDCache.ContainsKey(CMD_ID) && CMDCache[CMD_ID].Count >0)
             {
-                ICommond Top = CMDCache[CMD_ID].Peek();
+                ICommand Top = CMDCache[CMD_ID].Peek();
                 if(Top is U)
                 {
                     U cmd = CMDCache[CMD_ID].Dequeue() as U;
@@ -180,7 +180,7 @@ namespace KFrameWork
             this.m_bExcuted =false;
 
 //            if(CMDCache == null)
-//                CMDCache = new Dictionary<int, Queue<ICommond>>(16);
+//                CMDCache = new Dictionary<int, Queue<ICommand>>(16);
 
             if(CMDCache.ContainsKey(this._CMD.Value))
             {
@@ -197,17 +197,17 @@ namespace KFrameWork
                     this._Gparams.ResetReadIndex();
                 }
 
-                Queue<ICommond> queue = new Queue<ICommond>(4);
+                Queue<ICommand> queue = new Queue<ICommand>(4);
                 queue.Enqueue(this);
                 CMDCache.Add(this._CMD.Value,queue);
             }
         }
 
-        protected void _Add(ICommond cmd)
+        protected void _Add(ICommand cmd)
         {
             if(cmd !=this)
             {
-                ICommond next = this;
+                ICommand next = this;
                 while(next.Next != null)
                 {
                     next = next.Next;
@@ -217,10 +217,10 @@ namespace KFrameWork
             }
         }
 
-        protected void _Remove(ICommond cmd)
+        protected void _Remove(ICommand cmd)
         {
-            ICommond previous = null;
-            ICommond next = this;
+            ICommand previous = null;
+            ICommand next = this;
             while(next.Next != null)
             {
                 if(next == cmd)
@@ -236,8 +236,8 @@ namespace KFrameWork
 
         protected void _Clear()
         {
-            ICommond previous = null;
-            ICommond next = this;
+            ICommand previous = null;
+            ICommand next = this;
             while(next.Next != null)
             {
                 previous = next;
@@ -257,11 +257,11 @@ namespace KFrameWork
             this.Release(false);
         }
 
-        protected abstract T  OperatorAdd(ICommond other);
+        protected abstract T  OperatorAdd(ICommand other);
 
-        protected abstract T  OperatorReduce(ICommond other);
+        protected abstract T  OperatorReduce(ICommand other);
 
-        public static  T operator+(BaseCommond<T>  lft,BaseCommond<T>  rht)
+        public static  T operator+(BaseCommand<T>  lft,BaseCommand<T>  rht)
         {
             //UNABLE TO DO LIKE THIS
 //            if(lft == rht)
@@ -270,7 +270,7 @@ namespace KFrameWork
             return lft.OperatorAdd(rht);
         }
 
-        public static T  operator-(BaseCommond<T>  lft,BaseCommond<T>  rht)
+        public static T  operator-(BaseCommand<T>  lft,BaseCommand<T>  rht)
         {
             //UNABLE TO DO LIKE THIS
 //            if(lft == rht)

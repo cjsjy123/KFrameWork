@@ -86,13 +86,13 @@ namespace KFrameWork
         void Reset();
     }
 
-    public interface ICommond
+    public interface ICommand
     {
         int? CMD{ get; }
 
         bool isDone{ get; }
 
-        ICommond Next{ get; set; }
+        ICommand Next{ get; set; }
 
         AbstractParams CallParms{ get; }
 
@@ -120,6 +120,37 @@ namespace KFrameWork
     public interface IReveiver
     {
         void Receive(IService sender, string name,AbstractParams p);
+    }
+
+    public interface FSMEvent
+    {
+        bool DetermineRequest();
+
+        void EnterFS();
+
+        void LeaveFS();
+    }
+
+    public interface FSMRunningEvent
+    {
+        string name{get;set;}
+        bool changed {get;set;}
+        long lastFrame{get;set;}
+        float lasttime{get;set;}
+        float? delaytime{get;}
+        int? delayFrame{get;}
+
+        FSMRunningType runningType{get;}
+
+        void FrameUpdateForLogic();
+
+        void DelayTimeUpdateForLogic();
+
+        void DelayFrameUpdateForLogic();
+
+        void InvokeOnceWhenInit();
+
+        void InvokeOnceWhenEnable();
     }
 }
 

@@ -5,10 +5,10 @@ using System.Collections.Generic;
 
 namespace KFrameWork
 {
-    public class ScriptCommond :BaseCommond<ScriptCommond>
+    public class ScriptCommand :BaseCommand<ScriptCommand>
     {
 
-        protected ScriptCommond()
+        protected ScriptCommand()
         {
             
         }
@@ -18,12 +18,12 @@ namespace KFrameWork
         /// </summary>
         /// <param name="CMD_ID">CM d I.</param>
         /// <param name="argCount">Argument count.</param>
-        public static ScriptCommond Create(int CMD_ID,int argcount =-1)
+        public static ScriptCommand Create(int CMD_ID,int argcount =-1)
         {
-            ScriptCommond cmd = Spawn<ScriptCommond>(CMD_ID);
+            ScriptCommand cmd = Spawn<ScriptCommand>(CMD_ID);
             if(cmd == null)
             {
-                cmd = new ScriptCommond();
+                cmd = new ScriptCommand();
                 cmd._CMD = CMD_ID;
                 if(!cmd.HasCallParams)
                 {
@@ -48,7 +48,7 @@ namespace KFrameWork
                 if (CMD != null && !this.m_bExcuted)
                 {
                     base.Excute();
-                    ScriptLogicCtr.mIns.PushCommond (this);
+                    ScriptLogicCtr.mIns.PushCommand (this);
                 } 
                 else if(!this.m_bExcuted) {
                     LogMgr.LogError ("命令号未设置");
@@ -77,7 +77,7 @@ namespace KFrameWork
             base.Release (force);
         }
 
-        protected override ScriptCommond OperatorAdd (ICommond other)
+        protected override ScriptCommand OperatorAdd (ICommand other)
         {
             if(this != other)
             {
@@ -86,7 +86,7 @@ namespace KFrameWork
             return this;
         }
 
-        protected override ScriptCommond OperatorReduce (ICommond other)
+        protected override ScriptCommand OperatorReduce (ICommand other)
         {
             if(this != other)
             {
