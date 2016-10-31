@@ -109,11 +109,6 @@ namespace KFrameWork
 
         public void AwakeFromPool ()
         {
-            
-        }
-
-        public void ReleaseToPool ()
-        {
             this.m_l1 = null;
             this.m_l2 = null;
             this.m_l3 = null;
@@ -158,8 +153,8 @@ namespace KFrameWork
             this._OrigionArgCount =-1;
             this.bitIndex = 0;
             this.bitDataSort =0;
-
         }
+
 
         public void RemovedFromPool ()
         {

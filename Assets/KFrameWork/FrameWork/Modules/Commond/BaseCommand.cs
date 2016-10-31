@@ -7,98 +7,22 @@ using KUtils;
 namespace KFrameWork
 {
 
-    public abstract class CacheCommand:ICommand
-    {
-        protected static Dictionary<int,Queue<ICommand>> CMDCache ;
-
-        public abstract void Release (bool force);
-
-        public abstract void Excute ();
-
-        protected int? _CMD;
-
-        public int? CMD
-        {
-            get
-            {
-
-                return _CMD;
-            }
-        }
-
-        protected AbstractParams _Gparams ;
-
-        public AbstractParams CallParms
-        {
-            get
-            {
-                if(_Gparams == null)
-                    _Gparams = GenericParams.Create();
-                return _Gparams;
-            }
-        }
-
-        public bool HasCallParams
-        {
-            get
-            {
-                return _Gparams != null;
-            }
-        }
-
-        private ICommand _Next;
-        public ICommand Next
-        {
-            get
-            {
-                return _Next;
-            }
-
-            set
-            {
-                this._Next = value;
-            }
-        }
-
-        protected bool _isDone;
-        /// <summary>
-        /// 命令是否完成，请确保当完成的时候，其被移除掉，不占用引用
-        /// </summary>
-        /// <value><c>true</c> if is done; otherwise, <c>false</c>.</value>
-        public bool isDone
-        {
-            get
-            {
-                return this._isDone;
-            }
-        }
-
-        protected AbstractParams _RParams;
-
-        /// <summary>
-        /// 当有返回值得时候用户请自行dispose
-        /// </summary>
-        /// <value>The return parameters.</value>
-        public AbstractParams ReturnParams
-        {
-            get
-            {
-                return _RParams;
-            }
-            set
-            {
-                _RParams = value;
-            }
-        }
-    }
-
     public abstract class BaseCommand<T> :CacheCommand,KUtils.IPool where T:BaseCommand<T> {
-
-       
-
         protected bool m_bExcuted =false;
         protected bool m_bReleased =false;
         protected bool m_isBatching =false;
+        protected bool m_paused =false;
+
+        private static int Counter =0;
+
+        private int m_UID;
+
+        public int UID
+        {
+            get{
+                return this.m_UID;
+            }
+        }
 
         [FrameWokAwakeAttribute]
         public static void Preload(int value)
@@ -107,6 +31,11 @@ namespace KFrameWork
                 CMDCache = new Dictionary<int, Queue<ICommand>>(16);
         }
 
+
+        protected BaseCommand()
+        {
+            this.GenID();
+        }
 
         protected static U Spawn<U>(int CMD_ID)  where U:BaseCommand<T>
         {
@@ -129,6 +58,9 @@ namespace KFrameWork
 
         protected virtual void _BatchCall()
         {
+            if(this.m_paused )
+                return ;
+
             if(this.Next != null)
             {
                 if(this.Next.isDone )
@@ -157,19 +89,32 @@ namespace KFrameWork
         {
             this._BatchCall();
         }
-        //---------------pool--------
-        public virtual void AwakeFromPool (){}
-        public virtual void RemovedFromPool (){}
 
-        public virtual void ReleaseToPool ()
+        protected void GenID()
         {
-            this._isDone = false;
+            this.m_UID = Counter++;
+        }
+        //---------------pool--------
+        public virtual void AwakeFromPool ()
+        {
+            this.GenID();
+            this.m_paused =false;
             this.m_bExcuted =false;
-            this.Next = null;
+            this.m_bReleased =false;
             this.m_isBatching =false;
-
+            this.Next = null;
+            this._CMD = null;
+            this._Gparams = null;
+            this._RParams = null;
+            this._isDone = false;
         }
 
+        public virtual void RemovedFromPool ()
+        {
+            this._CMD = null;
+            this._Gparams = null;
+            this._RParams = null;
+        }
 
         public override void Release(bool force)
         {

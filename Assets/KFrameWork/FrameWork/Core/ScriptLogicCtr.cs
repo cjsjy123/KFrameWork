@@ -33,14 +33,8 @@ namespace KFrameWork
 
             public void AwakeFromPool ()
             {
-                
-            }
-
-            public void ReleaseToPool ()
-            {
                 if(this.Loader != null)
                     this.Loader.Reset();
-
             }
 
             public void RemovedFromPool ()
@@ -308,6 +302,9 @@ namespace KFrameWork
                 while(CommandQueue != null && CommandQueue.Count >0)
                 {
                     ICommand cmd = CommandQueue.Dequeue();
+
+                    if(cmd.isDone)
+                        continue;
 
                     if(this.ScriptDic.ContainsKey(cmd.CMD.Value))
                     {

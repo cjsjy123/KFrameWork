@@ -147,60 +147,6 @@ namespace KFrameWork
 
         public void AwakeFromPool ()
         {
-//            if(intList != null)
-//            {
-//                intList.Reset();
-//                intList.Clear();
-//            }
-//
-//
-//            if(shortlist != null)
-//            {
-//                shortlist.Reset();
-//                shortlist.Clear();
-//            }
-//
-//
-//            if(boollist != null)
-//            {
-//                boollist.Reset();
-//                boollist.Clear();
-//            }
-//
-//
-//            if(strlist != null)
-//            {
-//                strlist.Reset();
-//                strlist.Clear();
-//            }
-//
-//
-//            if(longList != null)
-//            {
-//                longList.Reset();
-//                longList.Clear();
-//            }
-//
-//
-//            if(objList != null)
-//            {
-//                objList.Reset();
-//                objList.Clear();
-//            }
-//
-//            if(UnityObjList != null)
-//            {
-//                UnityObjList.Reset();
-//                UnityObjList.Clear();
-//            }
-//
-//            ArgSortList.Clear();
-//            ArgCount =0;
-//            NextReadIndex =0;
-        }
-
-        public void ReleaseToPool ()
-        {
             if(intList != null)
             {
                 intList.Reset();
@@ -266,6 +212,7 @@ namespace KFrameWork
             _OrigionArgCount =-1;
             _NextReadIndex =0;
         }
+
 
         public void RemovedFromPool ()
         {

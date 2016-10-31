@@ -12,6 +12,19 @@ namespace KFrameWork
 
         private float m_starttime;
 
+        private float m_pausedstarttime;
+
+        private float m_pausedtime;
+
+        public float delayTime
+        {
+            get
+            {
+                return this.m_delay + this.m_pausedtime;
+            }
+        }
+
+
         private System.Action Callback;
 
 
@@ -61,39 +74,65 @@ namespace KFrameWork
         {
             if(GameSyncCtr.mIns.FrameWorkTime  - this.m_starttime >= this.m_delay)
             {
-                MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
-
-                if(this.Callback != null)
-                {
-                    this.Callback ();
-                }
-
-                this._isDone = true;
-
-                if(this.Next != null && !this.m_isBatching)
-                {
-                    this.m_isBatching =true;
-                    this.Next.Excute();
-                    //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
-                }
+                this.Stop();
             }
+        }
+
+        public override void Stop ()
+        {
+            MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
+
+            if(this.Callback != null)
+            {
+                this.Callback ();
+            }
+
+            this._isDone = true;
+
+            if(this.Next != null && !this.m_isBatching)
+            {
+                this.m_isBatching =true;
+                this.Next.Excute();
+                //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+            }
+        }
+
+        public override void Pause ()
+        {
+            float delta =GameSyncCtr.mIns.FrameWorkTime  - this.m_starttime;
+            if(delta < this.m_delay)
+            {
+                this.m_pausedstarttime = GameSyncCtr.mIns.FrameWorkTime ;
+
+                this.m_paused =true;
+            }
+        }
+
+        public override void Resume ()
+        {
+            if(this.m_paused)
+            {
+                this.m_pausedtime +=GameSyncCtr.mIns.FrameWorkTime  - this.m_pausedstarttime;
+                this.m_paused =false;
+            }
+
         }
             
 
-        public override void ReleaseToPool ()
+        public override void AwakeFromPool ()
         {
-            base.ReleaseToPool();
-            this.m_delay = 0;
+            base.AwakeFromPool ();
+            this.m_pausedtime =0f;
+            this.m_pausedstarttime =0f;
+            this.m_delay =0f;
+            this.m_starttime =0f;
             this.Callback = null;
-
         }
+
 
         public override void RemovedFromPool ()
         {
             base.RemovedFromPool();
-            this._CMD = null;
-            this._Gparams = null;
-            this._RParams = null;
             this.Callback = null;
 
         }

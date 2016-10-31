@@ -8,15 +8,20 @@ namespace KFrameWork
     public class FrameCommand:BaseCommand<FrameCommand>
     {
 
-        protected int _frame;
+        protected long _frame;
 
-        public int FrameCount
+        public long FrameCount
         {
             get
             {
-                return _frame;
+                return _frame +m_pausedFrameCnt;
             }
         }
+
+
+        protected long m_pausedFrameCnt;
+
+        protected long m_pausedStartFrame;
 
         private long m_startFrame;
 
@@ -76,40 +81,64 @@ namespace KFrameWork
 
         private void _ConfirmFrameDone(int value)
         {
-            if(GameSyncCtr.mIns.RenderFrameCount - this.m_startFrame >= FrameCount)
+            if(GameSyncCtr.mIns.RenderFrameCount - this.m_startFrame >= FrameCount && !this.m_paused)
             {
-                MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
-
-                if(this.Callback != null)
-                {
-                    this.Callback ();
-                }
-
-                this._isDone = true;
-
-                if(this.Next != null && !this.m_isBatching)
-                {
-                    this.m_isBatching =true;
-                    this.Next.Excute();
-                  //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
-                }
+                this.Stop();
             }
         }
 
-
-
-        public override void ReleaseToPool ()
+        public override void Stop ()
         {
-            base.ReleaseToPool();
+            MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
+
+            if(this.Callback != null)
+            {
+                this.Callback ();
+            }
+
+            this._isDone = true;
+
+            if(this.Next != null && !this.m_isBatching)
+            {
+                this.m_isBatching =true;
+                this.Next.Excute();
+                //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+            }
+        }
+
+        public override void Pause ()
+        {
+            long deltaFrame = GameSyncCtr.mIns.RenderFrameCount - this.m_startFrame;
+            if(deltaFrame < FrameCount)
+            {
+                this._frame = this.FrameCount - deltaFrame;
+                this.m_pausedStartFrame = GameSyncCtr.mIns.RenderFrameCount;
+                this.m_paused =true;
+            }
+        }
+
+        public override void Resume ()
+        {
+            if(this.m_paused)
+            {
+                this.m_pausedFrameCnt+=GameSyncCtr.mIns.RenderFrameCount - this.m_pausedStartFrame;
+                this.m_paused =false;
+            }
+        }
+
+        public override void AwakeFromPool ()
+        {
+            base.AwakeFromPool ();
+            this.m_pausedStartFrame =0;
+            this.m_pausedFrameCnt =0;
             this._frame = 0;
             this.Callback = null;
         }
 
+
         public override void RemovedFromPool ()
         {
-            this._CMD = null;
-            this._Gparams = null;
-            this._RParams = null;
+            base.RemovedFromPool();
             this.Callback = null;
 
         }

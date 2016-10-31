@@ -104,6 +104,12 @@ namespace KFrameWork
 
         void Excute ();
 
+        void Stop();
+
+        void Pause();
+
+        void Resume();
+
     }
 
     public interface IService

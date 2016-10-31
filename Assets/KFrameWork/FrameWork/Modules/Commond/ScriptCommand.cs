@@ -77,6 +77,21 @@ namespace KFrameWork
             base.Release (force);
         }
 
+        public override void Stop ()
+        {
+            this._isDone =true;
+        }
+
+        public override void Pause ()
+        {
+            this.m_paused =true;
+        }
+
+        public override void Resume ()
+        {
+            this.m_paused =false;
+        }
+
         protected override ScriptCommand OperatorAdd (ICommand other)
         {
             if(this != other)

@@ -11,7 +11,6 @@ namespace KUtils
     public interface IPool
     {
         void AwakeFromPool();
-        void ReleaseToPool();
         void RemovedFromPool();
     }
 
@@ -43,7 +42,6 @@ namespace KUtils
                 this.deltalist.Add(tp,new List<float>(8));
             }
 
-            data.ReleaseToPool();
             this.queue[tp].Add(data);
             this.deltalist[tp].Add(UnityEngine.Time.realtimeSinceStartup);
         }

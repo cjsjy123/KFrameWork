@@ -77,9 +77,26 @@ namespace KFrameWork
             }
         }
 
+        public override void Stop ()
+        {
+            if(this.m_isBatching && this.Next != null)
+                this.Next.Stop();
+            
+            MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+        }
+
+        public override void Pause ()
+        {
+            this.m_paused =true;
+        }
+
+        public override void Resume ()
+        {
+            this.m_paused =false;
+        }
+
         protected override BatchCommand OperatorAdd (ICommand other)
         {
-
             if(this != other)
             {
                 this.Add(other);

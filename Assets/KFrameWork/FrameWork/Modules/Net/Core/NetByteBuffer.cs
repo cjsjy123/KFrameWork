@@ -155,10 +155,7 @@ namespace KFrameWork
             this._Reset();
         }
 
-        public void ReleaseToPool ()
-        {
 
-        }
 
         public void RemovedFromPool ()
         {
