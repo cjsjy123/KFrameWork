@@ -76,9 +76,9 @@ namespace KFrameWork
             this._RenderFrameCount = 0;
             this.FrameRate =30;
 
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.Update,_RenderFrameUpdate);
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.BeforeUpdate,_LogicFrameUpdate);
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnApplicationPause,_GamePaused);
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Update,_RenderFrameUpdate);
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,_LogicFrameUpdate);
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
         }
 
         public void StartSync()

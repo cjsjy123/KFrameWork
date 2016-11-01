@@ -283,11 +283,15 @@ namespace KFrameWork
         public void PushCommand(ICommand command)
         {
 
-            if(command.CMD.HasValue)
+            if(command.CMD.HasValue && !command.isDone)
             {
                 CommandQueue.Enqueue(command);
 
                 DispathCommand();
+            }
+            else if(command.isDone)
+            {
+                LogMgr.LogError("消息已经完成");
             }
             else
             {

@@ -73,7 +73,7 @@ namespace KFrameWork
                     {
                         this._isDone = true;
                         this.m_isBatching =false;
-                        MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+                        MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
                     }      
                 }
             }
@@ -81,7 +81,7 @@ namespace KFrameWork
             {
                 this._isDone = true;
                 this.m_isBatching =false;
-                MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+                MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
             }
         }
 

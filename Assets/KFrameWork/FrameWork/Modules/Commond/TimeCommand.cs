@@ -60,7 +60,7 @@ namespace KFrameWork
                     base.Excute();
                     this.m_starttime = GameSyncCtr.mIns.FrameWorkTime;
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
+                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.LateUpdate,_ConfirmFrameDone,this);
                 }
             }
             catch(Exception ex)
@@ -70,17 +70,26 @@ namespace KFrameWork
 
         }
 
-        private void _ConfirmFrameDone(int value)
+        [DelegateAttribute(MainLoopEvent.LateUpdate)]
+        private static void _ConfirmFrameDone(System.Object o, int value)
         {
-            if(GameSyncCtr.mIns.FrameWorkTime  - this.m_starttime >= this.m_delay)
+            if(o is TimeCommand)
             {
-                this.Stop();
+                TimeCommand cmd = o as TimeCommand;
+                if(GameSyncCtr.mIns.FrameWorkTime  - cmd.m_starttime >= cmd.m_delay)
+                {
+                    cmd.Stop();
+                }
+            }
+            else
+            {
+                LogMgr.LogError(o);
             }
         }
 
         public override void Stop ()
         {
-            MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._ConfirmFrameDone);
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,_ConfirmFrameDone,this);
 
             if(this.Callback != null)
             {

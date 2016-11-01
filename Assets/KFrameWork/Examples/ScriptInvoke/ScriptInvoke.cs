@@ -11,37 +11,6 @@ public class ScriptInvoke : UnityMonoBehaviour {
         base.Start();
        //LogMgr.OpenLog =false;
 
-//        AbstractParams simple = GenericParams.Create();
-//
-//        simple.InsertShort(0,(short)4);
-//        simple.InsertShort(0,(short)14);
-//        simple.PushShort((short)5);
-////        simple.PushShort((short)6);
-////        simple.PushShort((short)7);
-//        simple.PushUnityObject(null);
-//        simple.PushBool(true);
-//
-//        var temp= SimpleParams.Create();
-//        temp.PushLong((long)11);
-//
-//        simple.Push(temp);
-//
-//        var v1 = simple.PopShort();
-//        var v2 = simple.PopShort();
-//        var v3 = simple.PopShort();
-//       
-//        var v5 = simple.PopUnityObject();
-//        var v6 = simple.PopBool();
-//        var v4 = simple.PopLong();
-
-//        KBaseState k =new KBaseState();
-//        KBaseState k1 =new KBaseState();
-//
-//        ScriptCommand cmd = ScriptCommand.Create((int)AttrtiDataCMD.LevlUp_CMD,1);
-//        cmd.CallParms.PushInt(123);
-//        cmd.Excute();
-
-
        StartCoroutine(YieldCall());
 	}
 

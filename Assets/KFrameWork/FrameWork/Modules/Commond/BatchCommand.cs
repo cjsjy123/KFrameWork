@@ -66,7 +66,7 @@ namespace KFrameWork
                     {
                         this.m_isBatching =true;
                         this.Next.Excute();
-                        MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+                        MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
                     }
 
                 }
@@ -82,7 +82,7 @@ namespace KFrameWork
             if(this.m_isBatching && this.Next != null)
                 this.Next.Stop();
             
-            MainLoop.getLoop().UnRegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
+            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
         }
 
         public override void Pause ()

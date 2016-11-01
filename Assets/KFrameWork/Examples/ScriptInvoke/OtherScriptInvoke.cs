@@ -10,8 +10,6 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
 	// Use this for initialization
     protected override  void Start () {
         base.Start();
-       
-
 	}
 
 
@@ -31,7 +29,6 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
     {
         UnityEngine.Object o = args.ReadUnityObject();
         float f = args.ReadFloat();
-
 
         LogMgr.LogFormat("Other invoke {0} {1} ",o,f);
     }

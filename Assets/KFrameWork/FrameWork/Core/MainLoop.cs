@@ -14,13 +14,11 @@ namespace KFrameWork
 
         public bool OpenFps =true;
 
-        public delegate void LoopDelgate(int value);
-
         private GameFrameWork framework;
 
-        private Dictionary<int,LoopDelgate> eventList = new Dictionary<int, LoopDelgate>();
+        private Dictionary<int,Action<int>> eventList = new Dictionary<int, Action<int>>();
 
-        private Dictionary<int,Action<int>> attEventList = new Dictionary<int, Action<int>>();
+        private Dictionary<int,StaticCacheDelegate> attEvents = new Dictionary<int, StaticCacheDelegate>();
 
         private static MainLoop _mIns;
 
@@ -45,9 +43,8 @@ namespace KFrameWork
                 _mIns = this;
                 _Init();
 
-                this._tryCall(LoopMonoEvent.Awake);
-                eventList.Remove((int)LoopMonoEvent.Awake);
-                attEventList.Remove((int)LoopMonoEvent.Awake);
+                this._tryCall(MainLoopEvent.Awake);
+                eventList.Remove((int)MainLoopEvent.Awake);
                 #if KDEBUG
             }
             else
@@ -60,12 +57,23 @@ namespace KFrameWork
 
         void Start()
         {
-            this._tryCall(LoopMonoEvent.Start);
+            this._tryCall(MainLoopEvent.Start);
 
+        }
+
+        private void Preload()
+        {
+            for(int i = (int)MainLoopEvent.Awake;i <(int) MainLoopEvent.END;++i)
+            {
+                this.attEvents.Add(i,new StaticCacheDelegate());
+            }
         }
 
         private void _Init()
         {
+
+            this.Preload();
+
             framework = new GameFrameWork();
             framework.Initialite();
 
@@ -74,10 +82,11 @@ namespace KFrameWork
                 this.gameObject.AddComponent<FPS>();
             }
 
+
         }
 
 
-        private void _tryCall(LoopMonoEvent em,int val =-1)
+        private void _tryCall(MainLoopEvent em,int val =-1)
         {
             try
             {
@@ -88,11 +97,12 @@ namespace KFrameWork
                         eventList[e](val);
                 }
 
-                if(attEventList.ContainsKey(e))
+                if(this.attEvents.ContainsKey(e))
                 {
-                    if(attEventList[e] != null)
-                        attEventList[e](val);
+                    if(attEvents[e] != null)
+                        attEvents[e].Invoke(e);
                 }
+                    
             }
             catch(Exception ex)
             {
@@ -102,7 +112,52 @@ namespace KFrameWork
 
         }
 
-        public void RegisterLoopEvent(LoopMonoEvent em , LoopDelgate d,bool first =false)
+        public void PreRegisterCachedAction(MainLoopEvent em,Action<System.Object,int> act )
+        {
+            int e = (int)em;
+            if(this.attEvents.ContainsKey(e))
+            {
+                StaticCacheDelegate d = this.attEvents[e];
+                d.PreAdd(act);
+
+            }
+            else
+            {
+                StaticCacheDelegate d = new StaticCacheDelegate();
+                d.PreAdd(act);
+                this.attEvents.Add(e,d);
+
+            }
+        }
+
+        public void RegisterCachedAction(MainLoopEvent em,Action<System.Object,int> act,System.Object ins )
+        {
+            int e = (int)em;
+            if(this.attEvents.ContainsKey(e))
+            {
+                StaticCacheDelegate d = this.attEvents[e];
+                d.Add(act,ins);
+            }
+            else
+            {
+                StaticCacheDelegate d = new StaticCacheDelegate();
+                d.Add(act,ins);
+                this.attEvents.Add(e,d);
+
+            }
+        }
+
+        public void UnRegisterCachedAction(MainLoopEvent em,Action<System.Object,int> act,System.Object ins )
+        {
+            int e = (int)em;
+            if(this.attEvents.ContainsKey(e))
+            {
+                StaticCacheDelegate d = this.attEvents[e];
+                d.Remove(act,ins);
+            }
+        }
+
+        public void RegisterLoopEvent(MainLoopEvent em , Action<int> d,bool first =false)
         {
             int e = (int)em;
             if(eventList.ContainsKey(e))
@@ -113,7 +168,7 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LoopDelgate old = this.eventList[e];
+                    Action<int> old = this.eventList[e];
                     d += old;
                     this.eventList[e] = d;
 
@@ -126,7 +181,7 @@ namespace KFrameWork
             }
         }
 
-        public void UnRegisterLoopEvent(LoopMonoEvent em, LoopDelgate d)
+        public void UnRegisterLoopEvent(MainLoopEvent em, Action<int> d)
         {
             int e = (int)em;
             if(eventList.ContainsKey(e))
@@ -135,51 +190,51 @@ namespace KFrameWork
             }
         }
 
-        public void RegisterLoopEvent(LoopMonoEvent em , MethodInfo d,bool first =false)
+        public void RegisterLoopEvent(MainLoopEvent em , MethodInfo d,bool first =false)
         {
             int e = (int)em;
             Action<int> func = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),d);
-            if(attEventList.ContainsKey(e))
+            if(this.eventList.ContainsKey(e))
             {
                 if(!first)
                 {
-                    this.attEventList[e]+= func;
+                    this.eventList[e]+= func;
                 }
                 else
                 {
-                    Action<int> old = this.attEventList[e];
+                    Action<int> old = this.eventList[e];
                     func += old;
-                    this.attEventList[e] = func;
+                    this.eventList[e] = func;
                 }
 
             }
             else
             {
-                this.attEventList.Add(e,func);
+                this.eventList.Add(e,func);
             }
         }
 
 
         void Update()
         {
-            this._tryCall(LoopMonoEvent.BeforeUpdate);
+            this._tryCall(MainLoopEvent.BeforeUpdate);
 
-            this._tryCall(LoopMonoEvent.Update);
+            this._tryCall(MainLoopEvent.Update);
         }
 
         void LateUpdate()
         {
-            this._tryCall(LoopMonoEvent.LateUpdate);
+            this._tryCall(MainLoopEvent.LateUpdate);
         }
 
         void FixedUpdate()
         {
-            this._tryCall(LoopMonoEvent.FixedUpdate);
+            this._tryCall(MainLoopEvent.FixedUpdate);
         }
 
         void OnApplicationQuit()
         {
-            this._tryCall(LoopMonoEvent.OnApplicationQuit);
+            this._tryCall(MainLoopEvent.OnApplicationQuit);
         }
 
         void OnApplicationPause(bool pauseStatus)
@@ -196,28 +251,28 @@ namespace KFrameWork
                 }
             }
 
-            this._tryCall(LoopMonoEvent.OnApplicationPause,pauseStatus?1:0);
+            this._tryCall(MainLoopEvent.OnApplicationPause,pauseStatus?1:0);
         }
 
         void OnApplicationFocus(bool focusStatus)
         {
-            this._tryCall(LoopMonoEvent.OnApplicationFocus,focusStatus?1:0);
+            this._tryCall(MainLoopEvent.OnApplicationFocus,focusStatus?1:0);
         }
 
         void OnLevelWasLoaded(int level)
         {
             if(SceneCtr.mIns.CurScene != null)
             {
-                this._tryCall(LoopMonoEvent.OnlevelLeaved,(int)SceneCtr.mIns.CurScene);
+                this._tryCall(MainLoopEvent.OnlevelLeaved,(int)SceneCtr.mIns.CurScene);
 
-                this._tryCall(LoopMonoEvent.OnLevelWasLoaded,(int)SceneCtr.mIns.nextScene);
+                this._tryCall(MainLoopEvent.OnLevelWasLoaded,(int)SceneCtr.mIns.nextScene);
             }
             else
             {
                 if(SceneCtr.DefaultScene == null)
-                    this._tryCall(LoopMonoEvent.OnLevelWasLoaded,level);
+                    this._tryCall(MainLoopEvent.OnLevelWasLoaded,level);
                 else
-                    this._tryCall(LoopMonoEvent.OnLevelWasLoaded,(int)SceneCtr.DefaultScene);
+                    this._tryCall(MainLoopEvent.OnLevelWasLoaded,(int)SceneCtr.DefaultScene);
             }
 
 
@@ -225,17 +280,17 @@ namespace KFrameWork
 
         void OnEnable()
         {
-            this._tryCall(LoopMonoEvent.OnEnable);
+            this._tryCall(MainLoopEvent.OnEnable);
         }
 
         void OnDisable()
         {
-            this._tryCall(LoopMonoEvent.OnDisable);
+            this._tryCall(MainLoopEvent.OnDisable);
         }
 
         void OnDestroy()
         {
-            this._tryCall(LoopMonoEvent.OnDestroy);
+            this._tryCall(MainLoopEvent.OnDestroy);
         }
     }
 

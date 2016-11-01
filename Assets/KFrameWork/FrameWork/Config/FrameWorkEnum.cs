@@ -28,7 +28,7 @@ namespace KFrameWork
     /// <summary>
     /// MainLoop 的生命周期事件
     /// </summary>
-    public enum LoopMonoEvent
+    public enum MainLoopEvent
     {
         Awake,
         Start,
@@ -47,6 +47,7 @@ namespace KFrameWork
 
         ///extensions
         OnlevelLeaved,
+        END
     }
 
     public enum ParamType

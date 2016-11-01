@@ -68,7 +68,7 @@ namespace KFrameWork
 //
         public Schedule()
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.BeforeUpdate,UpdateSchedule);
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,UpdateSchedule);
         }
             
         public void ScheduleInvoke(float delay,Action callback)

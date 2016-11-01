@@ -29,6 +29,7 @@ public class AttributeRegister
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokUpdateAttribute), Register_KFKUpdateAtt);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokLateUpdateAttribute), Register_KFKLateupdateAtt);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokBeforeUpdateAttribute), Register_KFKBeforeUpdateAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(DelegateAttribute), Register_DelegateAtt);
 
     }
 
@@ -82,7 +83,7 @@ public class AttributeRegister
     {
         LoopEventAttribute attval = att as LoopEventAttribute;
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
             MainLoop.getLoop().RegisterLoopEvent(attval.ev,method);
         }
@@ -93,15 +94,15 @@ public class AttributeRegister
     private static void Register_SceneAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
             if(method.ReflectedType == typeof(SceneCtr))
             {
-                MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnLevelWasLoaded,method,true);
+                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnLevelWasLoaded,method,true);
             }
             else
             {
-                MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnLevelWasLoaded,method);
+                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnLevelWasLoaded,method);
             }
 
         }
@@ -111,15 +112,15 @@ public class AttributeRegister
     private static void Register_SceneLeaveAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
             if(method.ReflectedType == typeof(SceneCtr))
             {
-                MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnlevelLeaved,method,true);
+                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnlevelLeaved,method,true);
             }
             else
             {
-                MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnlevelLeaved,method);
+                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnlevelLeaved,method);
             }
         }
 
@@ -129,7 +130,7 @@ public class AttributeRegister
     {
         Script_SharpLogicAttribute attval = att as Script_SharpLogicAttribute;
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
             ScriptLogicCtr.mIns.RegisterLogicFunc(method,attval.CMD,null,ScriptTarget.Sharp);
         }
@@ -140,7 +141,7 @@ public class AttributeRegister
     {
         Script_LuaLogicAttribute attval = att as Script_LuaLogicAttribute;
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
             ScriptLogicCtr.mIns.RegisterLogicFunc(method,attval.CMD,attval.methodName,ScriptTarget.Lua);
         }
@@ -150,10 +151,10 @@ public class AttributeRegister
     private static void Register_KFKAwakecAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.Awake,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Awake,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -161,10 +162,10 @@ public class AttributeRegister
     private static void Register_KFKStartcAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.Start,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Start,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -172,10 +173,10 @@ public class AttributeRegister
     private static void Register_KFKFixedupdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.FixedUpdate,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.FixedUpdate,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -183,10 +184,10 @@ public class AttributeRegister
     private static void Register_KFKUpdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.Update,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Update,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -194,10 +195,10 @@ public class AttributeRegister
     private static void Register_KFKLateupdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -205,10 +206,10 @@ public class AttributeRegister
     private static void Register_KFKPauseAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnApplicationPause,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -216,10 +217,10 @@ public class AttributeRegister
     private static void Register_KFKQuitAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnApplicationQuit,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationQuit,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -227,10 +228,10 @@ public class AttributeRegister
     private static void Register_KFKDestroyAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnDestroy,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnDestroy,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -238,10 +239,10 @@ public class AttributeRegister
     private static void Register_KFKDisableAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnDisable,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnDisable,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -249,10 +250,10 @@ public class AttributeRegister
     private static void Register_KFKEnableAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.OnEnable,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnEnable,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
@@ -260,14 +261,27 @@ public class AttributeRegister
     private static void Register_KFKBeforeUpdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.IsStatic)
+        if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.BeforeUpdate,
-                (MainLoop.LoopDelgate)Delegate.CreateDelegate(typeof(MainLoop.LoopDelgate),method),
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
     }
 
     #endregion
+
+
+    private static void Register_DelegateAtt(object att,object target)
+    {
+        DelegateAttribute delegateAtt = att as DelegateAttribute;
+        MethodInfo method = target as MethodInfo;
+        if(method.LogStaticMethod())
+        {
+            MainLoop.getLoop().PreRegisterCachedAction(delegateAtt.e,
+                (Action<System.Object, int>)Delegate.CreateDelegate(typeof(Action<System.Object,int>),method)
+                );
+        }
+    }
 
 }

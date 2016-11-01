@@ -1,12 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-//using System.Threading.Tasks;
+using System.Reflection;
+
 namespace KUtils
 {
     public static class ToolsExtension
     {
-
+        public static bool LogStaticMethod(this MethodInfo m)
+        {
+            if(!m.IsStatic)
+            {
+                LogMgr.LogError("非静态函数");
+                return false;
+            }
+            return true;
+        }
 
         public static bool TryAdd<T>(this List<T> list,T data)
         {

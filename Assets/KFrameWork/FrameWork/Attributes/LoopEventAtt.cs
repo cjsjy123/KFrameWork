@@ -6,11 +6,11 @@ namespace KFrameWork
     [AttributeUsage(AttributeTargets.Method)]
     public class LoopEventAttribute:Attribute
     {
-        public LoopMonoEvent ev = LoopMonoEvent.Awake; 
+        public MainLoopEvent ev = MainLoopEvent.Awake; 
         
         public LoopEventAttribute(){}
 
-        public LoopEventAttribute(LoopMonoEvent e)
+        public LoopEventAttribute(MainLoopEvent e)
         {
             this.ev = e;
         }
