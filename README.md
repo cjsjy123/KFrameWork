@@ -65,4 +65,5 @@ https://github.com/topameng/tolua<br>
 
 0.0.01aVersion ----- 2016.11.3：<br>
 优化命令，达到0GC
-
+![image](https://github.com/cjsjy123/KFrameWork/screenshot/1.png)
+![image](https://github.com/cjsjy123/KFrameWork/screenshot/2.png)
