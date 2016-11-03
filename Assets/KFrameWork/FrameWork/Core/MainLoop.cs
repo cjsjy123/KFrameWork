@@ -130,30 +130,31 @@ namespace KFrameWork
             }
         }
 
-        public void RegisterCachedAction(MainLoopEvent em,Action<System.Object,int> act,System.Object ins )
+        public void RegisterCachedAction(MainLoopEvent em,int id,System.Object ins )
         {
             int e = (int)em;
+
             if(this.attEvents.ContainsKey(e))
             {
                 StaticCacheDelegate d = this.attEvents[e];
-                d.Add(act,ins);
+                d.Add(id,ins);
             }
             else
             {
-                StaticCacheDelegate d = new StaticCacheDelegate();
-                d.Add(act,ins);
-                this.attEvents.Add(e,d);
+//                StaticCacheDelegate d = new StaticCacheDelegate();
+//                d.Add(id,ins);
+//                this.attEvents.Add(e,d);
 
             }
         }
 
-        public void UnRegisterCachedAction(MainLoopEvent em,Action<System.Object,int> act,System.Object ins )
+        public void UnRegisterCachedAction(MainLoopEvent em,int id,System.Object ins )
         {
             int e = (int)em;
             if(this.attEvents.ContainsKey(e))
             {
                 StaticCacheDelegate d = this.attEvents[e];
-                d.Remove(act,ins);
+                d.Remove(id,ins);
             }
         }
 

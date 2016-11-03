@@ -24,6 +24,17 @@ public abstract class CacheCommand:ICommand
         }
     }
 
+    private static int Counter =0;
+
+    private int m_UID;
+
+    public int UID
+    {
+        get{
+            return this.m_UID;
+        }
+    }
+
     protected AbstractParams _Gparams ;
 
     public AbstractParams CallParms
@@ -87,6 +98,11 @@ public abstract class CacheCommand:ICommand
         {
             _RParams = value;
         }
+    }
+
+    protected void GenID()
+    {
+        this.m_UID = Counter++;
     }
 
     public abstract void Stop();

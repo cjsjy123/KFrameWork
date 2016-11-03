@@ -6,20 +6,28 @@ using System;
 namespace KFrameWork
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public class DelegateAttribute : Attribute {
+    public class DelegateMethodAttribute : Attribute {
 
         public MainLoopEvent   e;
 
-        private DelegateAttribute()
+        public string name;
+
+        public Type tp;
+
+        private DelegateMethodAttribute()
         {
             
         }
 
-        public DelegateAttribute(MainLoopEvent ev)
+        public DelegateMethodAttribute(MainLoopEvent ev,string pname,Type passtp)
         {
             this.e =ev;
+            this.name = pname;
+            this.tp = passtp;
         }
     }
+
+
 }
 
 

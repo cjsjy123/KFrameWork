@@ -16,7 +16,7 @@ namespace KFrameWork
 
         public readonly float FrameWorkStartTime ;
 
-        public const string Version ="0.0.01";
+        public const string Version ="0.0.01a";
 
         private bool m_binit;
         public bool Inited

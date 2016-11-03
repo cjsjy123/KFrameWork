@@ -7,6 +7,7 @@ namespace KFrameWork
 {
     public class TimeCommand:BaseCommand<TimeCommand>
     {
+        private static readonly int methodID;
 
         private float m_delay;
 
@@ -60,7 +61,7 @@ namespace KFrameWork
                     base.Excute();
                     this.m_starttime = GameSyncCtr.mIns.FrameWorkTime;
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.LateUpdate,_ConfirmFrameDone,this);
+                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
                 }
             }
             catch(Exception ex)
@@ -70,7 +71,7 @@ namespace KFrameWork
 
         }
 
-        [DelegateAttribute(MainLoopEvent.LateUpdate)]
+        [DelegateMethodAttribute(MainLoopEvent.LateUpdate,"methodID",typeof(TimeCommand))]
         private static void _ConfirmFrameDone(System.Object o, int value)
         {
             if(o is TimeCommand)
@@ -89,7 +90,7 @@ namespace KFrameWork
 
         public override void Stop ()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,_ConfirmFrameDone,this);
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
 
             if(this.Callback != null)
             {

@@ -4,7 +4,7 @@ using System.Reflection;
 using KFrameWork;
 using System;
 using KUtils;
-
+using System.Runtime.CompilerServices;
 
 public class AttributeRegister 
 {
@@ -29,7 +29,7 @@ public class AttributeRegister
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokUpdateAttribute), Register_KFKUpdateAtt);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokLateUpdateAttribute), Register_KFKLateupdateAtt);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokBeforeUpdateAttribute), Register_KFKBeforeUpdateAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(DelegateAttribute), Register_DelegateAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(DelegateMethodAttribute), Register_DelegateAtt);
 
     }
 
@@ -274,14 +274,23 @@ public class AttributeRegister
 
     private static void Register_DelegateAtt(object att,object target)
     {
-        DelegateAttribute delegateAtt = att as DelegateAttribute;
+        DelegateMethodAttribute delegateAtt = att as DelegateMethodAttribute;
         MethodInfo method = target as MethodInfo;
         if(method.LogStaticMethod())
         {
-            MainLoop.getLoop().PreRegisterCachedAction(delegateAtt.e,
-                (Action<System.Object, int>)Delegate.CreateDelegate(typeof(Action<System.Object,int>),method)
-                );
+            Action<System.Object, int> callback =(Action<System.Object, int>)Delegate.CreateDelegate(typeof(Action<System.Object,int>),method);
+            MainLoop.getLoop().PreRegisterCachedAction(delegateAtt.e,callback);
+
+
+            Type tp = delegateAtt.tp;
+
+            FieldInfo fs = tp.GetField(delegateAtt.name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            if(fs != null)
+            {
+                fs.SetValue(null,RuntimeHelpers.GetHashCode(callback));
+            }
         }
     }
+
 
 }

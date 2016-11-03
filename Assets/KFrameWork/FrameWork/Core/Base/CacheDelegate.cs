@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.Runtime.CompilerServices;
 using Object = System.Object;
 
 namespace KFrameWork
@@ -10,91 +11,139 @@ namespace KFrameWork
         /// <summary>
         /// 减低查询的性能，避免遍历的gc
         /// </summary>
-        private List<KeyValuePair<Action<Object,int>,List<Object>>> caches = new List<KeyValuePair<Action<Object,int>,List<Object>>>(8);
+        private List<int> caches ;
+
+        private Dictionary<int,List<Object>> listDic;
+
+        private Dictionary<int ,Action<Object,int>> dic;
 
         public StaticCacheDelegate()
         {
-           
+            this.caches = new List<int>(8);
+            this.dic = new Dictionary<int, Action<object, int>>(8);
+            this.listDic = new Dictionary<int, List<object>>(8);
+        }
+
+        public bool Contains(int hashcode)
+        {
+            if(hashcode ==0)
+            {
+                LogMgr.Log("这是一个空对象");
+                return false;
+            }
+            return this.caches.Contains(hashcode);
         }
 
         public bool Contains(Action<Object,int> t)
         {
-            for(int i=0;i < this.caches.Count;++i)
+            int hashcode =  RuntimeHelpers.GetHashCode(t);
+
+            return this.Contains(hashcode);
+        }
+
+        public List<Object> Get(int hashcode)
+        {
+            if(listDic.ContainsKey(hashcode))//logn
             {
-                if(this.caches[i].Key == t)
-                {
-                    return true;
-                }
+                return listDic[hashcode];
             }
-            return false;
+            return null;
         }
 
         public List<Object> Get(Action<Object,int> t)
         {
-            for(int i=0;i < this.caches.Count;++i)
-            {
-                if(this.caches[i].Key == t)
-                {
-                    return this.caches[i].Value;
-                }
-            }
-            return null;
+            int hashcode = RuntimeHelpers.GetHashCode(t);
+            return this.Get(hashcode);
         }
+
 
         public void Invoke(int arg)
         {
             for(int i=0;i < this.caches.Count;++i)
             {
-                KeyValuePair<Action<Object,int>,List<Object>> k = this.caches[i];
-                if(k.Key != null && k.Value.Count >0)
+                int id = this.caches[i];
+                if(id !=0 && this.listDic.ContainsKey(id)  )
                 {
-                    for(int j=0; j < k.Value.Count;++j)
+                    if(!this.dic.ContainsKey(id))
                     {
-                        k.Key(k.Value[j],arg);
+                        LogMgr.Log("缓存中不存在此回调");
                     }
+                    else
+                    {
+                        List<Object> l =listDic[id];
+                        for(int j=0; j <l.Count;++j)
+                        {
+                            dic[id](l[j],arg);
+                        }
+                    }
+
+
                 }
+            }
+        }
+
+        private void TryPushtoDic(int id,Action<Object,int> t)
+        {
+            if(!this.dic.ContainsKey(id))
+            {
+                this.dic.Add(id,t);
+            }
+        }
+
+        private void TryPushtoListDic(int id,Object t)
+        {
+            if(!this.listDic.ContainsKey(id))
+            {
+                List<Object> list = new List<object>(8);
+                list.Add(t);
+                this.listDic.Add(id,list);
+            }
+            else
+            {
+                List<Object> list =this.listDic[id];
+                if(!list.Contains(t))
+                {
+                    this.listDic[id].Add(t);
+                }
+
             }
         }
 
         public void PreAdd(Action<Object,int> t)
         {
-            if(!this.Contains(t))
+            int hashcode = RuntimeHelpers.GetHashCode(t);
+            if(!this.Contains(hashcode))
             {
-                List<Object> dic = new List<Object>(8);
 
-                this.caches.Add(new KeyValuePair<Action<object, int>, List<object>>(t,dic));
+                this.caches.Add(hashcode);
+
+                List<Object> list = new List<object>(8);
+                this.listDic.Add(hashcode,list);
+
+                this.TryPushtoDic(hashcode,t);
             }
         }
 
-        public void Add(Action<Object,int> t,System.Object ins)
+        public void Add(int uid,System.Object ins)
         {
-            List<Object> list = this.Get(t);
-            if(list  != null)
-            {
-
-                if(!list.Contains(ins))//log n
-                {
-                    list.Add(ins);
-                }
-
-            }
-            else
-            {
-                list= new List<Object>(8);
-                list.Add(ins);
-                this.caches.Add(new KeyValuePair<Action<object, int>, List<object>>(t,list));
-            }
+            this.TryPushtoListDic(uid,ins);
         }
 
         public bool Remove(Action<Object,int> t ,Object ins)
         {
-            List<Object> list = this.Get(t);
+            int hashcode = RuntimeHelpers.GetHashCode(t);
+            return this.Remove(hashcode,ins);
+        }
+
+        public bool Remove(int hashcode ,Object ins)
+        {
+            List<Object> list = this.Get(hashcode);
             if(list != null)
             {
 
                 if(list.Contains(ins))
                 {
-                    return list.Remove(ins);
+                    return list.Remove(ins) ;
                 }
             }
             return false;

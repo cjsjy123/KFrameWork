@@ -13,17 +13,6 @@ namespace KFrameWork
         protected bool m_isBatching =false;
         protected bool m_paused =false;
 
-        private static int Counter =0;
-
-        private int m_UID;
-
-        public int UID
-        {
-            get{
-                return this.m_UID;
-            }
-        }
-
         [FrameWokAwakeAttribute]
         public static void Preload(int value)
         {
@@ -90,10 +79,7 @@ namespace KFrameWork
             this._BatchCall();
         }
 
-        protected void GenID()
-        {
-            this.m_UID = Counter++;
-        }
+
         //---------------pool--------
         public virtual void AwakeFromPool ()
         {
