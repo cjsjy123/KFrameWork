@@ -8,7 +8,7 @@ namespace KFrameWork
     public sealed class BatchCommand:BaseCommand<BatchCommand>
     {
 
-        protected BatchCommand()
+        private BatchCommand()
         {
             
         }

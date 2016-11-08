@@ -8,7 +8,7 @@ namespace KFrameWork
     public sealed class ScriptCommand :BaseCommand<ScriptCommand>
     {
 
-        protected ScriptCommand()
+        private ScriptCommand()
         {
             
         }

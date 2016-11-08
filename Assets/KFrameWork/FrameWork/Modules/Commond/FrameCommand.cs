@@ -7,9 +7,9 @@ namespace KFrameWork
 {
     public sealed class FrameCommand:BaseCommand<FrameCommand>
     {
-        private static readonly int methodID;
+        private static readonly int methodID =0;
 
-        protected long _frame;
+        private long _frame;
 
         public long FrameCount
         {
@@ -20,16 +20,16 @@ namespace KFrameWork
         }
 
 
-        protected long m_pausedFrameCnt;
+        private long m_pausedFrameCnt;
 
-        protected long m_pausedStartFrame;
+        private long m_pausedStartFrame;
 
         private long m_startFrame;
 
         private System.Action Callback;
 
 
-        protected FrameCommand()
+        private FrameCommand()
         {
             
         }

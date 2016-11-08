@@ -7,7 +7,7 @@ namespace KFrameWork
 {
     public sealed class TimeCommand:BaseCommand<TimeCommand>
     {
-        private static readonly int methodID;
+        private static readonly int methodID =0;
 
         private float m_delay;
 
@@ -29,7 +29,7 @@ namespace KFrameWork
         private System.Action Callback;
 
 
-        protected TimeCommand()
+        private TimeCommand()
         {
 
         }

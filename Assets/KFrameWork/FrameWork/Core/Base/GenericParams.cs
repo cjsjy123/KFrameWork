@@ -8,10 +8,11 @@ using KUtils;
 
 namespace KFrameWork
 {
+   
+
     public sealed class GenericParams:AbstractParams,IPool  {
 
-
-        protected class ParamsList<T> 
+        private sealed class ParamsList<T> 
         {
             private List<T> _list ;
 
@@ -83,16 +84,16 @@ namespace KFrameWork
 
         }
 
-        protected ParamsList<int> intList ;
-        protected ParamsList<short> shortlist;
-        protected ParamsList<bool> boollist;
-        protected ParamsList<string> strlist;
-        protected ParamsList<long> longList;
-        protected ParamsList<float> floatList;
-        protected ParamsList<double> doubleList;
-        protected ParamsList<Vector3> vector3List;
-        protected ParamsList<System.Object> objList;
-        protected ParamsList<UnityEngine.Object> UnityObjList;
+        private ParamsList<int> intList ;
+        private ParamsList<short> shortlist;
+        private ParamsList<bool> boollist;
+        private ParamsList<string> strlist;
+        private ParamsList<long> longList;
+        private ParamsList<float> floatList;
+        private ParamsList<double> doubleList;
+        private ParamsList<Vector3> vector3List;
+        private ParamsList<System.Object> objList;
+        private ParamsList<UnityEngine.Object> UnityObjList;
 
         private List<KeyValuePair<int,int>> ArgSortList = new List<KeyValuePair<int,int>>();
 

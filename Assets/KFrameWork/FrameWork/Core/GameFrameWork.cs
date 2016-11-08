@@ -49,7 +49,7 @@ namespace KFrameWork
             this._attributeHandlers[(int)tp].TryAdd(new KeyValuePair<Type, GameAttriHandler>(target, handler));
         }
 
-        protected void InitAttributes()
+        private void InitAttributes()
         {
             Assembly asm = this.GetType().Assembly;
             Type[] types = asm.GetTypes();
