@@ -5,7 +5,7 @@ using KUtils;
 
 namespace KFrameWork
 {
-    public class FrameCommand:BaseCommand<FrameCommand>
+    public sealed class FrameCommand:BaseCommand<FrameCommand>
     {
         private static readonly int methodID;
 

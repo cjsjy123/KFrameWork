@@ -99,6 +99,7 @@ public abstract class CacheCommand:ICommand
             _RParams = value;
         }
     }
+        
 
     protected void GenID()
     {

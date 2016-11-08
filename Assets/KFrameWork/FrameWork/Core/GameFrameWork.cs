@@ -7,7 +7,7 @@ using KUtils;
 
 namespace KFrameWork
 {
-    public class GameFrameWork 
+    public sealed class GameFrameWork 
     {
         /// <summary>
         /// o 为att对象，target 返回类或者方法对象

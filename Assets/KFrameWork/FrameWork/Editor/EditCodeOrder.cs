@@ -21,11 +21,11 @@ public class EditCodeOrder {
 
         foreach(var tp in types)
         {
-            bool define = Attribute.IsDefined(tp,typeof(ScriptInitOrderAtt));
+            bool define = Attribute.IsDefined(tp,typeof(ScriptInitOrderAttribute));
 
             if(define)
             {
-                ScriptInitOrderAtt att = tp.GetCustomAttributes(typeof(ScriptInitOrderAtt), true)[0] as ScriptInitOrderAtt;
+                ScriptInitOrderAttribute att = tp.GetCustomAttributes(typeof(ScriptInitOrderAttribute), true)[0] as ScriptInitOrderAttribute;
                 targetList.Add(tp.Name,att.Order);
             }
         }

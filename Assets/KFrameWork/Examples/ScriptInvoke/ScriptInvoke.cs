@@ -5,7 +5,7 @@ using KUtils;
 using KFrameWork;
 using System.Runtime.InteropServices;
 
-public class ScriptInvoke : UnityMonoBehaviour {
+public sealed class ScriptInvoke : UnityMonoBehaviour {
 
     protected override  void Start () {
         base.Start();

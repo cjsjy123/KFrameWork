@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace KFrameWork
 {
-    public class ScriptCommand :BaseCommand<ScriptCommand>
+    public sealed class ScriptCommand :BaseCommand<ScriptCommand>
     {
 
         protected ScriptCommand()

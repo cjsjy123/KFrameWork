@@ -6,7 +6,7 @@ using System;
 using KUtils;
 using System.Runtime.CompilerServices;
 
-public class AttributeRegister 
+public static class AttributeRegister 
 {
     public static void Register( GameFrameWork frameWork)
     {

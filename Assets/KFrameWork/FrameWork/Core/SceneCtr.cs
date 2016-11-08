@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 namespace KFrameWork
 {
     [SingleTon]
-    public class SceneCtr:System.IDisposable
+    public sealed class SceneCtr:System.IDisposable
     {
         public static SceneCtr mIns;
         /// <summary>

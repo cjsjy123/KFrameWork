@@ -6,7 +6,7 @@ using System;
 
 namespace KFrameWork
 {
-    public class SharpScriptLoader : IScriptLoader {
+    public sealed class SharpScriptLoader : IScriptLoader {
         
         private List<System.Object> AttachedObject;
         private Delegate ScriptFunc;

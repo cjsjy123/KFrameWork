@@ -7,7 +7,7 @@ using KUtils;
 namespace KFrameWork
 {
     [SingleTon]
-    public class FSMCtr  {
+    public sealed class FSMCtr  {
 
         public static FSMCtr mIns;
 

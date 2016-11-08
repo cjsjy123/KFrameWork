@@ -15,8 +15,8 @@ namespace KFrameWork
 {
 
     [SingleTon]
-    public class ScriptLogicCtr  {
-        private class ScriptPkg:IDisposable,IPool
+    public sealed class ScriptLogicCtr  {
+        private sealed class ScriptPkg:IDisposable,IPool
         {
 
             private IScriptLoader _script;

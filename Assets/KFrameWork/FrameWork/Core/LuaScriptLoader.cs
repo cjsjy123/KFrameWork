@@ -14,7 +14,7 @@ using LuaInterface;
 namespace KFrameWork
 {
 
-    public class LuaScriptLoader :IScriptLoader
+    public sealed class LuaScriptLoader :IScriptLoader
     {
         #if TOLUA
         private LuaFunction luafunc;

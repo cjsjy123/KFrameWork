@@ -5,7 +5,7 @@ using System;
 
 namespace KFrameWork
 {
-    public class BatchCommand:BaseCommand<BatchCommand>
+    public sealed class BatchCommand:BaseCommand<BatchCommand>
     {
 
         protected BatchCommand()

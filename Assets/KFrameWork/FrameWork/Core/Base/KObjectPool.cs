@@ -20,7 +20,7 @@ namespace KUtils
     /// <typeparam name="T"></typeparam>
     /// 
     [SingleTon]
-    public class KObjectPool
+    public sealed class KObjectPool
     {
         public static KObjectPool mIns;
 

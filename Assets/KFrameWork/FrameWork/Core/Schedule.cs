@@ -7,7 +7,7 @@ using KUtils;
 namespace KFrameWork
 {
     [SingleTon]
-    public class Schedule  {
+    public sealed class Schedule  {
 
         public static Schedule mIns;
 

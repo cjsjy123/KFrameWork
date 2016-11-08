@@ -14,7 +14,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         StartCoroutine(YieldCall());
 
         FrameCommand  cmd = FrameCommand.Create(Done,1);
-        cmd.Excute();
+        cmd.ExcuteAndRelease();
 	}
 
 
@@ -53,7 +53,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
             FrameCommand  cmd = FrameCommand.Create(Done,2);
-            cmd.Excute();
+            cmd.ExcuteAndRelease();
 
         }
 
@@ -66,7 +66,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             cmd+=FrameCommand.Create(Done,1);
             cmd+=FrameCommand.Create(Done,2);
             cmd+=FrameCommand.Create(Done,3);
-            cmd.Excute();
+            cmd.ExcuteAndRelease();
 
         }
 
@@ -105,7 +105,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             BatchCommand batch1 = BatchCommand.Create(FrameCommand.Create(Done,1),cmd1);
             BatchCommand batch2 = BatchCommand.Create(FrameCommand.Create(Done,2),cmd2);
             batch1+= batch2;
-            batch1.Excute();
+            batch1.ExcuteAndRelease();
 
         }
 
@@ -115,7 +115,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("BatchFrame Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
             BatchCommand batch1 = BatchCommand.Create(FrameCommand.Create(Done,1),FrameCommand.Create(Done,1),FrameCommand.Create(Done,1),FrameCommand.Create(Done,1));
-            batch1.Excute();
+            batch1.ExcuteAndRelease();
 
         }
 
@@ -124,7 +124,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("Now Frame : {0} Now Time:{1}",GameSyncCtr.mIns.RenderFrameCount,Time.realtimeSinceStartup);
 
             TimeCommand cmd = TimeCommand.Create(TimeDone,0.4f);
-            cmd.Excute();
+            cmd.ExcuteAndRelease();
 
         }
 
@@ -135,7 +135,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             StartCoroutine(YieldCall());
 
             FrameCommand  cmd = FrameCommand.Create(Done,1);
-            cmd.Excute();
+            cmd.ExcuteAndRelease();
 
         }
     }

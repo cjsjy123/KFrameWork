@@ -12,6 +12,7 @@ using LuaInterface;
 
 namespace KFrameWork
 {
+
     [AttributeUsage(AttributeTargets.Method)]
     public class Script_LuaLogicAttribute:Attribute
     {

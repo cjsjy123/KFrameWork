@@ -8,7 +8,7 @@ using KUtils;
 
 namespace KFrameWork
 {
-    public class GenericParams:AbstractParams,IPool  {
+    public sealed class GenericParams:AbstractParams,IPool  {
 
 
         protected class ParamsList<T> 

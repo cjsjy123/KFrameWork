@@ -8,7 +8,7 @@ namespace KFrameWork
 {
 
     [SingleTon]
-    public class GameSyncCtr
+    public sealed class GameSyncCtr
     {
         public static GameSyncCtr mIns;
 

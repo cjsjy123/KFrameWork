@@ -6,7 +6,7 @@ using KFrameWork;
 using KUtils;
 
 [SingleTon]
-public class ResLoader  {
+public sealed class ResLoader  {
 
     public static ResLoader mIns;
 

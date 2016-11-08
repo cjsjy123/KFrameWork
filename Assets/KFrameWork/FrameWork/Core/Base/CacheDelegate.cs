@@ -7,7 +7,7 @@ using Object = System.Object;
 
 namespace KFrameWork
 {
-    public class StaticCacheDelegate   {
+    public sealed class StaticCacheDelegate   {
         /// <summary>
         /// 减低查询的性能，避免遍历的gc
         /// </summary>

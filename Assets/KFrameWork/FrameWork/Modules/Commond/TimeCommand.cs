@@ -5,7 +5,7 @@ using KUtils;
 
 namespace KFrameWork
 {
-    public class TimeCommand:BaseCommand<TimeCommand>
+    public sealed class TimeCommand:BaseCommand<TimeCommand>
     {
         private static readonly int methodID;
 
