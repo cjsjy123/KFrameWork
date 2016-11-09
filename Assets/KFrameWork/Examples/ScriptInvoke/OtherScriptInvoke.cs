@@ -10,6 +10,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
 	// Use this for initialization
     protected override  void Start () {
         base.Start();
+
         LogMgr.LogFormat("初始帧 :{0}", GameSyncCtr.mIns.RenderFrameCount);
         StartCoroutine(YieldCall());
 
