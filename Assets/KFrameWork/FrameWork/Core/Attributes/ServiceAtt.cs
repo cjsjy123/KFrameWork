@@ -111,7 +111,7 @@ public class GSReceiverAttribute : Attribute {
         }
         else
         {
-            throw new ArgumentException(serviceTp +" 不包含 ServiceAttribute");
+            throw new FrameWorkException(serviceTp +" 不包含 ServiceAttribute");
         }
 
     }

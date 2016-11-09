@@ -12,7 +12,7 @@ namespace KFrameWork
         {
             if(FrameWorkDebug.Open_DEBUG)
             {
-                throw new ArgumentException("并没有应有的虚函数调用");
+                throw new FrameWorkException("并没有应有的虚函数调用");
             }
         }
 

@@ -17,6 +17,15 @@ namespace KFrameWork
 
     }
 
+    public enum ExceptionType
+    {
+        Ignore_Exception,
+        Lower_Exception,
+        Higher_Excetpion,
+        HighDanger_Exception,
+
+    }
+
     public enum FrameWorkEvent
     {
         EnterScene,

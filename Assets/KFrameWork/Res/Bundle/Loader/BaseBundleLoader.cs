@@ -30,7 +30,7 @@ public abstract class BaseBundleLoader
 
         if (BundleConfig.SAFE_MODE) {
             if (string.IsNullOrEmpty (urlpath))
-                throw new ArgumentException (string.Format ("ulr error: {0}", urlpath));
+                throw new FrameWorkException (string.Format ("ulr error: {0}", urlpath));
 
             //trim
             urlpath = urlpath.Trim ();
@@ -67,7 +67,7 @@ public abstract class BaseBundleLoader
     {
         if (BundleConfig.SAFE_MODE) {
             if (string.IsNullOrEmpty (basename))
-                throw new ArgumentException (string.Format ("ulr error: {0}", basename));
+                throw new FrameWorkException (string.Format ("ulr error: {0}", basename));
 
             //trim
             basename = basename.Trim ();
@@ -103,7 +103,7 @@ public abstract class BaseBundleLoader
 
         if (BundleConfig.SAFE_MODE) {
             if (string.IsNullOrEmpty (basename))
-                throw new ArgumentException (string.Format ("ulr error: {0}", basename));
+                throw new FrameWorkException (string.Format ("ulr error: {0}", basename));
 
             //trim
             basename = basename.Trim ();

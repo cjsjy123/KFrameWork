@@ -94,7 +94,7 @@ public class GenVerts : MonoBehaviour
         }
         else
         {
-            throw new ArgumentException("dir error");
+            throw new FrameWorkException("dir error");
         }
 
         if(nextx <  wid && nextx >=0 && nexty < height && nexty >=0)

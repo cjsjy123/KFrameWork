@@ -56,6 +56,13 @@ namespace KFrameWork
                     return this.Loader.Invoke(ScriptParms);
 
                 }
+                catch(FrameWorkException ex)
+                {
+                    LogMgr.LogException(ex);
+
+                    ex.RaiseExcption();
+                    return null;
+                }
                 catch(Exception ex)
                 {
                     LogMgr.LogException(ex);
@@ -186,7 +193,7 @@ namespace KFrameWork
                 System.Delegate d = callback;
                 if(!d.Method.IsStatic)
                 {
-                    throw new ArgumentException("必须为静态函数");
+                    throw new FrameWorkException("必须为静态函数");
                 }
 
             }
@@ -361,6 +368,12 @@ namespace KFrameWork
                     }
 
                 }
+            }
+            catch(FrameWorkException ex)
+            {
+                LogMgr.LogException(ex);
+
+                ex.RaiseExcption();
             }
             catch(Exception ex)
             {

@@ -104,6 +104,12 @@ namespace KFrameWork
                 }
                     
             }
+            catch(FrameWorkException ex)
+            {
+                LogMgr.LogException(ex);
+
+                ex.RaiseExcption();
+            }
             catch(Exception ex)
             {
                 LogMgr.LogException(ex);

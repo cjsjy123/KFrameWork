@@ -57,12 +57,12 @@ namespace KFrameWork
 
         protected void UsetSimple()
         {
-            throw new ArgumentException("参数较少，请使用Simpleparams");
+            throw new FrameWorkException("参数较少，请使用Simpleparams");
         }
 
         protected void UseGener()
         {
-            throw new ArgumentException("参数过多，请使用genericparams");
+            throw new FrameWorkException("参数过多，请使用genericparams");
         }
 
         public void Push(AbstractParams args)
