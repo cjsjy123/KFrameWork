@@ -2,11 +2,126 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
+using UnityEngine;
 
 namespace KUtils
 {
     public static class ToolsExtension
     {
+        public static void BindParent(this Transform tr, Transform p)
+        {
+#if UNITY_5_3 || UNITY_5_4
+            tr.SetParent(p);
+#else
+            tr.parent = p;
+#endif
+        }
+
+        public static void BindParent(this Transform tr, GameObject p)
+        {
+#if UNITY_5_3 || UNITY_5_4
+            tr.SetParent(p.transform);
+#else
+            tr.parent = p.transform;
+#endif
+        }
+
+        public static void BindParent(this Transform tr, Component p)
+        {
+#if UNITY_5_3 || UNITY_5_4
+            tr.SetParent(p.transform);
+#else
+            tr.parent = p.transform;
+#endif
+        }
+
+        public static GameObject InstancePrefab(this GameObject prefab, GameObject parent)
+        {
+            GameObject ins = GameObject.Instantiate(prefab);
+
+            Transform transform = ins.transform;
+            transform.BindParent(parent);
+            transform.localPosition = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            transform.gameObject.layer = parent.layer;
+            transform.tag = parent.tag;
+
+            return ins;
+        }
+
+        public static GameObject InstancePrefab(this GameObject prefab, Transform parent)
+        {
+            GameObject ins = GameObject.Instantiate(prefab);
+
+            Transform transform = ins.transform;
+            transform.BindParent(parent);
+            transform.localPosition = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            transform.gameObject.layer = parent.gameObject.layer;
+            transform.tag = parent.tag;
+
+            return ins;
+        }
+
+        public static GameObject AddInstance(this Component parent, GameObject ins)
+        {
+
+            Transform transform = ins.transform;
+            transform.BindParent(parent);
+            transform.localPosition = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            transform.gameObject.layer = parent.gameObject.layer;
+            transform.tag = parent.tag;
+
+            return ins;
+        }
+
+        public static GameObject AddInstance(this Component parent, Transform ins)
+        {
+
+            Transform transform = ins.transform;
+            transform.BindParent(parent);
+            transform.localPosition = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            transform.gameObject.layer = parent.gameObject.layer;
+            transform.tag = parent.tag;
+            return ins.gameObject;
+        }
+
+        public static GameObject AddPrefab(this Component parent, GameObject prefab)
+        {
+            GameObject ins = GameObject.Instantiate(prefab);
+
+            Transform transform = ins.transform;
+            transform.BindParent(parent);
+            transform.localPosition = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            transform.gameObject.layer = parent.gameObject.layer;
+            transform.tag = parent.tag;
+
+            return ins;
+        }
+
+        public static GameObject AddPrefab(this Component parent, Transform prefab)
+        {
+            GameObject ins = GameObject.Instantiate(prefab.gameObject);
+
+            Transform transform = ins.transform;
+            transform.BindParent(parent);
+            transform.localPosition = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+            transform.gameObject.layer = parent.gameObject.layer;
+            transform.tag = parent.tag;
+
+            return ins;
+        }
+
         public static bool LogStaticMethod(this MethodInfo m)
         {
             if(!m.IsStatic)

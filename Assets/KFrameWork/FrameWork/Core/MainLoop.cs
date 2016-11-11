@@ -5,6 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
+#if UNITY_5_5 || UNITY_5_4
+using UnityEngine.SceneManagement;
+#endif
+
 namespace KFrameWork
 {
     [ScriptInitOrder(-10000)]
@@ -147,11 +151,12 @@ namespace KFrameWork
             }
             else
             {
-//                StaticCacheDelegate d = new StaticCacheDelegate();
-//                d.Add(id,ins);
-//                this.attEvents.Add(e,d);
+                StaticCacheDelegate d = new StaticCacheDelegate();
+                d.Add(id, ins);
+                this.attEvents.Add(e, d);
 
             }
+
         }
 
         public void UnRegisterCachedAction(MainLoopEvent em,int id,System.Object ins )
@@ -266,6 +271,24 @@ namespace KFrameWork
             this._tryCall(MainLoopEvent.OnApplicationFocus,focusStatus?1:0);
         }
 
+#if UNITY_5_5 || UNITY_5_4
+        private void OnSceneLoad(Scene scene, LoadSceneMode mode)
+        {
+            if (SceneCtr.mIns.CurScene != null)
+            {
+                this._tryCall(MainLoopEvent.OnlevelLeaved, (int)SceneCtr.mIns.CurScene);
+
+                this._tryCall(MainLoopEvent.OnLevelWasLoaded, (int)SceneCtr.mIns.nextScene);
+            }
+            else
+            {
+                if (SceneCtr.DefaultScene == null)
+                    this._tryCall(MainLoopEvent.OnLevelWasLoaded, scene.buildIndex);
+                else
+                    this._tryCall(MainLoopEvent.OnLevelWasLoaded, (int)SceneCtr.DefaultScene);
+            }
+        }
+#else
         void OnLevelWasLoaded(int level)
         {
             if(SceneCtr.mIns.CurScene != null)
@@ -284,6 +307,7 @@ namespace KFrameWork
 
 
         }
+#endif
 
         void OnEnable()
         {

@@ -3,10 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using KUtils;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace KFrameWork
 {
-    public abstract class BaseContent :MonoBehaviour {
+    public abstract class BaseContent : UIBehaviour
+    {
+
+        protected bool m_bvisible;
+
+        public int UIDepth = -100;
 
         public void DoVisiable()
         {

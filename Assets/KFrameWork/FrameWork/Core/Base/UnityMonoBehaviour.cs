@@ -6,6 +6,10 @@ using Vexe.Runtime.Extensions;
 using Vexe.Runtime.Types;
 #endif
 
+#if UNITY_5_5 || UNITY_5_4 
+using UnityEngine.SceneManagement;
+#endif
+
 namespace KFrameWork
 {
     #if VEXE
@@ -81,8 +85,12 @@ namespace KFrameWork
 
         protected void DestroySelf ()
         {
-            #if UNITY_EDITOR
-            DestroyImmediate (this);
+
+#if UNITY_5_5 || UNITY_5_4
+            SceneManager.sceneLoaded += this.OnSceneLoad;
+#endif
+#if UNITY_EDITOR
+            DestroyImmediate(this);
             #else
             Destroy(this);
             #endif
@@ -103,62 +111,76 @@ namespace KFrameWork
                 }
             }
 
+#if UNITY_5_5 || UNITY_5_4
+            SceneManager.sceneLoaded -= this.OnSceneLoad;
+#endif
 
         }
+
 
         protected virtual void Start ()
         {
 
         }
 
+#if UNITY_5_5 || UNITY_5_4
+        private void OnSceneLoad(Scene scene,LoadSceneMode mode)
+        {
+            if (!m_isFrameWorkInited && FrameWorkDebug.Open_DEBUG)
+            {
+                LogMgr.LogErrorFormat("框架为启用，或者未启用base.start的框架对象检查", gameObject);
+            }
+        }
+#else
         private void OnLevelWasLoaded (int level)
         {
             if (!m_isFrameWorkInited && FrameWorkDebug.Open_DEBUG) {
                 LogMgr.LogErrorFormat ("框架为启用，或者未启用base.start的框架对象检查", gameObject);
             }
         }
+#endif
 
-//        protected virtual void OnTriggerEnter (Collider other)
-//        {
-//        }
-//
-//        protected virtual void OnTriggerExit (Collider other)
-//        {
-//        }
-//
-//        protected virtual void Update ()
-//        {
-//        }
-//
-//        protected virtual void FixedUpdate ()
-//        {
-//        }
-//
-//        protected virtual void LateUpdate ()
-//        {
-//        }
-//
-//        protected virtual void OnApplicationQuit ()
-//        {
-//        }
-//
-//        protected virtual void OnApplicationPause ()
-//        {
-//        }
-//
-//        protected virtual void OnEnable ()
-//        {
-//        }
-//
-//        protected virtual void OnDisable ()
-//        {
-//        }
-//
-//        protected virtual void OnDestroy ()
-//        {
-//        }
+        //        protected virtual void OnTriggerEnter (Collider other)
+        //        {
+        //        }
+        //
+        //        protected virtual void OnTriggerExit (Collider other)
+        //        {
+        //        }
+        //
+        //        protected virtual void Update ()
+        //        {
+        //        }
+        //
+        //        protected virtual void FixedUpdate ()
+        //        {
+        //        }
+        //
+        //        protected virtual void LateUpdate ()
+        //        {
+        //        }
+        //
+        //        protected virtual void OnApplicationQuit ()
+        //        {
+        //        }
+        //
+        //        protected virtual void OnApplicationPause ()
+        //        {
+        //        }
+        //
+        //        protected virtual void OnEnable ()
+        //        {
+        //        }
+        //
+        //        protected virtual void OnDisable ()
+        //        {
+        //        }
+        //
+        //        protected virtual void OnDestroy ()
+        //        {
+        //        }
     }
-    #endif
-}
+#endif
+    }
 
 

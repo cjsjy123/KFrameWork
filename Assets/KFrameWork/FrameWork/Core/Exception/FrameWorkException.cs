@@ -8,39 +8,67 @@ namespace KFrameWork
 {
 
 
-    public class FrameWorkException : Exception {
+    public class FrameWorkException : Exception
+    {
 
         private ExceptionType tp;
 
-        public FrameWorkException(string errorInfo,ExceptionType extp = ExceptionType.Ignore_Exception):base(errorInfo)
+        public FrameWorkException(string errorInfo, ExceptionType extp = ExceptionType.Ignore_Exception) : base(errorInfo)
         {
 
             this.tp = extp;
         }
 
-        public void RaiseExcption()
+        public virtual void RaiseExcption()
         {
-            switch(tp)
+            switch (tp)
             {
-            case ExceptionType.Ignore_Exception:
-                {
-                    break;
-                }
-            case ExceptionType.Lower_Exception:
-                {
-                    break;
-                }
-            case ExceptionType.Higher_Excetpion:
-                {
-                    break;
-                }
-            case ExceptionType.HighDanger_Exception:
-                {
-                    break;
-                }
+                case ExceptionType.Ignore_Exception:
+                    {
+                        break;
+                    }
+                case ExceptionType.Lower_Exception:
+                    {
+                        break;
+                    }
+                case ExceptionType.Higher_Excetpion:
+                    {
+                        break;
+                    }
+                case ExceptionType.HighDanger_Exception:
+                    {
+                        break;
+                    }
             }
 
         }
+    }
+
+    public class FrameWorkResNotMatchException : FrameWorkException
+    {
+        public FrameWorkResNotMatchException(string info) : base(info, ExceptionType.Lower_Exception)
+        {
+
+        }
+
+        public override void RaiseExcption()
+        {
+
+        }
+    }
+
+    public class FrameWorkResMissingException : FrameWorkException
+    {
+        public FrameWorkResMissingException(string info) : base(info, ExceptionType.Lower_Exception)
+        {
+
+        }
+
+        public override void RaiseExcption()
+        {
+            
+        }
+
     }
 }
 

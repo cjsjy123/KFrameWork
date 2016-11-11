@@ -127,7 +127,7 @@ public class GenVerts : MonoBehaviour
     {
 
         if (init) {
-            TerrainData data = terrian.terrainData;
+            //TerrainData data = terrian.terrainData;
 //            int mapz =(int)(data.size.x / data.heightmapScale.x );
 //            int mapx=  (int)(data.size.z / data.heightmapScale.z);
 //
