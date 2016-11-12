@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿
+#define HIDE_INFO
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
@@ -6,6 +8,8 @@ using KFrameWork;
 using KUtils;
 using UnityEditor;
 
+
+#if !HIDE_INFO
 public class Import_Test  {
 
     [PostAllAssetName]
@@ -77,3 +81,4 @@ public class Import_Test  {
     }
 
 }
+#endif

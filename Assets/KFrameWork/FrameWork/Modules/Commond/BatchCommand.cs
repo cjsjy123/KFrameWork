@@ -13,13 +13,13 @@ namespace KFrameWork
             
         }
 
-        public static BatchCommand Create(params ICommand[] cmds)
+        public static BatchCommand Create(params CacheCommand[] cmds)
         {
             BatchCommand cmd = new BatchCommand();
 
             if(cmds != null && cmds.Length >0)
             {
-                ICommand next = cmd;
+                CacheCommand next = cmd;
                 for(int i =0; i < cmds.Length;++i)
                 {
                     if(cmds[i] != cmd)
@@ -39,12 +39,12 @@ namespace KFrameWork
             return cmd;
         }
 
-        public void Add(ICommand cmd)
+        public void Add(CacheCommand cmd)
         {
             this._Add(cmd);
         }
 
-        public void Remove(ICommand cmd)
+        public void Remove(CacheCommand cmd)
         {
             this._Remove(cmd);
         }
@@ -62,12 +62,7 @@ namespace KFrameWork
                 {
                     base.Excute();
 
-                    if(this.Next != null)
-                    {
-                        this.m_isBatching =true;
-                        this.Next.Excute();
-                        MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
-                    }
+                    this.TryBatch();
 
                 }
             }
@@ -88,14 +83,31 @@ namespace KFrameWork
         public override void Pause ()
         {
             this.m_paused =true;
+            CacheCommand nextCmd = this.Next ;
+            while(nextCmd != null)
+            {
+                nextCmd.Pause();
+                nextCmd = nextCmd.Next;
+            }
         }
 
         public override void Resume ()
         {
+            
+            CacheCommand nextCmd = this.Next ;
+            while(nextCmd != null)
+            {
+                nextCmd.Resume();
+                nextCmd = nextCmd.Next;
+            }
+
             this.m_paused =false;
+
+            if(this.isDone)
+                this.TryBatch();
         }
 
-        protected override BatchCommand OperatorAdd (ICommand other)
+        protected override BatchCommand OperatorAdd (CacheCommand other)
         {
             if(this != other)
             {
@@ -104,7 +116,7 @@ namespace KFrameWork
             return this;
         }
 
-        protected override BatchCommand OperatorReduce (ICommand other)
+        protected override BatchCommand OperatorReduce (CacheCommand other)
         {
             if(this != other)
             {

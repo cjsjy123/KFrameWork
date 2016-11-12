@@ -83,15 +83,23 @@ namespace KFrameWork
             if(o is TimeCommand)
             {
                 TimeCommand cmd = o as TimeCommand;
-                if(GameSyncCtr.mIns.FrameWorkTime  - cmd.m_starttime >= cmd.m_delay)
+                if(GameSyncCtr.mIns.FrameWorkTime  - cmd.m_starttime >= cmd.m_delay && !cmd.m_paused)
                 {
-                    cmd.Stop();
+                    cmd.End();
                 }
             }
             else
             {
                 LogMgr.LogError(o);
             }
+        }
+
+        private void End()
+        {
+            this.Stop();
+
+            this.TryBatch();
+
         }
 
         public override void Stop ()
@@ -105,12 +113,6 @@ namespace KFrameWork
 
             this._isDone = true;
 
-            if(this.Next != null && !this.m_isBatching)
-            {
-                this.m_isBatching =true;
-                this.Next.Excute();
-                //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
-            }
         }
 
         public override void Pause ()
@@ -130,6 +132,8 @@ namespace KFrameWork
             {
                 this.m_pausedtime +=GameSyncCtr.mIns.FrameWorkTime  - this.m_pausedstarttime;
                 this.m_paused =false;
+                if(this.isDone)
+                    this.TryBatch();
             }
 
         }
@@ -169,7 +173,7 @@ namespace KFrameWork
             }
         }
 
-        protected override TimeCommand OperatorAdd (ICommand other)
+        protected override TimeCommand OperatorAdd (CacheCommand other)
         {
             if(this != other)
             {
@@ -178,7 +182,7 @@ namespace KFrameWork
             return this;
         }
 
-        protected override TimeCommand OperatorReduce (ICommand other)
+        protected override TimeCommand OperatorReduce (CacheCommand other)
         {
             if(this != other)
             {

@@ -5,13 +5,36 @@ using System;
 using KFrameWork;
 using KUtils;
 
-public abstract class CacheCommand:ICommand
+public abstract class CacheCommand
 {
-    protected static Dictionary<int,Queue<ICommand>> CMDCache ;
+    protected static Dictionary<int,Queue<CacheCommand>> CMDCache ;
 
     public abstract void Release (bool force);
 
     public abstract void Excute ();
+
+    protected bool m_paused =false;
+
+    public bool Paused
+    {
+        get
+        {
+            return this.m_paused;
+        }
+
+        set
+        {
+            if(value)
+            {
+                this.Pause();
+            }
+            else
+            {
+                this.Resume();
+            }
+            this.m_paused =value;
+        }
+    }
 
     protected int? _CMD;
 
@@ -55,8 +78,8 @@ public abstract class CacheCommand:ICommand
         }
     }
 
-    private ICommand _Next;
-    public ICommand Next
+    private CacheCommand _Next;
+    public CacheCommand Next
     {
         get
         {
@@ -109,4 +132,11 @@ public abstract class CacheCommand:ICommand
     public abstract void Stop();
     public abstract void Pause();
     public abstract void Resume();
+
+
+    public void ExcuteAndRelease()
+    {
+        this.Excute();
+        this.Release(false);
+    }
 }

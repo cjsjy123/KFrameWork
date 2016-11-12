@@ -97,7 +97,7 @@ namespace KFrameWork
                 FrameCommand cmd = ins as FrameCommand;
                 if(GameSyncCtr.mIns.RenderFrameCount - cmd.m_startFrame >= cmd.FrameCount && !cmd.m_paused)
                 {
-                    cmd.Stop();
+                    cmd.End();
                 }
             }
             else
@@ -106,6 +106,12 @@ namespace KFrameWork
             }
 
 
+        }
+
+        private void End()
+        {
+            this.Stop();
+            this.TryBatch();
         }
 
         public override void Stop ()
@@ -118,13 +124,6 @@ namespace KFrameWork
             }
 
             this._isDone = true;
-
-            if(this.Next != null && !this.m_isBatching)
-            {
-                this.m_isBatching =true;
-                this.Next.Excute();
-                //  MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
-            }
         }
 
         public override void Pause ()
@@ -144,6 +143,9 @@ namespace KFrameWork
             {
                 this.m_pausedFrameCnt+=GameSyncCtr.mIns.RenderFrameCount - this.m_pausedStartFrame;
                 this.m_paused =false;
+
+                if(!this.isDone)
+                    this.TryBatch();
             }
         }
 
@@ -180,7 +182,7 @@ namespace KFrameWork
             }
         }
 
-        protected override FrameCommand OperatorAdd (ICommand other)
+        protected override FrameCommand OperatorAdd (CacheCommand other)
         {
             if(this != other)
             {
@@ -189,7 +191,7 @@ namespace KFrameWork
             return this;
         }
 
-        protected override FrameCommand OperatorReduce (ICommand other)
+        protected override FrameCommand OperatorReduce (CacheCommand other)
         {
             if(this != other)
             {

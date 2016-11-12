@@ -11,7 +11,7 @@ namespace KFrameWork
     {
         void LoadFromMemory(Stream stream);
 
-        BundlePkgInfo TrygetInfo(string name);
+        BundlePkgInfo SeekInfo(string name);
     }
 
 }

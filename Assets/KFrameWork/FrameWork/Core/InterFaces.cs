@@ -11,6 +11,11 @@ namespace KFrameWork
         void RemoveRef ();
     }
 
+    public interface ITask
+    {
+        bool KeepWaiting{get;}
+    }
+
 
     public interface ILife
     {
@@ -86,31 +91,6 @@ namespace KFrameWork
         void Reset();
     }
 
-    public interface ICommand
-    {
-        int? CMD{ get; }
-
-        bool isDone{ get; }
-
-        ICommand Next{ get; set; }
-
-        AbstractParams CallParms{ get; }
-
-        bool HasCallParams{ get; }
-
-        AbstractParams ReturnParams { get; set; }
-
-        void Release (bool force);
-
-        void Excute ();
-
-        void Stop();
-
-        void Pause();
-
-        void Resume();
-
-    }
 
     public interface IService
     {

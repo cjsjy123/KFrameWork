@@ -7,17 +7,16 @@ using KUtils;
 namespace KFrameWork
 {
 
-    public abstract class BaseCommand<T> :CacheCommand,KUtils.IPool where T:BaseCommand<T> {
+    public abstract class BaseCommand<T> :CacheCommand,IPool  {
         protected bool m_bExcuted =false;
         protected bool m_bReleased =false;
         protected bool m_isBatching =false;
-        protected bool m_paused =false;
 
         [FrameWokAwakeAttribute]
         public static void Preload(int value)
         {
             if(CMDCache == null)
-                CMDCache = new Dictionary<int, Queue<ICommand>>(16);
+                CMDCache = new Dictionary<int, Queue<CacheCommand>>(16);
         }
 
 
@@ -30,7 +29,7 @@ namespace KFrameWork
         {
             if(CMDCache != null && CMDCache.ContainsKey(CMD_ID) && CMDCache[CMD_ID].Count >0)
             {
-                ICommand Top = CMDCache[CMD_ID].Peek();
+                CacheCommand Top = CMDCache[CMD_ID].Peek();
                 if(Top is U)
                 {
                     U cmd = CMDCache[CMD_ID].Dequeue() as U;
@@ -45,7 +44,7 @@ namespace KFrameWork
             return null;
         }
 
-        protected virtual void _BatchCall()
+        protected void _BatchCall()
         {
             if(this.m_paused )
                 return ;
@@ -62,6 +61,7 @@ namespace KFrameWork
                     {
                         this._isDone = true;
                         this.m_isBatching =false;
+                        this.Next = null;
                         MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
                     }      
                 }
@@ -74,7 +74,17 @@ namespace KFrameWork
             }
         }
 
-        protected virtual void _SequenceCall(int value)
+        protected void TryBatch()
+        {
+            if(this.Next != null &&!this.m_isBatching)
+            {
+                this.m_isBatching =true;
+                this.Next.Excute();
+                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
+            }
+        }
+
+        protected void _SequenceCall(int value)
         {
             this._BatchCall();
         }
@@ -128,17 +138,17 @@ namespace KFrameWork
                     this._Gparams.ResetReadIndex();
                 }
 
-                Queue<ICommand> queue = new Queue<ICommand>(4);
+                Queue<CacheCommand> queue = new Queue<CacheCommand>(4);
                 queue.Enqueue(this);
                 CMDCache.Add(this._CMD.Value,queue);
             }
         }
 
-        protected void _Add(ICommand cmd)
+        protected void _Add(CacheCommand cmd)
         {
             if(cmd !=this)
             {
-                ICommand next = this;
+                CacheCommand next = this;
                 while(next.Next != null)
                 {
                     next = next.Next;
@@ -148,10 +158,10 @@ namespace KFrameWork
             }
         }
 
-        protected void _Remove(ICommand cmd)
+        protected void _Remove(CacheCommand cmd)
         {
-            ICommand previous = null;
-            ICommand next = this;
+            CacheCommand previous = null;
+            CacheCommand next = this;
             while(next.Next != null)
             {
                 if(next == cmd)
@@ -167,8 +177,8 @@ namespace KFrameWork
 
         protected void _Clear()
         {
-            ICommand previous = null;
-            ICommand next = this;
+            CacheCommand previous = null;
+            CacheCommand next = this;
             while(next.Next != null)
             {
                 previous = next;
@@ -182,15 +192,10 @@ namespace KFrameWork
             m_bExcuted = true;
         }
 
-        public void ExcuteAndRelease()
-        {
-            this.Excute();
-            this.Release(false);
-        }
 
-        protected abstract T  OperatorAdd(ICommand other);
+        protected abstract T  OperatorAdd(CacheCommand other);
 
-        protected abstract T  OperatorReduce(ICommand other);
+        protected abstract T  OperatorReduce(CacheCommand other);
 
         public static  T operator+(BaseCommand<T>  lft,BaseCommand<T>  rht)
         {

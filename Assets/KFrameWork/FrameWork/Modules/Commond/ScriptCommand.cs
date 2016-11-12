@@ -70,9 +70,7 @@ namespace KFrameWork
             {
                 this.m_isBatching =true;
                 this.Next.Excute();
-                //MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,this._SequenceCall);
             }
-//
 
             base.Release (force);
         }
@@ -90,9 +88,11 @@ namespace KFrameWork
         public override void Resume ()
         {
             this.m_paused =false;
+            if(this.isDone)
+                this.TryBatch();
         }
 
-        protected override ScriptCommand OperatorAdd (ICommand other)
+        protected override ScriptCommand OperatorAdd (CacheCommand other)
         {
             if(this != other)
             {
@@ -101,7 +101,7 @@ namespace KFrameWork
             return this;
         }
 
-        protected override ScriptCommand OperatorReduce (ICommand other)
+        protected override ScriptCommand OperatorReduce (CacheCommand other)
         {
             if(this != other)
             {

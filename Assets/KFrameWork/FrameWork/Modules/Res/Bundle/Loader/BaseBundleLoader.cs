@@ -191,9 +191,10 @@ namespace KFrameWork
 #if UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID
         AssetBundle ab = AssetBundle.LoadFromFile(path);
         return ab;
-#elif UNITY_EDITOR
+#else
+        return null;
 #endif
-            return null;
+
         }
 
         protected UnityEngine.Object LoadFullAsset(BundlePkgInfo pkginfo)

@@ -33,7 +33,7 @@ namespace KFrameWork
 
         private class BundlePkg
         {
-            public string FullPath;
+            public string Filename;
             public string hash;
             public string ShortName;
             public string EditorPath;
@@ -99,7 +99,7 @@ namespace KFrameWork
                 }
 
                 pkg.hash = hash;
-                pkg.FullPath = name;
+                pkg.Filename = name;
                 pkg.EditorPath = assetpath;
                 pkg.ShortName = shortFileName;
                 pkg.depends = deps;
@@ -108,7 +108,7 @@ namespace KFrameWork
             sr.Close();
         }
 
-        public BundlePkgInfo TrygetInfo(string name)
+        public BundlePkgInfo SeekInfo(string name)
         {
             BundlePkgInfo info = new BundlePkgInfo();
             string lowername = name.ToLower();
@@ -118,7 +118,7 @@ namespace KFrameWork
 
                 info.bundlename = lowername;
                 info.Depends = pkg.depends;
-                info.realpath = pkg.FullPath;
+                info.realpath = pkg.Filename;
                 info.editorPath = pkg.EditorPath;
 
             }

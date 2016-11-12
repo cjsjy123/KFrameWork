@@ -17,15 +17,14 @@ namespace KFrameWork
         public override void Load(string name)
         {
             base.Load(name);
-            BundlePkgInfo pkginfo = BundleMgr.mIns.BundleInforMation.TrygetInfo(name);
+
+            BundlePkgInfo pkginfo = BundleMgr.mIns.BundleInforMation.SeekInfo(name);
 
             if (string.IsNullOrEmpty(pkginfo.realpath))
             {
                 this.loadState = BundleLoadState.Error;
                 throw new FrameWorkException(string.Format( "Not Found {0}",name),ExceptionType.Higher_Excetpion);
             }
-
-
 
             for (int i = 0; i < pkginfo.Depends.Length; ++i)
             {
@@ -54,11 +53,17 @@ namespace KFrameWork
         public override void OnError()
         {
             base.OnError();
+
+            if (FrameWorkDebug.Open_DEBUG)
+                LogMgr.LogFormat("Load Asset {0} Error ", this.targetname);
         }
 
         public override void OnFinish()
         {
             base.OnFinish();
+
+            if (FrameWorkDebug.Open_DEBUG)
+                LogMgr.LogFormat("Load Asset {0} Finish ", this.targetname);
         }
 
         public override void OnPaused()
