@@ -67,3 +67,6 @@ https://github.com/topameng/tolua<br>
 优化命令，达到0GC
 ![image](https://github.com/cjsjy123/KFrameWork/blob/master/screenshot/1.png)
 ![image](https://github.com/cjsjy123/KFrameWork/blob/master/screenshot/2.png)
+
+0.0.01bVersion ----- 2016.11.3：<br>
+增加资源导入监听接口，并添加了部分例子
