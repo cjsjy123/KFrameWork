@@ -22,9 +22,20 @@ namespace KFrameWork
             }
         }
 
+        private BundleCache _cache ;
+
+        public BundleCache Cache
+        {
+            get
+            {
+                return this._cache;
+            }
+        }
+
         private BundleMgr()
         {
-            Info = new BundleInfo();
+            this.Info = new BundleInfo();
+            this._cache = new BundleCache();
             MainLoop.getLoop().StartCoroutine(_LoadAssetInfos());
         }
 

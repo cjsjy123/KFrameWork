@@ -20,7 +20,7 @@ namespace KFrameWork
 
             BundlePkgInfo pkginfo = BundleMgr.mIns.BundleInforMation.SeekInfo(name);
 
-            if (string.IsNullOrEmpty(pkginfo.realpath))
+            if (string.IsNullOrEmpty(pkginfo.AbFilePath))
             {
                 this.loadState = BundleLoadState.Error;
                 throw new FrameWorkException(string.Format( "Not Found {0}",name),ExceptionType.Higher_Excetpion);
@@ -41,6 +41,7 @@ namespace KFrameWork
         #region private
         private void _LoadBundle(BundlePkgInfo pkginfo)
         {
+
             this._Bundle = this.LoadFullAsset(pkginfo);
 
             if (this.isRunning())

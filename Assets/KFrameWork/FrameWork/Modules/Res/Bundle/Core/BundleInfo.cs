@@ -10,11 +10,11 @@ namespace KFrameWork
 
     public struct BundlePkgInfo
     {
-        public string realpath;
+        public string AbFilePath;
 
-        public string bundlename;
+        public string BundleName;
 
-        public string editorPath;
+        public string EditorPath;
 
         public Type ResTp;
 
@@ -116,10 +116,10 @@ namespace KFrameWork
             {
                 BundlePkg pkg = this.caches[lowername];
 
-                info.bundlename = lowername;
+                info.BundleName = lowername;
                 info.Depends = pkg.depends;
-                info.realpath = pkg.Filename;
-                info.editorPath = pkg.EditorPath;
+                info.AbFilePath = pkg.Filename;
+                info.EditorPath = pkg.EditorPath;
 
             }
             else if (FrameWorkDebug.Open_DEBUG)
