@@ -153,7 +153,7 @@ namespace KFrameWork
             return name;
         }
 
-        public static string GetRunningPath(gstring filepath)
+        public static string GetRunningPath(string filepath)
         {
             string perpath = getBundlePersistentPath(filepath);
             if (File.Exists(perpath))

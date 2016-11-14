@@ -15,16 +15,6 @@ namespace KFrameWork
 
     public abstract class BaseBundleLoader:IPool
     {
-        protected class AsyncBundleTask:ITask
-        {
-            public bool keep; 
-
-            public bool KeepWaiting {
-                get {
-                    return keep;
-                }
-            }
-        }
 
         protected string targetname;
 
@@ -219,7 +209,7 @@ namespace KFrameWork
 #if UNITY_EDITOR && !AB_DEBUG
             return null;
 #elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID || AB_DEBUG
-            AssetBundle ab = AssetBundle.LoadFromFile(path);
+            AssetBundle ab = KAssetBundle.LoadFromFile(path);
             return ab;
 #else
             return null;
@@ -269,6 +259,26 @@ namespace KFrameWork
             bundle = ResBundleMgr.mIns.Cache.PushAsset(pkginfo, ab);
             return bundle;
 #endif
+        }
+
+
+
+        protected AssetBundleCreateRequest LoadFullAssetToMemAsync(BundlePkgInfo pkginfo)
+        {
+            if (ResBundleMgr.mIns.Cache.Contains(pkginfo))
+            {
+                return null;
+            }
+            else
+            {
+                AssetBundleCreateRequest abRequst = null;
+                using (gstring.Block())
+                {
+                    abRequst = KAssetBundle.LoadFromFileAsync( BundlePathConvert.GetRunningPath(pkginfo.AbFileName));
+                }
+
+                return abRequst;
+            }
         }
 
         protected bool CreateFromAsset(IBundleRef bundle, out UnityEngine.Object asset)

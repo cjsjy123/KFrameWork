@@ -61,7 +61,7 @@ namespace KFrameWork
             this.LoadName = BundlePathConvert.EditorName2AssetName(loadname);
         }
 
-        public void AddDepend(IBundleRef dep)
+        public void NeedThis(IBundleRef dep)
         {
             for (int i = 0; i < this.depends.Count; ++i)
             {

@@ -22,6 +22,14 @@ public class AssetBundle_Test : MonoBehaviour {
         {
             ResBundleMgr.mIns.Load("ui_test.prefab", canvas);
         }
+
+        if (GUILayout.Button("Async Load Prefab"))
+        {
+            ResBundleMgr.mIns.LoadAsync("ui_test.prefab",(ret,result)=>
+                {
+                    LogMgr.Log(ret + "  result: "+ result);
+                });
+        }
     }
 
 	// Update is called once per frame

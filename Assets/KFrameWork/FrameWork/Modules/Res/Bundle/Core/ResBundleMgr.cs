@@ -190,9 +190,34 @@ namespace KFrameWork
             }
         }
 
+        public void LoadAsync(string pathname, GameObject parent)
+        {
+            
+        }
+
         public void LoadAsync(string pathname, Action<bool, AssetBundleResult> callback)
         {
+            if (BundleConfig.SAFE_MODE)
+            {
+                this._SimpleAysncLoad(pathname, callback);
+            }
+            else
+            {
+                try
+                {
+                    this._SimpleAysncLoad(pathname, callback);
+                }
+                catch (FrameWorkException ex)
+                {
+                    LogMgr.LogException(ex);
+                    ex.RaiseExcption();
 
+                }
+                catch (Exception ex)
+                {
+                    LogMgr.LogException(ex);
+                }
+            }
         }
 
         #region private
@@ -226,9 +251,22 @@ namespace KFrameWork
 
         }
 
+//        private GameObject _LoadGameobjectAsync(bool Done,)
+//        {
+// 
+//
+//        }
+
         private void _SimpleLoad(string pathname, Action<bool, AssetBundleResult> callback)
         {
             SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
+            loader.onComplete += callback;
+            loader.Load(pathname);
+        }
+
+        private void _SimpleAysncLoad(string pathname, Action<bool, AssetBundleResult> callback)
+        {
+            AsyncLoader loader = BaseBundleLoader.CreateLoader<AsyncLoader>();
             loader.onComplete += callback;
             loader.Load(pathname);
         }

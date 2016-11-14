@@ -25,9 +25,9 @@ namespace KFrameWork
                 if (this.isRunning())
                 {
                     this._AddBundleDpend(pkginfo.Depends[i]);
-                } 
+                }
                 else if (FrameWorkDebug.Open_DEBUG)
-                    LogMgr.LogFormat("{0} loader 状态不符",this.targetname);
+                    LogMgr.LogFormat("{0} loader 状态不符", this.targetname);
                 else
                     break;
             }
@@ -82,7 +82,7 @@ namespace KFrameWork
                    IBundleRef depbund =  ResBundleMgr.mIns.Cache.TryGetValue(pkginfo.Depends[i]);
                     if (depbund != null)
                     {
-                        depbund.AddDepend(bundle);
+                        depbund.NeedThis(bundle);
                     }
                     else
                     {
@@ -104,7 +104,7 @@ namespace KFrameWork
             base.OnError();
 
             if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Load Asset {0} Error ", this.targetname);
+                LogMgr.LogFormat("Sync Load Asset {0} Error ", this.targetname);
         }
 
         public override void OnFinish()
@@ -112,25 +112,25 @@ namespace KFrameWork
             base.OnFinish();
 
             if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Load Asset {0} Finish ", this.targetname);
+                LogMgr.LogFormat("Sync Load Asset {0} Finish ", this.targetname);
         }
 
         public override void OnPaused()
         {
             if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Load Asset {0} Paused ", this.targetname);
+                LogMgr.LogFormat("Sync Load Asset {0} Paused ", this.targetname);
         }
 
         public override void OnResume()
         {
             if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Load Asset {0} Resume ", this.targetname);
+                LogMgr.LogFormat("Sync Load Asset {0} Resume ", this.targetname);
         }
 
         public override void OnStart()
         {
             if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Load Asset {0} Start ", this.targetname);
+                LogMgr.LogFormat("Sync Load Asset {0} Start ", this.targetname);
         }
     }
 }

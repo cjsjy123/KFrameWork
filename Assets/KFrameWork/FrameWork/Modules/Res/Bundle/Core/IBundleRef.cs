@@ -14,7 +14,7 @@ namespace KFrameWork
 
         int RefCount { get; }
 
-        void AddDepend(IBundleRef dep);
+        void NeedThis(IBundleRef dep);
 
         void LogDepends();
 

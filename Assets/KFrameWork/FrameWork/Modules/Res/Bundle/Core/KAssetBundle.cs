@@ -88,6 +88,11 @@ namespace KFrameWork
             return  _assetbundle.LoadAsset(name);
         }
 
+        public AssetBundleRequest AsyncLoad(string name)
+        {
+            return _assetbundle.LoadAssetAsync(name);
+        }
+
 		public T Load<T>(string name)  where T :Object
 		{
 			return  _assetbundle.LoadAsset<T>(name);
@@ -109,15 +114,25 @@ namespace KFrameWork
 				_assetbundle.Unload(includeAll);
 		}
 
-		public static KAssetBundle LoadFromFile(string name) 
+		public static AssetBundle LoadFromFile(string name) 
 		{
 #if UNITY_5_3 || UNITY_5_4
-            return new KAssetBundle( AssetBundle.LoadFromFile(name));
+            return  AssetBundle.LoadFromFile(name);
 #else
-            return  new KAssetBundle(AssetBundle.CreateFromFile(name) );
+            return  AssetBundle.CreateFromFile(name) ;
 #endif
 		
 		}
+
+        public static AssetBundleCreateRequest LoadFromFileAsync(string name) 
+        {
+            #if UNITY_5_3 || UNITY_5_4
+            return AssetBundle.LoadFromFileAsync(name);
+            #else
+            return  AssetBundle.CreateFromFileAsync(name) ;
+            #endif
+
+        }
 
 		public string[] GetAllScenePaths()
 		{

@@ -41,7 +41,7 @@ namespace KFrameWork
             this._name = name;
         }
 
-        public void AddDepend(IBundleRef dep)
+        public void NeedThis(IBundleRef dep)
         {
 
         }
