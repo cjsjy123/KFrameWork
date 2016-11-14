@@ -8,9 +8,25 @@ using System.IO;
 namespace KFrameWork
 {
     [SingleTon]
-    public class BundleMgr  {
+    public class ResBundleMgr  {
 
-        public static BundleMgr mIns ;
+        private class WaitWWWTask : ITask
+        {
+            public bool KeepWaiting
+            {
+                get
+                {
+                    return !ResBundleMgr.mIns.Inited;
+                }
+            }
+
+            public void Done()
+            {
+
+            }
+        }
+
+        public static ResBundleMgr mIns ;
 
         private BundleInfoFilter Info;
 
@@ -18,6 +34,7 @@ namespace KFrameWork
         {
             get
             {
+                
                 return this.Info;
             }
         }
@@ -32,22 +49,34 @@ namespace KFrameWork
             }
         }
 
-        private BundleMgr()
+        private bool _Inited;
+        public bool Inited
         {
-            this.Info = new BundleInfo();
-            this._cache = new BundleCache();
-            MainLoop.getLoop().StartCoroutine(_LoadAssetInfos());
+            get
+            {
+                return _Inited;
+            }
         }
 
-        private IEnumerator _LoadAssetInfos()
+        private ResBundleMgr()
         {
-            string depFileName = BundlePathConvert.getBundleStreamPath(BundleConfig.ABVersionPath);
+            this.Info = new BundleBinaryInfo();
+            this._cache = new BundleCache();
+            using (gstring.Block())
+            {
+                string depFileName = BundlePathConvert.getBundleStreamPath(BundleConfig.ABVersionPath);
+                MainLoop.getLoop().StartCoroutine(_LoadAssetInfos(depFileName));
+            } 
+        }
 
+        private IEnumerator _LoadAssetInfos(string depFileName)
+        {
             if (File.Exists(depFileName))
             {
                 FileStream fs = new FileStream(depFileName, FileMode.Open, FileAccess.Read);
                 this.Info.LoadFromMemory(fs);
                 fs.Close();
+                this._Inited = true;
             }
             else
             {
@@ -57,6 +86,7 @@ namespace KFrameWork
                 if (w.error == null)
                 {
                     this.Info.LoadFromMemory(new MemoryStream(w.bytes));
+                    this._Inited = true;
                 }
                 else
                 {
@@ -65,11 +95,37 @@ namespace KFrameWork
             }
         }
 
+        public static void YieldInited(Action DoneEvent)
+        {
+            if (!ResBundleMgr.mIns.Inited)
+            {
+                WaitTaskCommand cmd = WaitTaskCommand.Create(new WaitWWWTask(), DoneEvent);
+                cmd.ExcuteAndRelease();
+            }
+            else
+            {
+                DoneEvent();
+            }
+        }
+
+        public static void UnLoadUnused(bool force =false)
+        {
+            
+        }
+
         public void PreLoad(string pathname)
         {
 
         }
 
+
+
+        /// <summary>
+        /// 如果不开启safe模式的话，用户需小写文件名
+        /// </summary>
+        /// <param name="pathname"></param>
+        /// <param name="parent"></param>
+        /// <returns></returns>
         public GameObject Load(string pathname, Component parent)
         {
             return this.Load(parent: parent.gameObject, pathname: pathname);
@@ -79,6 +135,7 @@ namespace KFrameWork
         {
             return this.Load( parent: parent.gameObject, pathname: pathname);
         }
+
 
         public GameObject Load(string pathname, GameObject parent)
         {
@@ -106,7 +163,6 @@ namespace KFrameWork
                     return null;
                 }
             }
-
         }
 
         public void Load(string pathname, Action<bool, AssetBundleResult> callback )
@@ -147,20 +203,27 @@ namespace KFrameWork
             loader.Load(pathname);
 
             AssetBundleResult result = loader.GetABResult();
-
-            if (result.MainObject is GameObject)
+            UnityEngine.Object res = null;
+            if (result.MainObject.Instantiate(out res))
             {
-                GameObject prefab = result.MainObject as GameObject;
-                return prefab.InstancePrefab(parent);
+                if (res is GameObject)
+                {
+                    GameObject ins = res as GameObject;
+                    ins.BindParent(parent);
+                    return ins;
 
-            }
-            else
-            {
-                if (BundleConfig.SAFE_MODE)
-                    throw new FrameWorkResNotMatchException(string.Format("{0} Type Is Not Gameobject", result.MainObject));
+                }
                 else
-                    return null;
+                {
+                    if (BundleConfig.SAFE_MODE)
+                        throw new FrameWorkResNotMatchException(string.Format("{0} Type Is Not Gameobject", result.MainObject));
+                    else
+                        return null;
+                }
             }
+
+            return null;
+
         }
 
         private void _SimpleLoad(string pathname, Action<bool, AssetBundleResult> callback)

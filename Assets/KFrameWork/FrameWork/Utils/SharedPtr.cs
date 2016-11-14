@@ -11,7 +11,7 @@ namespace KFrameWork
     /// 引用计数对象
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public sealed class SharedPtr<T> :ISharedPtr,IEquatable<SharedPtr<T>> ,IDisposable where T:class,IDisposable,new()
+    public sealed class SharedPtr<T> : ISharedPtr, IEquatable<SharedPtr<T>>,IEquatable<T>, IDisposable where T : class, IDisposable,ICloneable, new()
     {
 
         private T data;
@@ -19,6 +19,22 @@ namespace KFrameWork
         private int counter = 0;
 
         private int lockval = 0;
+
+        public bool isAlive
+        {
+            get
+            {
+                return data != null;
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                return this.counter;
+            }
+        }
 
         /// <summary>
         /// 是否已经被锁
@@ -125,27 +141,22 @@ namespace KFrameWork
             return this.data == other.data;
         }
 
-        //public static explicit operator T(SharedPtr<T> ptr)
-        //{
-        //    if (ptr != null)
-        //    {
-        //        if (ptr.isLock(LockType.OnlyReadNoWrite))
-        //        {
-        //            return KUtils.Tools.Copy(ptr.data);
-        //        }
-        //        else
-        //            return ptr.data;
-        //    }
+        public bool Equals(T other)
+        {
+            if (other == null)
+                return false;
+            if (this.data == null && other == null)
+                return false;
 
-        //    return null;
-        //}
+            return this.data == other;
+        }
 
         public T get()
         {
             if (this.isLock(LockType.OnlyReadNoWrite))
             {
-
-                return Tools.Copy(this.data);
+                return this.data.Clone() as T;
+                //return Tools.Copy(this.data);
             }
             else
                 return this.data;

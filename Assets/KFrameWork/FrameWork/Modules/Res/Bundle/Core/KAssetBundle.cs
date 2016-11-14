@@ -6,11 +6,27 @@ using Object = UnityEngine.Object;
 
 namespace KFrameWork
 {
+    public interface IKClone : ICloneable
+    {
+       bool  Cloned{get;}
+
+    }
+
 	/// <summary>
 	/// or struct?
 	/// </summary>
-    public sealed class KAssetBundle :IEquatable<KAssetBundle>, IDisposable
-	{
+    public sealed class KAssetBundle :IEquatable<KAssetBundle>, IDisposable, IKClone
+    {
+        private bool m_bCloned;
+
+        public bool Cloned
+        {
+            get
+            {
+                return this.m_bCloned;
+            }
+        }
+
 		private AssetBundle _assetbundle;
 		private AssetBundle assetbundle
 		{
@@ -95,8 +111,8 @@ namespace KFrameWork
 
 		public static KAssetBundle LoadFromFile(string name) 
 		{
-#if UNITY_5_3
-            return  new KAssetBundle( AssetBundle.LoadFromFile(name));
+#if UNITY_5_3 || UNITY_5_4
+            return new KAssetBundle( AssetBundle.LoadFromFile(name));
 #else
             return  new KAssetBundle(AssetBundle.CreateFromFile(name) );
 #endif
@@ -133,7 +149,14 @@ namespace KFrameWork
             return this.assetbundle == other.assetbundle;
         }
 
-		public static implicit operator AssetBundle( KAssetBundle bundle)
+        public object Clone()
+        {
+            KAssetBundle ab = this.MemberwiseClone()  as KAssetBundle;
+            ab.m_bCloned = true;
+            return ab;
+        }
+
+        public static implicit operator AssetBundle( KAssetBundle bundle)
 		{
 			if(bundle == null)
 			{

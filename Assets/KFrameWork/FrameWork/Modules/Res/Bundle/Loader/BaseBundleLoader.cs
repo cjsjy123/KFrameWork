@@ -1,4 +1,4 @@
-﻿//#define AB_DEBUG
+﻿#define AB_DEBUG
 
 using UnityEngine;
 using System.Collections;
@@ -29,6 +29,8 @@ namespace KFrameWork
         protected string targetname;
 
         protected UnityEngine.Object _Bundle;
+
+        protected IBundleRef _BundleRef;
 
         private BundleLoadState _state;
 
@@ -91,6 +93,7 @@ namespace KFrameWork
         #region interface
         public virtual void Load(string name)
         {
+            this.targetname = name;
             if (this.loadState == BundleLoadState.Prepared)
             {
                 this.loadState = BundleLoadState.Running;
@@ -140,7 +143,7 @@ namespace KFrameWork
         public AssetBundleResult GetABResult()
         {
             AssetBundleResult result = new AssetBundleResult();
-            result.MainObject = this._Bundle;
+            result.MainObject = this._BundleRef ;
             return result;
         }
         #endregion
@@ -197,25 +200,45 @@ namespace KFrameWork
             return  this.loadState == BundleLoadState.Paused;
         }
 
+        protected BundlePkgInfo _SeekPkgInfo(string name)
+        {
+
+            BundlePkgInfo pkginfo = ResBundleMgr.mIns.BundleInforMation.SeekInfo(name);
+
+            if (pkginfo == null)
+            {
+                this.loadState = BundleLoadState.Error;
+                throw new FrameWorkException(string.Format("Not Found {0}", name), ExceptionType.Higher_Excetpion);
+            }
+
+            return pkginfo;
+        }
+
         protected AssetBundle LoadAssetBundle(string path)
         {
-#if UNITY_EDITOR
+#if UNITY_EDITOR && !AB_DEBUG
             return null;
-#elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID
-        AssetBundle ab = AssetBundle.LoadFromFile(path);
-        return ab;
+#elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID || AB_DEBUG
+            AssetBundle ab = AssetBundle.LoadFromFile(path);
+            return ab;
 #else
-        return null;
+            return null;
 #endif
 
         }
 
-        protected UnityEngine.Object LoadFullAsset(BundlePkgInfo pkginfo)
+        protected IBundleRef LoadFullAssetToMem(BundlePkgInfo pkginfo)
         {
+            IBundleRef bundle = null;
+            if (ResBundleMgr.mIns.Cache.Contains(pkginfo))
+            {
+                bundle = ResBundleMgr.mIns.Cache.TryGetValue(pkginfo);
+                return bundle;
+            }
 
-#if UNITY_EDITOR
-            BundlePkgInfo info = BundleMgr.mIns.BundleInforMation.SeekInfo(pkginfo.BundleName);
-            UnityEngine.Object target = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(info.EditorPath);
+#if UNITY_EDITOR && !AB_DEBUG
+            //BundlePkgInfo info = BundleMgr.mIns.BundleInforMation.SeekInfo(pkginfo.BundleName);
+            UnityEngine.Object target = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(pkginfo.EditorPath);
             if (target == null)
             {
                 if (BundleConfig.SAFE_MODE)
@@ -226,47 +249,60 @@ namespace KFrameWork
                     LogMgr.LogErrorFormat("Asset {0} Missing", pkginfo.BundleName);
                 }
             }
-            return target;
-
-
-#elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID
-            AssetBundle ab = null;
-
-            if(BundleMgr.mIns.Cache.Contains(pkginfo.AbFilePath))
-            {
-                ab =BundleMgr.mIns.Cache[pkginfo.AbFilePath].get();
-            }
             else
             {
-                this.LoadAssetBundle(BundlePathConvert.GetRunningPath(pkginfo.AbFilePath));
+                bundle = ResBundleMgr.mIns.Cache.PushEditorAsset(pkginfo, target);
             }
-            UnityEngine.Object resObject = this.CreateAssetFromAB(ab, BundlePathConvert.EditorName2AssetName(pkginfo.EditorPath));
-            return resObject;
+            return bundle;
+
+
+#elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID || AB_DEBUG
+            AssetBundle ab = null;
+            using (gstring.Block())
+            {
+                ab = this.LoadAssetBundle(BundlePathConvert.GetRunningPath(pkginfo.AbFileName));
+            }
+
+            if (ab == null)
+                this.ThrowAssetMissing(this.targetname);
+
+            bundle = ResBundleMgr.mIns.Cache.PushAsset(pkginfo, ab);
+            return bundle;
 #endif
         }
 
-
-        protected UnityEngine.Object CreateAssetFromAB(AssetBundle ab, string resname)
+        protected bool CreateFromAsset(IBundleRef bundle, out UnityEngine.Object asset)
         {
-            UnityEngine.Object target = ab.LoadAsset(resname);
-            if (target == null)
+            bool ret = bundle.LoadAsset(out asset);
+            if (!ret)
             {
-                if (BundleConfig.SAFE_MODE)
-                    throw new FrameWorkResMissingException(string.Format("Asset {0} Missing", resname));
-                else
-                {
-                    this.loadState = BundleLoadState.Error;
-                    LogMgr.LogErrorFormat("Asset {0} Missing", resname);
-                }
+                this.ThrowAssetMissing(this.targetname);
             }
 
-            return target;
+            return ret;
         }
 
+        protected void ThrowBundleMissing(string resname)
+        {
+            if (BundleConfig.SAFE_MODE)
+                throw new FrameWorkResMissingException(string.Format("Bundle {0} Missing", resname));
+            else
+            {
+                this.loadState = BundleLoadState.Error;
+                LogMgr.LogErrorFormat("Bundle {0} Missing", resname);
+            }
+        }
 
-
-
-
+        protected void ThrowAssetMissing(string resname)
+        {
+            if (BundleConfig.SAFE_MODE)
+                throw new FrameWorkResMissingException(string.Format("Asset {0} Missing", resname));
+            else
+            {
+                this.loadState = BundleLoadState.Error;
+                LogMgr.LogErrorFormat("Asset {0} Missing", resname);
+            }
+        }
     }
 
 }

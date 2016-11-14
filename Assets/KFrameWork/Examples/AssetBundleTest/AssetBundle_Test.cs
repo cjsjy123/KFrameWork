@@ -10,11 +10,23 @@ public class AssetBundle_Test : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 
-         BundleMgr.mIns.Load("UI_TEST.prefab", canvas);
+        ResBundleMgr.YieldInited(() =>
+        {
+            ResBundleMgr.mIns.Load("ui_test.prefab", canvas);
+        });
 	}
-	
+
+    void OnGUI()
+    {
+        if (GUILayout.Button("Load Prefab"))
+        {
+            ResBundleMgr.mIns.Load("ui_test.prefab", canvas);
+        }
+    }
+
 	// Update is called once per frame
 	void Update () {
-	
+       // ResBundleMgr.mIns.Cache.LogDebugInfo();
+
 	}
 }

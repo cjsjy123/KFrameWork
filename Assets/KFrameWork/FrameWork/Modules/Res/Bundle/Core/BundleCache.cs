@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿
+//#define AB_DEBUG
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
@@ -7,185 +9,114 @@ using KUtils;
 namespace KFrameWork
 {
 
-    public class BundleRef:IDisposable
-    {
-        private string LoadName;
-
-        private SharedPtr<KAssetBundle> Res;
-        /// <summary>
-        /// 这里完全依赖mono的gc来做引用检查
-        /// </summary>
-        private List<WeakReference> refs ;
-
-        private List<BundleRef> depends;
-
-        /// <summary>
-        /// 被依赖数
-        /// </summary>
-        /// <value>The depnd count.</value>
-        public int DepndCount
-        {
-            get
-            {
-                return this.depends.Count;
-            }
-        }
-        /// <summary>
-        /// 实例引用
-        /// </summary>
-        /// <value>The reference count.</value>
-        public int RefCount
-        {
-            get
-            {
-                this.UpdateRefs();
-
-                return this.refs.Count;
-            }
-        }
-
-        public BundleRef(AssetBundle ab,string loadname )
-        {
-            this.Res = new SharedPtr<KAssetBundle>(new KAssetBundle(ab));
-            this.depends = new List<BundleRef>();
-            this.refs = new List<WeakReference>();
-            this.LoadName = loadname;
-        }
-
-        public void AddDepend(BundleRef dep)
-        {
-            if(!this.depends.Contains(dep))
-            {
-                this.depends.Add(dep);
-            }
-        }
-
-        public void Lock(LockType tp = LockType.DontDestroy | LockType.OnlyReadNoWrite)
-        {
-            if(this.Res != null)
-            {
-                this.Res.Lock(tp);
-            }
-        }
-
-        public void UnLock(LockType tp = LockType.DontDestroy | LockType.OnlyReadNoWrite)
-        {
-            if(this.Res != null)
-            {
-                this.Res.UnLock(tp);
-            }
-        }
-
-        public void UnLoad(bool all)
-        {
-            if(this.Res != null && this.DepndCount ==0 )
-            {
-                ///
-                if(this.RefCount != 0)
-                {
-                    all =false;
-                }
-
-                if(this.Res.isLock(LockType.DontDestroy))
-                {
-                    LogMgr.LogErrorFormat("{0} is an DontDestrory Object Should Be Unlock first",this.LoadName);
-                }
-                else
-                {
-                    if(FrameWorkDebug.Open_DEBUG)
-                        LogMgr.LogFormat("{0} Asset Will {1} Desotry  ",this.LoadName,all);
-
-                    this.Res.get().Unload(all);
-                }
-
-            }
-        }
-
-        public UnityEngine.Object Instantiate(Component c = null )
-        {
-            if(this.Res == null)
-            {
-                if(BundleConfig.SAFE_MODE)
-                {
-                    throw new FrameWorkResMissingException(string.Format( "Asset Bundle {0} Missing",this.LoadName));
-                }
-                else
-                {
-                    LogMgr.LogErrorFormat("Asset Bundle {0} Missing",this.LoadName);
-                    return null;
-                }
-            }
-
-            UnityEngine.Object target = Res.get().Load(this.LoadName);
-
-            Res.AddRef();
-
-            if(target is GameObject)
-            {
-
-                UnityEngine.Object ins =GameObject.Instantiate(target);
-                this.refs.Add(new WeakReference(ins));
-
-                return ins;
-            }
-            else
-            {
-                if(c ==  null)
-                    throw new FrameWorkException("If Target isnt Gameobejct ,you should Pass with a component ");
-
-                this.refs.Add(new WeakReference(c));
-
-            }
-
-            return target;
-        }
-
-        void UpdateRefs()
-        {
-            int count = this.RefCount;
-
-            for(int i = this.refs.Count-1; i >=0; i--)
-            {
-                WeakReference r = this.refs[i];
-                if(r == null || !r.IsAlive || r.Target == null)
-                {
-                    this.refs.RemoveAt(i);
-                }
-            }
-
-            if(FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Changed {0} ref  ",count- this.RefCount);
-        }
-
-
-        public void Dispose ()
-        {
-            this.LoadName =null;
-            this.refs.Clear();
-            this.depends.Clear();
-
-        }
-    }
-
     public class BundleCache  {
 
         private Dictionary<string,SharedPtr<KAssetBundle>> caches ;
 
-        public BundleCache()
-        {
-            this.caches = new Dictionary<string, SharedPtr<KAssetBundle>>(16);
-        }
+        private Dictionary<string, IBundleRef> RefCaches;
 
-        public SharedPtr<KAssetBundle> this[string key]
+        public int CacheCnt
         {
             get
             {
-                return this.caches[key];
+                return this.RefCaches.Count;
+            }
+        }
+
+        public BundleCache()
+        {
+            this.caches = new Dictionary<string, SharedPtr<KAssetBundle>>(16);
+            this.RefCaches = new Dictionary<string, IBundleRef>(16);
+        }
+
+        public void LogDebugInfo()
+        {
+            LogMgr.LogFormat("<color=#001111ff>Bundle In Pool Cnt is {0}</color>", this.CacheCnt);
+
+            var keys = new List<string>(this.RefCaches.Keys);
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                string key = keys[i];
+                IBundleRef bundle = this.RefCaches[key];
+
+                LogMgr.LogFormat("<color=#00aa00ff>Root Bundle is {0} ,RefCount is {1} ,DependedCnt is {2}</color>", bundle.name,bundle.RefCount,bundle.DepndCount);
+
+                bundle.LogDepends();
+            }
+        }
+
+        public void UnLoadUnUsed(bool force)
+        {
+            int LimitUnLoadCnt = 10;
+            if (force)
+            {
+                LimitUnLoadCnt = 65536;
+            }
+
+            var keys = new List<string>(this.RefCaches.Keys);
+
+            for (int i=0; i < keys.Count;++i)
+            {
+                if (i < LimitUnLoadCnt)
+                {
+                    string key = keys[i];
+                    IBundleRef bundle = this.RefCaches[key];
+                    if (bundle == null || bundle.DepndCount ==0 || bundle.RefCount ==0)
+                    {
+                        bundle.UnLoad(true);
+                    }
+                }
+                else
+                    break;
+            } 
+
+        }
+
+        public IBundleRef this[string key]
+        {
+            get
+            {
+                try
+                {
+                    return this.RefCaches[key];
+                }
+                catch (Exception ex)
+                {
+                    LogMgr.LogErrorFormat("{0} Cause {1} ", key, ex);
+                    return null;
+                }
+                
             }
             set
             {
-                this.Push(key,value);
+                if (!this.Contains(key))
+                {
+                    this.RefCaches.Add(key, value);
+                }
+                else
+                {
+                    this.RefCaches[key] = value;
+                }
             }
+        }
+
+        private SharedPtr<KAssetBundle> TryGetPtr(string abname, AssetBundle ab)
+        {
+            SharedPtr<KAssetBundle> ptr = null;
+            if (this.caches.ContainsKey(abname))
+            {
+                ptr = this.caches[abname];
+                if (ptr != null && ptr.isAlive && ptr.Equals(ab))
+                {
+                    return ptr;
+                }
+            }
+
+            ptr = new SharedPtr<KAssetBundle>(new KAssetBundle(ab));
+            this.caches[abname] = ptr;
+
+            return ptr;
+
         }
 
         public bool Contains(string abname)
@@ -193,28 +124,59 @@ namespace KFrameWork
             return this.caches.ContainsKey(abname) ;
         }
 
-        public void Push(string abname, SharedPtr<KAssetBundle> ab)
+        public bool Contains(BundlePkgInfo pkg)
         {
-            if(!this.Contains(abname))
-            {
-                this.caches.Add(abname,ab);
-            }
+            return this.caches.ContainsKey(pkg.AbFileName);
         }
 
-
-        public SharedPtr<KAssetBundle> Push(string abname, AssetBundle ab)
+        public IBundleRef TryGetValue(BundlePkgInfo pkg)
         {
-            SharedPtr<KAssetBundle> ptr = null;
-            if(!this.Contains(abname))
+            return this.TryGetValue(pkg.AbFileName);
+        }
+
+        public IBundleRef TryGetValue(string assetname )
+        {
+            if (this.Contains(assetname))
             {
-                ptr = new SharedPtr<KAssetBundle>( new KAssetBundle(ab));
-                this.caches.Add(abname,ptr);
+                return this[assetname];
+            }
+
+            return null;
+        }
+
+        public IBundleRef PushAsset(BundlePkgInfo pkg, AssetBundle ab)
+        {
+            IBundleRef bundle = null;
+            if(!this.Contains(pkg.AbFileName))
+            {
+                bundle = new BundleRef(this.TryGetPtr(pkg.AbFileName, ab), pkg.EditorPath);
+                this.RefCaches.Add(pkg.AbFileName,bundle);
             }
             else
             {
-                ptr = this[abname];
+                bundle = this[pkg.AbFileName];
             }
-            return ptr;
+            return bundle;
+        }
+
+        public IBundleRef PushEditorAsset(BundlePkgInfo pkg, UnityEngine.Object ab)
+        {
+            IBundleRef bundle = null;
+            if (!this.Contains(pkg.AbFileName))
+            {
+#if UNITY_EDITOR && !AB_DEBUG
+                bundle = new EditorRef(ab,pkg.AbFileName);
+#else
+                bundle = new BundleRef(this.TryGetPtr(pkg.AbFileName, ab), pkg.EditorPath);
+#endif
+
+                this.RefCaches.Add(pkg.AbFileName, bundle);
+            }
+            else
+            {
+                bundle = this[pkg.AbFileName];
+            }
+            return bundle;
         }
     }
 }

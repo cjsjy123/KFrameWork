@@ -1,0 +1,24 @@
+ManifestFileVersion: 0
+CRC: 918948912
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 5a30a304070a4811990b41fe8915760e
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 4e5e350f07e083cf34511167bdb1a15a
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 114
+  Script: {fileID: -765806418, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+- Class: 222
+  Script: {instanceID: 0}
+- Class: 224
+  Script: {instanceID: 0}
+Assets:
+- Assets/KFrameWork/Examples/AssetBundleTest/Test_Text.prefab
+Dependencies: []

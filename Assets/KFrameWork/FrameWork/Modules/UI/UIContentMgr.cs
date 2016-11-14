@@ -134,7 +134,7 @@ namespace KFrameWork
            
         }
 
-        private BaseContent SeekNearst(BaseContent Next)
+        private LinkedListNode<BaseContent> SeekNearst(BaseContent Next)
         {
             if (Next == null)
                 return null;
@@ -149,7 +149,7 @@ namespace KFrameWork
                 first = next.Next;
             }
 
-            return first.Value;
+            return first;
         }
 
         private GameObject _CanvasAdd(BaseContent Next, GameObject ins)
@@ -162,7 +162,7 @@ namespace KFrameWork
         }
 
 
-        private GameObject _AutoAdjustDeep(BaseContent old, BaseContent Next, GameObject ins, BaseContent target = null)
+        private GameObject _AutoAdjustDeep(BaseContent old, BaseContent Next, GameObject ins, LinkedListNode<BaseContent> target = null)
         {
             GameObject instance =  null;
             if (Next != null)
@@ -176,7 +176,7 @@ namespace KFrameWork
 
                     if (target != null)
                     {
-                        instance = target.AddInstance(ins);
+                        instance = target.Value.AddInstance(ins);
                     }
                     else
                     {
@@ -230,14 +230,16 @@ namespace KFrameWork
                 else if(this.CanPush())
                 {
                     this._LoadBase(self);
-                    BaseContent current = this.UIStack.First.Value;
+                    BaseContent current = null;
+                    if(this.UIStack.First != null)
+                        current = this.UIStack.First.Value;
 
                     GameObject Instance = this.GetObjectByUIContent(content);
                     BaseContent Next = Instance.GetComponent<BaseContent>();
                     if (Next != null)
                     {
                         ++this._depth;
-                        BaseContent target = this.SeekNearst(Next);
+                        LinkedListNode<BaseContent> target = this.SeekNearst(Next);
                         Instance = this._AutoAdjustDeep(current, Next, Instance, target);
 
                         if (this._limitsize == -1 || current == null || target == null)
@@ -246,8 +248,7 @@ namespace KFrameWork
                         }
                         else
                         {
-                            LinkedListNode<BaseContent> node = this.UIStack.Find(target);
-                            this.UIStack.AddAfter(node, Next);
+                            this.UIStack.AddAfter(target, Next);
                         }
                         Next.OnEnter();
                     }
@@ -307,7 +308,10 @@ namespace KFrameWork
 
                 this._LoadBase(self);
 
-                BaseContent current = this.UIStack.First.Value;
+                BaseContent current = null;
+                if (this.UIStack.First != null)
+                    current = this.UIStack.First.Value;
+
                 --this._depth;
                 this.UIStack.Remove(current);
                 current.OnExit();
@@ -349,7 +353,9 @@ namespace KFrameWork
                 {
                     this._LoadBase(self);
 
-                    BaseContent current = this.UIStack.First.Value;
+                    BaseContent current = null;
+                    if (this.UIStack.First != null)
+                        current = this.UIStack.First.Value;
 
                     if (current.Equals(bContent))
                     {

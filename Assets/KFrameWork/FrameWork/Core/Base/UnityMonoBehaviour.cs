@@ -78,7 +78,7 @@ namespace KFrameWork
         protected override void OnDestroy(){}
     }
     #else
-    public abstract class UnityMonoBehaviour : BundleLoaderComponent
+    public abstract class UnityMonoBehaviour : MonoBehaviour
     {
 
         protected static bool m_isFrameWorkInited = false;

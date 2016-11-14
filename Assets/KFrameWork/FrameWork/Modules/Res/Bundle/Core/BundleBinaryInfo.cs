@@ -7,39 +7,9 @@ using KUtils;
 
 namespace KFrameWork
 {
-
-    public struct BundlePkgInfo
+    public class BundleBinaryInfo : BundleInfoFilter
     {
-        public string AbFilePath;
-
-        public string BundleName;
-
-        public string EditorPath;
-
-        public Type ResTp;
-
-        public string[] Depends;
-    }
-
-
-    public class BundleInfo : BundleInfoFilter
-    {
-        private Dictionary<string, BundlePkg> caches = new Dictionary<string, BundlePkg>();
-
-        public BundleInfo()
-        {
-
-        }
-
-        private class BundlePkg
-        {
-            public string Filename;
-            public string hash;
-            public string ShortName;
-            public string EditorPath;
-            public int ResTp;
-            public string[] depends;
-        }
+        private Dictionary<string, BundlePkgInfo> caches = new Dictionary<string, BundlePkgInfo>();
 
         public void LoadFromMemory(Stream depStream)
         {
@@ -82,54 +52,44 @@ namespace KFrameWork
                 int depsCount = sr.ReadInt32();
                 string[] deps = new string[depsCount];
 
-                BundlePkg pkg = new BundlePkg();
-
-                if (!this.caches.ContainsKey(shortFileName))
-                {
-                    this.caches.Add(shortFileName, pkg);
-                }
-                else
-                {
-                    LogMgr.LogErrorFormat("short name dupliate {0}",shortFileName);
-                }
-                    
                 for (int i = 0; i < depsCount; i++)
                 {
                     deps[i] = names[sr.ReadInt32()];
                 }
 
-                pkg.hash = hash;
-                pkg.Filename = name;
-                pkg.EditorPath = assetpath;
-                pkg.ShortName = shortFileName;
-                pkg.depends = deps;
-                pkg.ResTp = typeData;
+                BundlePkgInfo pkg = new BundlePkgInfo(hash, name, shortFileName, assetpath, null, deps);
+
+                if (!this.caches.ContainsKey(shortFileName))
+                {
+                    this.caches.Add(shortFileName, pkg);
+                    this.caches.Add(name, pkg);
+                }
+                else
+                {
+                    LogMgr.LogErrorFormat("short name dupliate {0}", shortFileName);
+                }
             }
+
+
             sr.Close();
         }
 
+
         public BundlePkgInfo SeekInfo(string name)
         {
-            BundlePkgInfo info = new BundlePkgInfo();
-            string lowername = name.ToLower();
-            if (this.caches.ContainsKey(lowername))
+            if (BundleConfig.SAFE_MODE)
+                name = name.ToLower();
+
+            if (this.caches.ContainsKey(name))
             {
-                BundlePkg pkg = this.caches[lowername];
-
-                info.BundleName = lowername;
-                info.Depends = pkg.depends;
-                info.AbFilePath = pkg.Filename;
-                info.EditorPath = pkg.EditorPath;
-
+                return this.caches[name];
             }
             else if (FrameWorkDebug.Open_DEBUG)
             {
                 LogMgr.LogErrorFormat("Not Found {0} ",name);
             }
 
-
-            return info;
-           
+            return null;
         }
 
     }

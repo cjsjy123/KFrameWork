@@ -35,6 +35,33 @@ namespace KUtils
 #endif
         }
 
+        public static void BindParent(this GameObject tr, Transform p)
+        {
+#if UNITY_5_3 || UNITY_5_4
+            tr.transform.SetParent(p);
+#else
+            tr.transform.parent = p;
+#endif
+        }
+
+        public static void BindParent(this GameObject tr, GameObject p)
+        {
+#if UNITY_5_3 || UNITY_5_4
+            tr.transform.SetParent(p.transform);
+#else
+            tr.transform.parent = p.transform;
+#endif
+        }
+
+        public static void BindParent(this GameObject tr, Component p)
+        {
+#if UNITY_5_3 || UNITY_5_4
+            tr.transform.SetParent(p.transform);
+#else
+            tr.transform.parent = p.transform;
+#endif
+        }
+
         public static GameObject InstancePrefab(this GameObject prefab, GameObject parent)
         {
             GameObject ins = GameObject.Instantiate(prefab);

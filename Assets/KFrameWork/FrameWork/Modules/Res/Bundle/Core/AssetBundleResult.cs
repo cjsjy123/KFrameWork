@@ -5,6 +5,6 @@ namespace KFrameWork
 {
     public struct AssetBundleResult
     {
-        public UnityEngine.Object MainObject;
+        public IBundleRef MainObject;
     }
 }

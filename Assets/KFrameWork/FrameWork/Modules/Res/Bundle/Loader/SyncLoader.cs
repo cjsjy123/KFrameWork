@@ -18,39 +18,87 @@ namespace KFrameWork
         {
             base.Load(name);
 
-            BundlePkgInfo pkginfo = BundleMgr.mIns.BundleInforMation.SeekInfo(name);
-
-            if (string.IsNullOrEmpty(pkginfo.AbFilePath))
-            {
-                this.loadState = BundleLoadState.Error;
-                throw new FrameWorkException(string.Format( "Not Found {0}",name),ExceptionType.Higher_Excetpion);
-            }
+            BundlePkgInfo pkginfo = this._SeekPkgInfo(name);
 
             for (int i = 0; i < pkginfo.Depends.Length; ++i)
             {
                 if (this.isRunning())
-                    this.Load(pkginfo.Depends[i]);
+                {
+                    this._AddBundleDpend(pkginfo.Depends[i]);
+                } 
+                else if (FrameWorkDebug.Open_DEBUG)
+                    LogMgr.LogFormat("{0} loader 状态不符",this.targetname);
                 else
                     break;
             }
 
-            if(this.isRunning())
-                this._LoadBundle(pkginfo);
+            if (this.isRunning())
+            {
+                this._BundleRef = this._LoadBundle(pkginfo);
+                this.CreateFromAsset(this._BundleRef,out this._Bundle );
+
+                if (this.isRunning()) //double check
+                {
+                    this.loadState = BundleLoadState.Finished;
+                }
+            }
+
         }
 
-        #region private
-        private void _LoadBundle(BundlePkgInfo pkginfo)
-        {
 
-            this._Bundle = this.LoadFullAsset(pkginfo);
+        private void _AddBundleDpend(string name)
+        {
+            BundlePkgInfo pkginfo = this._SeekPkgInfo(name);
+
+            for (int i = 0; i < pkginfo.Depends.Length; ++i)
+            {
+                if (this.isRunning())
+                {
+                    this._AddBundleDpend(pkginfo.Depends[i]);
+                }
+                else if (FrameWorkDebug.Open_DEBUG)
+                    LogMgr.LogFormat("{0} loader 状态不符", this.targetname);
+                else
+                    break;
+            }
 
             if (this.isRunning())
             {
-                this.loadState = BundleLoadState.Finished;
+                this._LoadBundle(pkginfo);
             }
+                
         }
 
-        #endregion
+
+        private IBundleRef _LoadBundle(BundlePkgInfo pkginfo)
+        {
+
+            IBundleRef bundle = this.LoadFullAssetToMem(pkginfo);
+
+            if (bundle != null)
+            {
+                for (int i = 0; i < pkginfo.Depends.Length; ++i)
+                {
+                   IBundleRef depbund =  ResBundleMgr.mIns.Cache.TryGetValue(pkginfo.Depends[i]);
+                    if (depbund != null)
+                    {
+                        depbund.AddDepend(bundle);
+                    }
+                    else
+                    {
+                        this.ThrowBundleMissing(pkginfo.Depends[i]);
+                    }
+                }
+            }
+            else
+            {
+                this.ThrowBundleMissing(pkginfo.BundleName);
+            }
+
+            return bundle;
+        }
+
+
         public override void OnError()
         {
             base.OnError();
