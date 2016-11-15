@@ -22,9 +22,13 @@ namespace KFrameWork
 
         protected IBundleRef _BundleRef;
 
+        public GameObject PreParedGameObject;
+
+        private GameObject LoaderInsObject;
+
         private BundleLoadState _state;
 
-        public BundleLoadState loadState
+        public BundleLoadState LoadState
         {
             get
             {
@@ -54,6 +58,8 @@ namespace KFrameWork
 
         public Action<bool, AssetBundleResult> onComplete;
 
+        
+
         #region events
         public abstract void OnStart();
         /// <summary>
@@ -71,9 +77,10 @@ namespace KFrameWork
 
         public virtual void OnFinish()
         {
-            if (this.loadState != BundleLoadState.Error && this.loadState  != BundleLoadState.Finished
-                && this.loadState != BundleLoadState.Paused)
+            if (this.LoadState != BundleLoadState.Error && this.LoadState  != BundleLoadState.Finished
+                && this.LoadState != BundleLoadState.Paused)
             {
+                this.PreparedTryIns();
                 this.InvokeHandler(true, this.GetABResult());
             }
         }
@@ -84,37 +91,37 @@ namespace KFrameWork
         public virtual void Load(string name)
         {
             this.targetname = name;
-            if (this.loadState == BundleLoadState.Prepared)
+            if (this.LoadState == BundleLoadState.Prepared)
             {
-                this.loadState = BundleLoadState.Running;
+                this.LoadState = BundleLoadState.Running;
             }
         }
 
         public virtual void DownLoad(string url)
         {
-            if (this.loadState == BundleLoadState.Prepared)
+            if (this.LoadState == BundleLoadState.Prepared)
             {
-                this.loadState = BundleLoadState.Running;
+                this.LoadState = BundleLoadState.Running;
             }
         }
 
         public virtual void Pause()
         {
-            if (this.loadState != BundleLoadState.Paused
-                && this.loadState != BundleLoadState.Finished
-                && this.loadState != BundleLoadState.Error
-                && this.loadState != BundleLoadState.Stopped)
+            if (this.LoadState != BundleLoadState.Paused
+                && this.LoadState != BundleLoadState.Finished
+                && this.LoadState != BundleLoadState.Error
+                && this.LoadState != BundleLoadState.Stopped)
             {
-                this.loadState = BundleLoadState.Paused;
+                this.LoadState = BundleLoadState.Paused;
             }
         }
 
         public virtual void Stop()
         {
-            if (this.loadState != BundleLoadState.Finished && this.loadState != BundleLoadState.Error
-                && this.loadState != BundleLoadState.Stopped)
+            if (this.LoadState != BundleLoadState.Finished && this.LoadState != BundleLoadState.Error
+                && this.LoadState != BundleLoadState.Stopped)
             {
-                this.loadState = BundleLoadState.Paused;
+                this.LoadState = BundleLoadState.Paused;
 
             }
         }
@@ -122,10 +129,10 @@ namespace KFrameWork
         public virtual void Resume()
         {
 
-            if (this.loadState != BundleLoadState.Error && this.loadState != BundleLoadState.Stopped
-                && this.loadState != BundleLoadState.Finished)
+            if (this.LoadState != BundleLoadState.Error && this.LoadState != BundleLoadState.Stopped
+                && this.LoadState != BundleLoadState.Finished)
             {
-                this.loadState = BundleLoadState.Running;
+                this.LoadState = BundleLoadState.Running;
 
             }
         }
@@ -134,8 +141,34 @@ namespace KFrameWork
         {
             AssetBundleResult result = new AssetBundleResult();
             result.MainObject = this._BundleRef ;
+            result.InstancedObject = this.LoaderInsObject;
             return result;
         }
+
+        protected void PreparedTryIns()
+        {
+            if (this.PreParedGameObject != null)
+            {
+                UnityEngine.Object res = null;
+
+                if (this._BundleRef.Instantiate(out res))
+                {
+                    if (res is GameObject)
+                    {
+                        this.LoaderInsObject = res as GameObject;
+                        this.LoaderInsObject.BindParent(this.PreParedGameObject);
+                    }
+                    else
+                    {
+                        if (BundleConfig.SAFE_MODE)
+                            throw new FrameWorkResNotMatchException(string.Format("{0} Type Is Not Gameobject", targetname));
+                        else
+                            LogMgr.LogErrorFormat("Not Gameobject cant be instanced as gameobject :{0}",targetname);
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region POOL
@@ -147,9 +180,8 @@ namespace KFrameWork
                 loader = KObjectPool.mIns.Pop<T>();
             }
 
-
-            if (loader == null)
-                loader = new T();
+            //if (loader == null)
+            //    loader = new T();
 
             return loader;
         }
@@ -157,17 +189,23 @@ namespace KFrameWork
         public virtual void AwakeFromPool()
         {
             this._Bundle = null;
+            this._BundleRef = null;
             this.targetname = null;
-            this.loadState = BundleLoadState.Prepared;
+            this.LoadState = BundleLoadState.Prepared;
             this.onComplete = null;
+            this.LoaderInsObject = null;
+            this.PreParedGameObject = null;
         }
 
         public virtual void RemovedFromPool()
         {
             this._Bundle = null;
+            this._BundleRef = null;
             this.targetname = null;
-            this.loadState = BundleLoadState.Prepared;
+            this.LoadState = BundleLoadState.Prepared;
             this.onComplete = null;
+            this.LoaderInsObject = null;
+            this.PreParedGameObject = null;
         }
 
         #endregion
@@ -182,22 +220,21 @@ namespace KFrameWork
 
         protected bool isRunning()
         {
-            return this.loadState == BundleLoadState.Running ;
+            return this.LoadState == BundleLoadState.Running ;
         }
 
         protected bool isPaused()
         {
-            return  this.loadState == BundleLoadState.Paused;
+            return  this.LoadState == BundleLoadState.Paused;
         }
 
         protected BundlePkgInfo _SeekPkgInfo(string name)
         {
-
             BundlePkgInfo pkginfo = ResBundleMgr.mIns.BundleInforMation.SeekInfo(name);
 
             if (pkginfo == null)
             {
-                this.loadState = BundleLoadState.Error;
+                this.LoadState = BundleLoadState.Error;
                 throw new FrameWorkException(string.Format("Not Found {0}", name), ExceptionType.Higher_Excetpion);
             }
 
@@ -235,7 +272,7 @@ namespace KFrameWork
                     throw new FrameWorkResMissingException(string.Format("Asset {0} Missing", pkginfo.BundleName));
                 else
                 {
-                    this.loadState = BundleLoadState.Error;
+                    this.LoadState = BundleLoadState.Error;
                     LogMgr.LogErrorFormat("Asset {0} Missing", pkginfo.BundleName);
                 }
             }
@@ -298,7 +335,7 @@ namespace KFrameWork
                 throw new FrameWorkResMissingException(string.Format("Bundle {0} Missing", resname));
             else
             {
-                this.loadState = BundleLoadState.Error;
+                this.LoadState = BundleLoadState.Error;
                 LogMgr.LogErrorFormat("Bundle {0} Missing", resname);
             }
         }
@@ -309,7 +346,7 @@ namespace KFrameWork
                 throw new FrameWorkResMissingException(string.Format("Asset {0} Missing", resname));
             else
             {
-                this.loadState = BundleLoadState.Error;
+                this.LoadState = BundleLoadState.Error;
                 LogMgr.LogErrorFormat("Asset {0} Missing", resname);
             }
         }

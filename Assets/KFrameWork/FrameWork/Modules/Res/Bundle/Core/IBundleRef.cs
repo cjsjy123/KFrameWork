@@ -10,7 +10,7 @@ namespace KFrameWork
     {
         string name { get; }
 
-        int DepndCount { get; }
+        int DependCount { get; }
 
         int RefCount { get; }
 

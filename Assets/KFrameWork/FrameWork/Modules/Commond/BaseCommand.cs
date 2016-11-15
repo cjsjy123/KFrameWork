@@ -6,6 +6,15 @@ using KUtils;
 
 namespace KFrameWork
 {
+    public enum CommandState
+    {
+        PrePared,
+        Running,
+        Paused,
+        Stoped,
+        Finished,
+    }
+
 
     public abstract class BaseCommand<T> :CacheCommand,IPool  {
         protected bool m_bExcuted =false;
@@ -99,49 +108,17 @@ namespace KFrameWork
             this.m_bReleased =false;
             this.m_isBatching =false;
             this.Next = null;
-            this._CMD = null;
-            this._Gparams = null;
-            this._RParams = null;
             this._isDone = false;
         }
 
         public virtual void RemovedFromPool ()
         {
-            this._CMD = null;
-            this._Gparams = null;
-            this._RParams = null;
-        }
-
-        public override void Release(bool force)
-        {
-            if(!this.CMD.HasValue || this.m_bReleased || !this.isDone)
-                return ;
-
-            this.m_bReleased =false;
-            this.m_bExcuted =false;
-
-//            if(CMDCache == null)
-//                CMDCache = new Dictionary<int, Queue<ICommand>>(16);
-
-            if(CMDCache.ContainsKey(this._CMD.Value))
-            {
-                if(this.HasCallParams )
-                {
-                    this._Gparams.ResetReadIndex();
-                }
-                CMDCache[this.CMD.Value].Enqueue(this);
-            }
-            else
-            {
-                if(this.HasCallParams )
-                {
-                    this._Gparams.ResetReadIndex();
-                }
-
-                Queue<CacheCommand> queue = new Queue<CacheCommand>(4);
-                queue.Enqueue(this);
-                CMDCache.Add(this._CMD.Value,queue);
-            }
+            this.m_paused = false;
+            this.m_bExcuted = false;
+            this.m_bReleased = false;
+            this.m_isBatching = false;
+            this.Next = null;
+            this._isDone = false;
         }
 
         protected void _Add(CacheCommand cmd)
@@ -187,9 +164,29 @@ namespace KFrameWork
             }
         }
 
+        protected override void Reset()
+        {
+            base.Reset();
+            this.m_bExcuted = false;
+            this.m_bReleased = false;
+            this.m_isBatching = false;
+        }
+
         public override void Excute()
         {
-            m_bExcuted = true;
+            this.m_bExcuted = true;
+        }
+        /// <summary>
+        /// force 需要用户确保其他地方地方没有其引用，不然容易导致bug
+        /// </summary>
+        /// <param name="force"></param>
+        public override void Release(bool force)
+        {
+            
+            if (KObjectPool.mIns != null && force)
+            {
+                KObjectPool.mIns.Push(this);
+            }
         }
 
 

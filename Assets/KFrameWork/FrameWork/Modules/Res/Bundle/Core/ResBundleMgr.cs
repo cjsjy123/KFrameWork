@@ -110,16 +110,59 @@ namespace KFrameWork
 
         public static void UnLoadUnused(bool force =false)
         {
-            
+            if (mIns != null)
+            {
+                mIns.Cache.UnLoadUnUsed(force);
+            }
+        }
+
+        public static void SeekUnLoad(string name, bool force = false)
+        {
+            if (mIns != null)
+            {
+                BundlePkgInfo info = mIns.Info.SeekInfo(name);
+                if (info != null)
+                {
+                    IBundleRef bundle = mIns.Cache.TryGetValue(info);
+                    if (bundle != null)
+                    {
+                        bundle.UnLoad(force);
+                    }
+                    else
+                    {
+                        LogMgr.LogErrorFormat("The Bundle which your seek isnt in the Pool Or Loaded Yield :{0}", name);
+                    }
+                }
+                else
+                {
+                    LogMgr.LogErrorFormat("Not Found your Seek Info :{0}",name);
+                }
+            }
         }
 
         public void PreLoad(string pathname)
         {
-
+            if (BundleConfig.SAFE_MODE)
+            {
+                this._SimplePreLoad(pathname);
+            }
+            else
+            {
+                try
+                {
+                    this._SimplePreLoad(pathname);
+                }
+                catch (FrameWorkException ex)
+                {
+                    LogMgr.LogException(ex);
+                    ex.RaiseExcption();
+                }
+                catch (Exception ex)
+                {
+                    LogMgr.LogException(ex);
+                }
+            }
         }
-
-
-
         /// <summary>
         /// 如果不开启safe模式的话，用户需小写文件名
         /// </summary>
@@ -190,9 +233,38 @@ namespace KFrameWork
             }
         }
 
+        public void LoadAsync(string pathname, Component parent)
+        {
+            this.LoadAsync(parent: parent.gameObject, pathname: pathname);
+        }
+
+        public void LoadAsync(string pathname, Transform parent)
+        {
+            this.LoadAsync(parent: parent.gameObject, pathname: pathname);
+        }
+
         public void LoadAsync(string pathname, GameObject parent)
         {
-            
+            if (BundleConfig.SAFE_MODE)
+            {
+                this._LoadGameobjectAsync(pathname,parent);
+            }
+            else
+            {
+                try
+                {
+                    this._LoadGameobjectAsync(pathname, parent);
+                }
+                catch (FrameWorkException ex)
+                {
+                    LogMgr.LogException(ex);
+                    ex.RaiseExcption();
+                }
+                catch (Exception ex)
+                {
+                    LogMgr.LogException(ex);
+                }
+            }
         }
 
         public void LoadAsync(string pathname, Action<bool, AssetBundleResult> callback)
@@ -211,7 +283,6 @@ namespace KFrameWork
                 {
                     LogMgr.LogException(ex);
                     ex.RaiseExcption();
-
                 }
                 catch (Exception ex)
                 {
@@ -225,41 +296,40 @@ namespace KFrameWork
         {
             SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
 
+            if (loader == null)
+                loader = new SyncLoader();
+
+            loader.PreParedGameObject = parent;
             loader.Load(pathname);
 
             AssetBundleResult result = loader.GetABResult();
-            UnityEngine.Object res = null;
-            if (result.MainObject.Instantiate(out res))
-            {
-                if (res is GameObject)
-                {
-                    GameObject ins = res as GameObject;
-                    ins.BindParent(parent);
-                    return ins;
-
-                }
-                else
-                {
-                    if (BundleConfig.SAFE_MODE)
-                        throw new FrameWorkResNotMatchException(string.Format("{0} Type Is Not Gameobject", result.MainObject));
-                    else
-                        return null;
-                }
-            }
-
-            return null;
+            return result.InstancedObject;
 
         }
 
-//        private GameObject _LoadGameobjectAsync(bool Done,)
-//        {
-// 
-//
-//        }
+        private void _LoadGameobjectAsync(string pathname,GameObject parnet)
+        {
+            AsyncLoader loader = BaseBundleLoader.CreateLoader<AsyncLoader>();
+            if (loader == null)
+                loader = new AsyncLoader();
+            loader.PreParedGameObject = parnet;
+            loader.Load(pathname);
+        }
+
+        private void _SimplePreLoad(string pathname)
+        {
+            PreLoader loader = BaseBundleLoader.CreateLoader<PreLoader>();
+            if (loader == null)
+                loader = new PreLoader();
+
+            loader.Load(pathname);
+        }
 
         private void _SimpleLoad(string pathname, Action<bool, AssetBundleResult> callback)
         {
             SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
+            if (loader == null)
+                loader = new SyncLoader();
             loader.onComplete += callback;
             loader.Load(pathname);
         }
@@ -267,6 +337,8 @@ namespace KFrameWork
         private void _SimpleAysncLoad(string pathname, Action<bool, AssetBundleResult> callback)
         {
             AsyncLoader loader = BaseBundleLoader.CreateLoader<AsyncLoader>();
+            if (loader == null)
+                loader = new AsyncLoader();
             loader.onComplete += callback;
             loader.Load(pathname);
         }

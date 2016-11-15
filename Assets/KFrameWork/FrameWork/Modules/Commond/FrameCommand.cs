@@ -65,7 +65,6 @@ namespace KFrameWork
         {
             try
             {
-
                 if(!this.m_bExcuted)
                 {
                     base.Excute();
@@ -117,13 +116,14 @@ namespace KFrameWork
         public override void Stop ()
         {
             MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
+            this._isDone = true;
 
-            if(this.Callback != null)
+            if (this.Callback != null)
             {
                 this.Callback ();
             }
 
-            this._isDone = true;
+            
         }
 
         public override void Pause ()

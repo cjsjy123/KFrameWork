@@ -54,7 +54,14 @@ namespace KFrameWork
 
         public SharedPtr(T target)
         {
-            data = target;
+            this.Restore(target);
+        }
+
+        public void Restore(T target)
+        {
+            this.data = target;
+            this.counter = 0;
+            this.lockval = 0;
         }
 
         public void Lock(LockType locktp)

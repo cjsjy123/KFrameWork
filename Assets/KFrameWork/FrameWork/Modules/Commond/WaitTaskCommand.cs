@@ -14,6 +14,15 @@ namespace KFrameWork
 
         private Action m_Done;
 
+        [FrameWokAwakeAttribute]
+        private static void PreLoad(int v)
+        {
+            for (int i = 0; i < FrameWorkDebug.Preload_ParamsCount; ++i)
+            {
+                KObjectPool.mIns.Push(new WaitTaskCommand());
+            }
+        }
+
         private WaitTaskCommand()
         {
             
@@ -43,6 +52,7 @@ namespace KFrameWork
         {
             try
             {
+
                 if(!this.m_bExcuted)
                 {
                     base.Excute();
@@ -88,12 +98,11 @@ namespace KFrameWork
         public override void Stop ()
         {
             MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
-
-            if(this.m_Done != null)
-                this.m_Done();
-
+            this.Reset();
             this._isDone = true;
 
+            if (this.m_Done != null)
+                this.m_Done();
         }
 
         public override void Pause ()

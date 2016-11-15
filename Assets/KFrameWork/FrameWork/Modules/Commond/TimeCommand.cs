@@ -28,6 +28,14 @@ namespace KFrameWork
 
         private System.Action Callback;
 
+        [FrameWokAwakeAttribute]
+        private static void PreLoad(int v)
+        {
+            for (int i = 0; i < FrameWorkDebug.Preload_ParamsCount; ++i)
+            {
+                KObjectPool.mIns.Push(new TimeCommand());
+            }
+        }
 
         private TimeCommand()
         {
@@ -105,14 +113,11 @@ namespace KFrameWork
         public override void Stop ()
         {
             MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
-
-            if(this.Callback != null)
+            this._isDone = true;
+            if (this.Callback != null)
             {
                 this.Callback ();
             }
-
-            this._isDone = true;
-
         }
 
         public override void Pause ()

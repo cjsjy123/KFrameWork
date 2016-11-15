@@ -176,7 +176,7 @@ namespace KFrameWork
 
         public static ScriptLogicCtr mIns;
 
-        private Queue<CacheCommand> CommandQueue = new Queue<CacheCommand>(64);
+        private Queue<ScriptCommand> CommandQueue = new Queue<ScriptCommand>(64);
 
         private Dictionary<int ,Dictionary<int,ScriptPkg>> ScriptDic = new Dictionary<int, Dictionary<int, ScriptPkg>>();
 
@@ -287,7 +287,7 @@ namespace KFrameWork
             }
         }
 
-        public void PushCommand(CacheCommand command)
+        public void PushCommand(ScriptCommand command)
         {
 
             if(command.CMD.HasValue && !command.isDone)
@@ -312,7 +312,7 @@ namespace KFrameWork
             {
                 while(CommandQueue != null && CommandQueue.Count >0)
                 {
-                    CacheCommand cmd = CommandQueue.Dequeue();
+                    ScriptCommand cmd = CommandQueue.Dequeue();
 
                     if(cmd.isDone)
                         continue;

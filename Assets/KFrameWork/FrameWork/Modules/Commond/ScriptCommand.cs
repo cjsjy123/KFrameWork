@@ -7,6 +7,54 @@ namespace KFrameWork
 {
     public sealed class ScriptCommand :BaseCommand<ScriptCommand>
     {
+        private int? _CMD;
+
+        public int? CMD
+        {
+            get
+            {
+
+                return _CMD;
+            }
+        }
+
+        private AbstractParams _Gparams;
+
+        public AbstractParams CallParms
+        {
+            get
+            {
+                if (_Gparams == null)
+                    _Gparams = GenericParams.Create();
+                return _Gparams;
+            }
+        }
+
+        public bool HasCallParams
+        {
+            get
+            {
+                return _Gparams != null;
+            }
+        }
+
+        private AbstractParams _RParams;
+
+        /// <summary>
+        /// 当有返回值得时候用户请自行dispose
+        /// </summary>
+        /// <value>The return parameters.</value>
+        public AbstractParams ReturnParams
+        {
+            get
+            {
+                return _RParams;
+            }
+            set
+            {
+                _RParams = value;
+            }
+        }
 
         private ScriptCommand()
         {
@@ -61,18 +109,42 @@ namespace KFrameWork
 
         }
 
-        public override void Release (bool force)
+        public override void Release(bool force)
         {
             ///也有可能用户主动调用，
-            this._isDone =true;
+            this._isDone = true;
 
-            if(!this.m_isBatching && this.Next != null)
+            if (!this.m_isBatching && this.Next != null)
             {
-                this.m_isBatching =true;
+                this.m_isBatching = true;
                 this.Next.Excute();
             }
 
-            base.Release (force);
+            if (!this.CMD.HasValue || this.m_bReleased || !this.isDone)
+                return;
+
+            this.m_bReleased = false;
+            this.m_bExcuted = false;
+
+            if (CMDCache.ContainsKey(this._CMD.Value))
+            {
+                if (this.HasCallParams)
+                {
+                    this._Gparams.ResetReadIndex();
+                }
+                CMDCache[this.CMD.Value].Enqueue(this);
+            }
+            else
+            {
+                if (this.HasCallParams)
+                {
+                    this._Gparams.ResetReadIndex();
+                }
+
+                Queue<CacheCommand> queue = new Queue<CacheCommand>(4);
+                queue.Enqueue(this);
+                CMDCache.Add(this._CMD.Value, queue);
+            }
         }
 
         public override void Stop ()
@@ -109,6 +181,22 @@ namespace KFrameWork
             }
             return this;
 
+        }
+
+        public override void AwakeFromPool()
+        {
+            base.AwakeFromPool();
+            this._CMD = null;
+            this._Gparams = null;
+            this._RParams = null;
+        }
+
+        public override void RemovedFromPool()
+        {
+            base.RemovedFromPool();
+            this._CMD = null;
+            this._Gparams = null;
+            this._RParams = null;
         }
 
     }

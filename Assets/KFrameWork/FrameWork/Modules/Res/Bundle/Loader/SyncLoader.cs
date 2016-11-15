@@ -39,7 +39,7 @@ namespace KFrameWork
 
                 if (this.isRunning()) //double check
                 {
-                    this.loadState = BundleLoadState.Finished;
+                    this.LoadState = BundleLoadState.Finished;
                 }
             }
 

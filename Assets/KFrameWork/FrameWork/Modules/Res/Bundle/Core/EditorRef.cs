@@ -19,7 +19,7 @@ namespace KFrameWork
             }
         }
 
-        public int DepndCount
+        public int DependCount
         {
             get
             {

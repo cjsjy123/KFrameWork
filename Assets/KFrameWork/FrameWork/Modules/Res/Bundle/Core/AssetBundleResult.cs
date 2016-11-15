@@ -6,5 +6,7 @@ namespace KFrameWork
     public struct AssetBundleResult
     {
         public IBundleRef MainObject;
+
+        public GameObject InstancedObject;
     }
 }

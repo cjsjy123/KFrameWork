@@ -63,7 +63,6 @@ namespace KFrameWork
                     base.Excute();
 
                     this.TryBatch();
-
                 }
             }
             catch(System.Exception ex)
@@ -124,6 +123,7 @@ namespace KFrameWork
             }
             return this;
         }
+
     }
 }
 

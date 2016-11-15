@@ -13,6 +13,18 @@ public abstract class CacheCommand
 
     public abstract void Excute ();
 
+    private static int Counter = 0;
+
+    protected CommandState _state;
+
+    public CommandState RunningState
+    {
+        get
+        {
+            return this._state;
+        }
+    }
+
     protected bool m_paused =false;
 
     public bool Paused
@@ -26,28 +38,18 @@ public abstract class CacheCommand
         {
             if(value)
             {
+                this._state = CommandState.Paused;
                 this.Pause();
             }
             else
             {
+                this._state = CommandState.Running;
                 this.Resume();
             }
             this.m_paused =value;
         }
     }
 
-    protected int? _CMD;
-
-    public int? CMD
-    {
-        get
-        {
-
-            return _CMD;
-        }
-    }
-
-    private static int Counter =0;
 
     private int m_UID;
 
@@ -58,25 +60,6 @@ public abstract class CacheCommand
         }
     }
 
-    protected AbstractParams _Gparams ;
-
-    public AbstractParams CallParms
-    {
-        get
-        {
-            if(_Gparams == null)
-                _Gparams = GenericParams.Create();
-            return _Gparams;
-        }
-    }
-
-    public bool HasCallParams
-    {
-        get
-        {
-            return _Gparams != null;
-        }
-    }
 
     private CacheCommand _Next;
     public CacheCommand Next
@@ -105,23 +88,7 @@ public abstract class CacheCommand
         }
     }
 
-    protected AbstractParams _RParams;
 
-    /// <summary>
-    /// 当有返回值得时候用户请自行dispose
-    /// </summary>
-    /// <value>The return parameters.</value>
-    public AbstractParams ReturnParams
-    {
-        get
-        {
-            return _RParams;
-        }
-        set
-        {
-            _RParams = value;
-        }
-    }
         
 
     protected void GenID()
@@ -129,9 +96,36 @@ public abstract class CacheCommand
         this.m_UID = Counter++;
     }
 
-    public abstract void Stop();
-    public abstract void Pause();
-    public abstract void Resume();
+    public virtual void Stop()
+    {
+        if (this._state == CommandState.Running)
+        {
+            this._state = CommandState.Stoped;
+        }
+    }
+
+    public virtual void Pause()
+    {
+        if (this._state == CommandState.Running)
+        {
+            this._state = CommandState.Paused;
+        }
+    }
+
+    public virtual void Resume()
+    {
+        if (this._state == CommandState.Paused)
+        {
+            this._state = CommandState.Running;
+        }
+    }
+
+    protected virtual void Reset()
+    {
+        this.m_paused = false;
+        this._isDone = false;
+        this._state = CommandState.PrePared;
+    }
 
 
     public void ExcuteAndRelease()

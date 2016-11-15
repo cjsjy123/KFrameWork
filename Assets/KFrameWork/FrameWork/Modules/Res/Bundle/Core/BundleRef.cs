@@ -6,10 +6,14 @@ using KUtils;
 
 namespace KFrameWork
 {
-
-    public class BundleRef : IBundleRef, IDisposable
+    /// <summary>
+    /// 资源引用，只负责由此bundle 加载出来的实例对象，tip:因为存在unload false，所以之前存在的对象将不收到此bundle管理，
+    /// </summary>
+    public class BundleRef : IBundleRef, IPool, IDisposable
     {
         private string LoadName;
+
+        private string ABfilename;
 
         private SharedPtr<KAssetBundle> Res;
         /// <summary>
@@ -17,7 +21,7 @@ namespace KFrameWork
         /// </summary>
         private List<WeakReference> refs;
 
-        private List<WeakReference> depends;
+        private List<IBundleRef> depends;
 
         public string name
         {
@@ -31,7 +35,7 @@ namespace KFrameWork
         /// 被依赖数
         /// </summary>
         /// <value>The depnd count.</value>
-        public int DepndCount
+        public int DependCount
         {
             get
             {
@@ -52,27 +56,46 @@ namespace KFrameWork
             }
         }
 
-        public BundleRef(SharedPtr<KAssetBundle> ab, string loadname)
+        private BundleRef()
         {
-            this.Res = ab;
-            this.Res.AddRef();
-            this.depends = new List<WeakReference>();
-            this.refs = new List<WeakReference>();
-            this.LoadName = BundlePathConvert.EditorName2AssetName(loadname);
+
+        }
+
+        public static BundleRef  Create(SharedPtr<KAssetBundle> ab,string abname, string loadname)
+        {
+            BundleRef bundle = null;
+            if (KObjectPool.mIns != null)
+            {
+                bundle = KObjectPool.mIns.Pop<BundleRef>();
+            }
+
+            if(bundle == null)
+            {
+                bundle = new BundleRef();
+            }
+
+            bundle.Res = ab;
+            bundle.Res.AddRef();
+
+            bundle.depends = new List<IBundleRef>();
+            bundle.refs = new List<WeakReference>();
+            bundle.LoadName = BundlePathConvert.EditorName2AssetName(loadname);
+            bundle.ABfilename = abname;
+            return bundle;
         }
 
         public void NeedThis(IBundleRef dep)
         {
             for (int i = 0; i < this.depends.Count; ++i)
             {
-                WeakReference weakptr = this.depends[i];
-                if (weakptr != null && weakptr.IsAlive && weakptr.Target.Equals(dep))
+                IBundleRef weakptr = this.depends[i];
+                if (weakptr != null && weakptr.Equals(dep))
                 {
                     return;
                 }
             }
 
-            this.depends.Add(new WeakReference(dep));
+            this.depends.Add(dep);
         }
 
         public void LogDepends()
@@ -81,9 +104,8 @@ namespace KFrameWork
 
             for (int i = 0; i < this.depends.Count; ++i)
             {
-                WeakReference weakpter = this.depends[i];
-                IBundleRef bundle = weakpter.Target as IBundleRef;
-                LogMgr.LogFormat("<color=#ff0ff0ff>   Need  Bundle is {0} ,RefCount is {1} ,DependedCnt is {2}</color>", bundle.name, bundle.RefCount, bundle.DepndCount);
+                IBundleRef bundle = this.depends[i];
+                LogMgr.LogFormat("<color=#ff0ff0ff>[{0}] Need This Bundle [{1}] ,RefCount is {2} ,DependedCnt is {3}</color>", bundle.name,this.name, bundle.RefCount, bundle.DependCount);
             }
         }
 
@@ -103,41 +125,7 @@ namespace KFrameWork
             }
         }
 
-        public void UnLoad(bool all)
-        {
-            if (this.Res != null && this.Res.isLock(LockType.DontDestroy))
-            {
-                LogMgr.LogErrorFormat("this is an DontDestory Object with name {0}",this.LoadName);
-                return;
-            }
 
-            if (this.Res != null && this.DepndCount == 0)
-            {
-                ///
-                if (this.RefCount != 0)
-                {
-                    all = false;
-                }
-
-                if (this.Res.isLock(LockType.DontDestroy))
-                {
-                    LogMgr.LogErrorFormat("{0} is an DontDestrory Object Should Be Unlock first", this.LoadName);
-                }
-                else
-                {
-                    if (FrameWorkDebug.Open_DEBUG)
-                        LogMgr.LogFormat("{0} Asset Will {1} Desotry  ", this.LoadName, all);
-
-                    this.Res.get().Unload(all);
-
-                    if (all)
-                    {
-                        this.Dispose();
-                    }
-                }
-
-            }
-        }
 
         public bool LoadAsset(out UnityEngine.Object target )
         {
@@ -181,10 +169,8 @@ namespace KFrameWork
             if (prefab == null)
                 return false;
 
-
             if (prefab is GameObject)
             {
-
                 UnityEngine.Object ins = GameObject.Instantiate(prefab);
                 this.refs.Add(new WeakReference(ins));
                 target = ins;
@@ -204,8 +190,6 @@ namespace KFrameWork
 
         void UpdateRefs()
         {
-            int count = this.refs.Count;
-
             for (int i = this.refs.Count - 1; i >= 0; i--)
             {
                 WeakReference r = this.refs[i];
@@ -217,17 +201,47 @@ namespace KFrameWork
 
             for (int i = this.depends.Count - 1; i >= 0; i--)
             {
-                WeakReference r = this.depends[i];
-                if (r == null || !r.IsAlive || r.Target == null)
+                IBundleRef r = this.depends[i];
+                if (r == null || (r.DependCount == 0 && r.RefCount ==0))
                 {
                     this.depends.RemoveAt(i);
                 }
             }
 
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Changed {0} ref  ", count - this.refs.Count);
         }
 
+        public void UnLoad(bool all)
+        {
+            if (this.Res != null && this.Res.isLock(LockType.DontDestroy))
+            {
+                LogMgr.LogErrorFormat("this is an DontDestory Object with name {0}", this.LoadName);
+                return;
+            }
+
+            if (this.Res != null && this.DependCount == 0)
+            {
+                ///
+                if (this.RefCount != 0)
+                {
+                    all = false;
+                }
+
+                if (this.Res.isLock(LockType.DontDestroy))
+                {
+                    LogMgr.LogErrorFormat("{0} is an DontDestrory Object Should Be Unlock first", this.LoadName);
+                }
+                else
+                {
+                    if (FrameWorkDebug.Open_DEBUG)
+                        LogMgr.LogFormat("{0} Asset Will {1} Desotry  ", this.LoadName, all);
+
+                    this.Res.get().Unload(all);
+                    ResBundleMgr.mIns.Cache.Remove(this.ABfilename);
+                    this.Dispose();
+                }
+
+            }
+        }
 
         public void Dispose()
         {
@@ -237,10 +251,32 @@ namespace KFrameWork
                 LogMgr.LogErrorFormat("Res RefCount Error : {0}",this.Res.Count);
 
             this.Res = null;
-
             this.refs.Clear();
             this.depends.Clear();
+        }
 
+        public void AwakeFromPool()
+        {
+            this.LoadName = null;
+            this.Res.RemoveRef();
+            if (this.Res.Count != 0)
+                LogMgr.LogErrorFormat("Res RefCount Error : {0}", this.Res.Count);
+
+            this.Res = null;
+            this.refs.Clear();
+            this.depends.Clear();
+        }
+
+        public void RemovedFromPool()
+        {
+            this.LoadName = null;
+            this.Res.RemoveRef();
+            if (this.Res.Count != 0)
+                LogMgr.LogErrorFormat("Res RefCount Error : {0}", this.Res.Count);
+
+            this.Res = null;
+            this.refs.Clear();
+            this.depends.Clear();
         }
     }
 }
