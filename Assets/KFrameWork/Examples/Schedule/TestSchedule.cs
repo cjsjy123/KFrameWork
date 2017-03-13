@@ -2,7 +2,7 @@
 using System.Collections;
 using KFrameWork;
 using KUtils;
-
+#if EXAMPLE
 public class TestSchedule : UnityMonoBehaviour {
     
     private float _delay =0.1f;
@@ -63,3 +63,4 @@ public class TestSchedule : UnityMonoBehaviour {
 
 	}
 }
+#endif

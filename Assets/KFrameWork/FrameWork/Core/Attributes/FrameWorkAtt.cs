@@ -5,69 +5,81 @@ using System;
 using KFrameWork;
 using KUtils;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokAwakeAttribute:Attribute
+[AttributeUsage(AttributeTargets.Class)]
+public class TypeInitAttribute : Attribute
 {
-    
-}
+    public int typeSorder;
 
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokEnableAttribute:Attribute
-{
-
-}
-
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokDisableAttribute:Attribute
-{
-
-}
-
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokStartAttribute:Attribute
-{
-
-}
-
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokUpdateAttribute:Attribute
-{
-
-}
-
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokLateUpdateAttribute:Attribute
-{
-
-}
-
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokDestroyAttribute:Attribute
-{
-
-}
-
-[AttributeUsage(AttributeTargets.Method)]
-public class FrameWokDevicePausedAttribute:Attribute
-{
-
+    public TypeInitAttribute(int order)
+    {
+        this.typeSorder = order;
+    }
 }
     
 
 [AttributeUsage(AttributeTargets.Method)]
-public class FrameWokDeviceQuitAttribute:Attribute
+public class FrameWorkEnableAttribute:Attribute
 {
 
 }
 
 [AttributeUsage(AttributeTargets.Method)]
-public class FrameWokFixedUpdateAttribute:Attribute
+public class FrameWorkDisableAttribute:Attribute
 {
 
 }
 
 [AttributeUsage(AttributeTargets.Method)]
-public class FrameWokBeforeUpdateAttribute:Attribute
+public class FrameWorkStartAttribute:Attribute
+{
+
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkUpdateAttribute:Attribute
+{
+
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkLateUpdateAttribute:Attribute
+{
+
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkDestroyAttribute:Attribute
+{
+
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkDevicePausedAttribute:Attribute
+{
+
+}
+    
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkDeviceQuitAttribute:Attribute
+{
+
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkFixedUpdateAttribute:Attribute
+{
+
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkBeforeUpdateAttribute:Attribute
+{
+
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public class FrameWorkAfterUpdateAttribute : Attribute
 {
 
 }

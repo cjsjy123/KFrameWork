@@ -92,15 +92,16 @@ namespace KFrameWork
         private ParamsList<float> floatList;
         private ParamsList<double> doubleList;
         private ParamsList<Vector3> vector3List;
+        private ParamsList<Color> colorList;
         private ParamsList<System.Object> objList;
         private ParamsList<UnityEngine.Object> UnityObjList;
 
         private List<KeyValuePair<int,int>> ArgSortList = new List<KeyValuePair<int,int>>();
 
-        [FrameWokAwakeAttribute]
+        [FrameWorkStartAttribute]
         private static void Preload(int v)
         {
-            for(int i=0; i < FrameWorkDebug.Preload_ParamsCount;++i)
+            for(int i=0; i < FrameWorkConfig.Preload_ParamsCount;++i)
             {
                 KObjectPool.mIns.Push(PreCreate(1));
                 KObjectPool.mIns.Push(PreCreate(2));
@@ -111,7 +112,7 @@ namespace KFrameWork
         private static GenericParams PreCreate(int origion =-1)
         {
             GenericParams p = new GenericParams();
-            p._OrigionArgCount = origion;
+            p._OriginArgCount = origion;
             return p;
         }
 
@@ -134,7 +135,7 @@ namespace KFrameWork
 
             if(origion != -1)
             {
-                p._OrigionArgCount = origion;
+                p._OriginArgCount = origion;
             }
 
             return p;
@@ -146,7 +147,7 @@ namespace KFrameWork
                 KObjectPool.mIns.Push(this);
         }
 
-        public void AwakeFromPool ()
+        public override void RemoveToPool ()
         {
             if(intList != null)
             {
@@ -210,12 +211,12 @@ namespace KFrameWork
             ArgSortList.Clear();
             _ArgCount =0;
             _virtualArg =0;
-            _OrigionArgCount =-1;
+            _OriginArgCount =-1;
             _NextReadIndex =0;
         }
 
 
-        public void RemovedFromPool ()
+        public override void RemovedFromPool ()
         {
             intList = null;
             shortlist = null;
@@ -231,19 +232,19 @@ namespace KFrameWork
             ArgSortList = null;
             _ArgCount =0;
             _virtualArg =0;
-            _OrigionArgCount =-1;
+            _OriginArgCount =-1;
             _NextReadIndex =0;
         }
 
-        public override void InsertInt (int index, int v)
+        public override AbstractParams InsertInt (int index, int v)
         {
             if(intList == null)
                 intList=  new ParamsList<int>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 intList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.INT,intList.Count-1));
             }
@@ -253,17 +254,19 @@ namespace KFrameWork
                 intList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.INT,intList.Count-1));
             }
+
+            return this;
         }
 
-        public override void InsertShort (int index, short v)
+        public override AbstractParams InsertShort (int index, short v)
         {
             if(this.shortlist == null)
                 this.shortlist=  new ParamsList<short>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 shortlist.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.SHORT,shortlist.Count-1));
             }
@@ -273,17 +276,19 @@ namespace KFrameWork
                 shortlist.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.SHORT,shortlist.Count-1));
             }
+
+            return this;
         }
 
-        public override void InsertString (int index, string v)
+        public override AbstractParams InsertString (int index, string v)
         {
             if(this.strlist == null)
                 strlist=  new ParamsList<string>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 strlist.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.STRING,strlist.Count-1));
             }
@@ -293,17 +298,19 @@ namespace KFrameWork
                 strlist.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.STRING,strlist.Count-1));
             }
+
+            return this;
         }
 
-        public override void InsertBool (int index, bool v)
+        public override AbstractParams InsertBool (int index, bool v)
         {
             if(this.boollist == null)
                 boollist=  new ParamsList<bool>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 boollist.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.BOOL,boollist.Count-1));
             }
@@ -313,17 +320,19 @@ namespace KFrameWork
                 boollist.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.BOOL,boollist.Count-1));
             }
+
+            return this;
         }
 
-        public override void InsertFloat (int index, float v)
+        public override AbstractParams InsertFloat (int index, float v)
         {
             if(floatList == null)
                 floatList=  new ParamsList<float>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 floatList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.FLOAT,floatList.Count-1));
             }
@@ -333,17 +342,19 @@ namespace KFrameWork
                 floatList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.FLOAT,floatList.Count-1));
             }
+
+            return this;
         }
 
-        public override void InsertDouble (int index, double v)
+        public override AbstractParams InsertDouble (int index, double v)
         {
             if(this.doubleList == null)
                 this.doubleList=  new ParamsList<double>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 doubleList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.DOUBLE,doubleList.Count-1));
             }
@@ -353,17 +364,19 @@ namespace KFrameWork
                 doubleList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.DOUBLE,doubleList.Count-1));
             }
+
+            return this;
         }
 
-        public override void InsertLong (int index, long v)
+        public override AbstractParams InsertLong (int index, long v)
         {
             if(this.longList == null)
                 longList=  new ParamsList<long>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 longList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.LONG,longList.Count-1));
             }
@@ -373,17 +386,18 @@ namespace KFrameWork
                 longList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.LONG,longList.Count-1));
             }
+            return this;
         }
 
-        public override void InsertVector3(int index, UnityEngine.Vector3 v)
+        public override AbstractParams InsertVector3(int index, UnityEngine.Vector3 v)
         {
             if (this.vector3List == null)
                 vector3List = new ParamsList<Vector3>();
-            if (this._OrigionArgCount >= 0)
+            if (this._OriginArgCount >= 0)
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 vector3List.Insert(index, v);
                 ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.VETOR3, vector3List.Count - 1));
             }
@@ -393,17 +407,39 @@ namespace KFrameWork
                 vector3List.Insert(index, v);
                 ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.VETOR3, vector3List.Count - 1));
             }
+            return this;
         }
 
-        public override void InsertObject (int index, object v)
+        public override AbstractParams InsertColor(int index, Color v)
+        {
+            if (this.colorList == null)
+                colorList = new ParamsList<Color>();
+            if (this._OriginArgCount >= 0)
+            {
+                _ArgCount++;
+                _virtualArg++;
+                _OriginArgCount++;
+                colorList.Insert(index, v);
+                ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.Color, colorList.Count - 1));
+            }
+            else
+            {
+                _ArgCount++;
+                colorList.Insert(index, v);
+                ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.Color, colorList.Count - 1));
+            }
+            return this;
+        }
+
+        public override AbstractParams InsertObject (int index, object v)
         {
             if(this.objList == null)
                 objList=  new ParamsList<object>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 objList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.OBJECT,objList.Count-1));
             }
@@ -413,17 +449,19 @@ namespace KFrameWork
                 objList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.OBJECT,objList.Count-1));
             }
+
+            return this;
         }
 
-        public override void InsertUnityObject (int index, UnityEngine.Object v)
+        public override AbstractParams InsertUnityObject (int index, UnityEngine.Object v)
         {
             if(this.UnityObjList == null)
                 UnityObjList=  new ParamsList<UnityEngine.Object>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                _OrigionArgCount++;
+                _OriginArgCount++;
                 UnityObjList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.UNITYOBJECT,UnityObjList.Count-1));
             }
@@ -433,19 +471,21 @@ namespace KFrameWork
                 UnityObjList.Insert(index,v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.UNITYOBJECT,UnityObjList.Count-1));
             }
+
+            return this;
         }
      
-        public override void WriteInt(int v)
+        public override AbstractParams WriteInt(int v)
         {
             if(intList == null)
                 intList=  new ParamsList<int>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetInt(v);
 
                 }
@@ -461,20 +501,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.INT,intList.Count-1));
             }
+            return this;
         }
 
-        public override void WriteShort(short v)
+        public override AbstractParams WriteShort(short v)
         {
             if(shortlist == null)
                 shortlist=  new ParamsList<short>();
             
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetShort(v);
                 }
                 else
@@ -489,19 +530,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.SHORT,shortlist.Count-1));
             }
+
+            return this;
         }
 
-        public override void WriteBool(bool v)
+        public override AbstractParams WriteBool(bool v)
         {
             if(boollist == null)
                 boollist=  new ParamsList<bool>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetBool(v);
                 }
                 else
@@ -516,19 +559,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.BOOL,boollist.Count-1));
             }
+
+            return this;
         }
 
-        public override void WriteString(string v)
+        public override AbstractParams WriteString(string v)
         {
             if(strlist == null)
                 strlist=  new ParamsList<string>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetString(v);
                 }
                 else
@@ -543,19 +588,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.STRING,strlist.Count-1));
             }
+
+            return this;
         }
 
-        public override void WriteLong(long v)
+        public override AbstractParams WriteLong(long v)
         {
             if(longList == null)
                 longList=  new ParamsList<long>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetLong(v);
                 }
                 else
@@ -570,19 +617,50 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.LONG,longList.Count-1));
             }
+
+            return this;
         }
 
-        public override void WriteVector3(Vector3 v)
+        public override AbstractParams WriteColor(Color v)
         {
-            if (vector3List == null)
-                vector3List = new ParamsList<Vector3>();
-            if (this._OrigionArgCount >= 0)
+            if (colorList == null)
+                colorList = new ParamsList<Color>();
+            if (this._OriginArgCount >= 0)
             {
                 _ArgCount++;
                 _virtualArg++;
-                if (this._OrigionArgCount < _ArgCount)
+                if (this._OriginArgCount < _ArgCount)
                 {
-                    _ArgCount = this._OrigionArgCount;
+                    _ArgCount = this._OriginArgCount;
+                    this._VirtualsetColor(v);
+                }
+                else
+                {
+                    colorList.Add(v);
+                    ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.Color, colorList.Count - 1));
+                }
+            }
+            else
+            {
+                colorList.Add(v);
+                _ArgCount++;
+                ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.Color, colorList.Count - 1));
+            }
+
+            return this;
+        }
+
+        public override AbstractParams WriteVector3(Vector3 v)
+        {
+            if (vector3List == null)
+                vector3List = new ParamsList<Vector3>();
+            if (this._OriginArgCount >= 0)
+            {
+                _ArgCount++;
+                _virtualArg++;
+                if (this._OriginArgCount < _ArgCount)
+                {
+                    _ArgCount = this._OriginArgCount;
                     this._VirtualsetVector3(v);
                 }
                 else
@@ -597,19 +675,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.VETOR3, vector3List.Count - 1));
             }
+
+            return this;
         }
 
-        public override void WriteObject(System.Object v)
+        public override AbstractParams WriteObject(System.Object v)
         {
             if(objList == null)
                 objList=  new ParamsList<System.Object>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetObject(v);
                 }
                 else
@@ -624,19 +704,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.OBJECT,objList.Count-1));
             }
+
+            return this;
         }
 
-        public override void WriteUnityObject(UnityEngine.Object v)
+        public override AbstractParams WriteUnityObject(UnityEngine.Object v)
         {
             if(UnityObjList == null)
                 UnityObjList=  new ParamsList<UnityEngine.Object>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetUnityObj(v);
                 }
                 else
@@ -651,19 +733,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.UNITYOBJECT,UnityObjList.Count-1));
             }
+
+            return this;
         }
 
-        public override void WriteDouble(double v)
+        public override AbstractParams WriteDouble(double v)
         {
             if(this.doubleList == null)
                 this.doubleList =  new ParamsList<double>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetUnityObj(v);
                 }
                 else
@@ -678,19 +762,21 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.DOUBLE,doubleList.Count-1));
             }
+
+            return this;
         }
 
-        public override void WriteFloat(float v)
+        public override AbstractParams WriteFloat(float v)
         {
             if(this.floatList == null)
                 this.floatList=  new ParamsList<float>();
-            if(this._OrigionArgCount >= 0 )
+            if(this._OriginArgCount >= 0 )
             {
                 _ArgCount++;
                 _virtualArg++;
-                if(this._OrigionArgCount <_ArgCount)
+                if(this._OriginArgCount <_ArgCount)
                 {
-                    _ArgCount =this._OrigionArgCount;
+                    _ArgCount =this._OriginArgCount;
                     this._VirtualsetUnityObj(v);
                 }
                 else
@@ -705,11 +791,13 @@ namespace KFrameWork
                 _ArgCount++;
                 ArgSortList.Add(new KeyValuePair<int, int>((int)ParamType.FLOAT,floatList.Count-1));
             }
+
+            return this;
         }
 
         private void _VirtualsetShort(short v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.SHORT)
@@ -724,7 +812,7 @@ namespace KFrameWork
 
         private void _VirtualsetBool(bool v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.BOOL)
@@ -739,7 +827,7 @@ namespace KFrameWork
 
         private void _VirtualsetInt(int v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.INT)
@@ -754,7 +842,7 @@ namespace KFrameWork
 
         private void _VirtualsetString(string v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.STRING)
@@ -769,7 +857,7 @@ namespace KFrameWork
 
         private void _VirtualsetLong(long v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.LONG)
@@ -782,8 +870,23 @@ namespace KFrameWork
             }
         }
 
+        private void _VirtualsetColor(Color v)
+        {
+            int argIndex = (this._virtualArg - 1) % this._OriginArgCount;
+            KeyValuePair<int, int> argTp = this.ArgSortList[argIndex];
+
+            if (argTp.Key == (int)ParamType.Color)
+            {
+                colorList[argTp.Value] = v;
+            }
+            else
+            {
+                LogMgr.LogError("参数类型错误 此为非Color类型 ");
+            }
+        }
+
         private void _VirtualsetVector3(Vector3 v){
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.VETOR3)
@@ -798,7 +901,7 @@ namespace KFrameWork
 
         private void _VirtualsetObject(System.Object v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.OBJECT)
@@ -813,7 +916,7 @@ namespace KFrameWork
 
         private void _VirtualsetUnityObj(UnityEngine.Object v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.UNITYOBJECT)
@@ -828,7 +931,7 @@ namespace KFrameWork
 
         private void _VirtualsetUnityObj(float v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.FLOAT)
@@ -843,7 +946,7 @@ namespace KFrameWork
 
         private void _VirtualsetUnityObj(double v)
         {
-            int argIndex = (this._virtualArg-1) % this._OrigionArgCount;
+            int argIndex = (this._virtualArg-1) % this._OriginArgCount;
             KeyValuePair<int,int> argTp = this.ArgSortList[argIndex];
 
             if(argTp.Key == (int)ParamType.DOUBLE)
@@ -856,7 +959,7 @@ namespace KFrameWork
             }
         }
 
-        public override void SetInt(int argIndex,int v)
+        public override AbstractParams SetInt(int argIndex,int v)
         {
             if(argIndex < ArgSortList.Count)
             {
@@ -884,9 +987,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数索引错误");
             }
+
+            return this;
         }
 
-        public override void SetShort(int argIndex,short v)
+        public override AbstractParams SetShort(int argIndex,short v)
         {
             if(argIndex < ArgSortList.Count)
             {
@@ -914,9 +1019,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数索引错误");
             }
+
+            return this;
         }
 
-        public override void SetBool(int argIndex,bool v)
+        public override AbstractParams SetBool(int argIndex,bool v)
         {
             if(this.GetArgIndexType(argIndex)== (int)ParamType.BOOL)
             {
@@ -937,9 +1044,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非bool类型 ");
             }
+
+            return this;
         }
 
-        public override void SetString(int argIndex,string v)
+        public override AbstractParams SetString(int argIndex,string v)
         {
             if(this.GetArgIndexType(argIndex) ==(int)ParamType.STRING)
             {
@@ -960,9 +1069,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非string类型 ");
             }
+
+            return this;
         }
 
-        public override void SetLong(int argIndex,long v)
+        public override AbstractParams SetLong(int argIndex,long v)
         {
             if(this.GetArgIndexType(argIndex)== (int)ParamType.LONG)
             {
@@ -983,9 +1094,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非long类型 ");
             }
+
+            return this;
         }
 
-        public override void SetVector3(int argIndex, Vector3 v)
+        public override AbstractParams SetVector3(int argIndex, Vector3 v)
         {
             if (this.GetArgIndexType(argIndex) == (int)ParamType.VETOR3)
             {
@@ -1006,9 +1119,35 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非Vector3类型 ");
             }
+            return this;
         }
 
-        public override void SetObject(int argIndex,object v)
+        public override AbstractParams SetColor(int argIndex, Color v)
+        {
+            if (this.GetArgIndexType(argIndex) == (int)ParamType.Color)
+            {
+                if (objList == null)
+                {
+                    LogMgr.LogError("参数列表为空");
+                }
+                else if (colorList != null && ArgSortList[argIndex].Value >= colorList.Count)
+                {
+                    LogMgr.LogError("参数索引错误");
+                }
+                else
+                {
+                    colorList[ArgSortList[argIndex].Value] = v;
+                }
+            }
+            else
+            {
+                LogMgr.LogError("参数类型错误 此为非Color类型 ");
+            }
+
+            return this;
+        }
+
+        public override AbstractParams SetObject(int argIndex,object v)
         {
             if(this.GetArgIndexType(argIndex)== (int)ParamType.OBJECT)
             {
@@ -1029,9 +1168,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非object类型 ");
             }
+
+            return this;
         }
 
-        public override void SetUnityObject(int argIndex,UnityEngine.Object v)
+        public override AbstractParams SetUnityObject(int argIndex,UnityEngine.Object v)
         {
             if(this.GetArgIndexType(argIndex) == (int)ParamType.UNITYOBJECT)
             {
@@ -1052,9 +1193,10 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非UnityObject类型 ");
             }
+            return this;
         }
 
-        public override void SetFloat(int argIndex,float v)
+        public override AbstractParams SetFloat(int argIndex,float v)
         {
             if(this.GetArgIndexType(argIndex) == (int)ParamType.FLOAT)
             {
@@ -1075,9 +1217,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非float类型 ");
             }
+
+            return this;
         }
 
-        public override void SetDouble(int argIndex,double v)
+        public override AbstractParams SetDouble(int argIndex,double v)
         {
             if(this.GetArgIndexType(argIndex) == (int)ParamType.DOUBLE)
             {
@@ -1098,6 +1242,8 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数类型错误 此为非UnityObject类型 ");
             }
+
+            return this;
         }
 
         private void _ResetAll()
@@ -1130,13 +1276,26 @@ namespace KFrameWork
         private void _IncreateIndex()
         {
             _NextReadIndex++;
-            _NextReadIndex = _NextReadIndex % _ArgCount;
+            _NextReadIndex = _NextReadIndex % (_ArgCount + 1);
             if(_NextReadIndex == 0) this._ResetAll();
         }
 
         public override void ResetReadIndex()
         {
             this._ResetAll();
+        }
+
+
+        public override ParamType NextValue ()
+        {
+            if(_NextReadIndex >= ArgSortList.Count)
+            {
+                return ParamType.NULL;
+            }
+            else
+            {
+                return (ParamType)ArgSortList[_NextReadIndex].Key;
+            }
         }
 
 
@@ -1348,6 +1507,31 @@ namespace KFrameWork
             return Vector3.zero;
         }
 
+        public override Color ReadColor()
+        {
+            if (_NextReadIndex < ArgSortList.Count)
+            {
+                if (ArgSortList[_NextReadIndex].Key == (int)ParamType.Color)
+                {
+                    if (colorList == null)
+                    {
+                        LogMgr.LogError("参数列表为空");
+                    }
+                    else
+                    {
+                        this._IncreateIndex();
+                    }
+                    return colorList.Pop();
+                }
+                LogMgr.LogError("参数类型不匹配");
+            }
+            else
+            {
+                LogMgr.LogError("参数数量不足");
+            }
+            return Color.white;
+        }
+
         public override System.Object ReadObject()
         {
             if(_NextReadIndex < ArgSortList.Count)
@@ -1413,7 +1597,7 @@ namespace KFrameWork
         public override string ToString ()
         {
             StringBuilder sb = new  StringBuilder();
-            sb.AppendFormat("参数个数 {0} ",this._ArgCount.ToString());
+            sb.AppendFormat("{0} 参数个数: {1} ", base.ToString(), this._ArgCount.ToString());
 
             for(int i =0; i < ArgSortList.Count;++i)
             {
@@ -1463,11 +1647,6 @@ namespace KFrameWork
                     sb.AppendFormat("第{0}个参数为: {1} ", i + 1, this.UnityObjList[kv.Value]);
                 }
             }
-
-//            if(sb.Length == 0)
-//            {
-//                return "空";
-//            }
 
             return sb.ToString();
           

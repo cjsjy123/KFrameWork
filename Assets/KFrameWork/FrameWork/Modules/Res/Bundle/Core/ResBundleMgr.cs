@@ -7,7 +7,9 @@ using System.IO;
 
 namespace KFrameWork
 {
-    [SingleTon]
+    /// <summary>
+    /// assetbundle 管理器，Config中的 safemode 跑得更安全，但是开销更大，unsafe 则会麻烦点，有一些规则，比如assetname 都默认为小写
+    /// </summary>
     public class ResBundleMgr  {
 
         private class WaitWWWTask : ITask
@@ -16,21 +18,26 @@ namespace KFrameWork
             {
                 get
                 {
-                    return !ResBundleMgr.mIns.Inited;
+                    return !ResBundleMgr.mIns.isDone;
                 }
-            }
-
-            public void Done()
-            {
-
             }
         }
 
-        public static ResBundleMgr mIns ;
+
+        private static ResBundleMgr _mIns;
+        public static ResBundleMgr mIns
+        {
+            get
+            {
+                if (_mIns == null)
+                    _mIns = new ResBundleMgr();
+                return _mIns;
+            }
+        }
 
         private BundleInfoFilter Info;
 
-        public BundleInfoFilter BundleInforMation
+        public BundleInfoFilter BundleInformation
         {
             get
             {
@@ -38,73 +45,129 @@ namespace KFrameWork
                 return this.Info;
             }
         }
+        public BundleCache Cache { get; private set; }
 
-        private BundleCache _cache ;
+        private string targetVerPath;
 
-        public BundleCache Cache
-        {
-            get
-            {
-                return this._cache;
-            }
-        }
-
-        private bool _Inited;
-        public bool Inited
-        {
-            get
-            {
-                return _Inited;
-            }
-        }
+        public bool isDone { get; private set; }
 
         private ResBundleMgr()
         {
-            this.Info = new BundleBinaryInfo();
-            this._cache = new BundleCache();
-            using (gstring.Block())
-            {
-                string depFileName = BundlePathConvert.getBundleStreamPath(BundleConfig.ABVersionPath);
-                MainLoop.getLoop().StartCoroutine(_LoadAssetInfos(depFileName));
-            } 
+            this.Cache = new BundleCache();
+
+            Start();
         }
 
-        private IEnumerator _LoadAssetInfos(string depFileName)
+        private void Start()
         {
-            if (File.Exists(depFileName))
+            string depFileName = null;
+            using (gstring.Block())
             {
-                FileStream fs = new FileStream(depFileName, FileMode.Open, FileAccess.Read);
-                this.Info.LoadFromMemory(fs);
-                fs.Close();
-                this._Inited = true;
+                depFileName = BundlePathConvert.GetRunningPath(BundleConfig.ABVersionPath);
+                targetVerPath = string.Copy(depFileName );
+
+                AssetBundle ab = null;
+                byte[] assetbytes = CreateAssetbundleBytes(out ab);
+                if (assetbytes != null && assetbytes.Length > 4)
+                {
+                    LoadAssetbundleBytes(assetbytes);
+                    ab.Unload(true);
+                }
+                else
+                    TaskManager.CreateTask(_LoadAssetInfos()).Start();
+            }
+        }
+
+        private void LoadAssetbundleBytes(byte[] abbytes)
+        {
+            byte[] bys = new byte[abbytes.Length];
+            Array.Copy(abbytes, bys, abbytes.Length);
+#if USE_TANGAB
+            using (MemoryStream fs = new MemoryStream(bys))
+            {
+                BinaryReader br = new BinaryReader(fs);
+                if (br.ReadChar() == 'A' && br.ReadChar() == 'B' && br.ReadChar() == 'D')
+                {
+                    if (br.ReadChar() == 'T')
+                        this.Info = new BundleTextInfo();
+                    else
+                        this.Info = new BundleBinaryInfo();
+
+                    fs.Position = 0;
+                    this.Info.LoadFromMemory(fs);
+                }
+            }
+#else
+            throw new FrameWorkException("Missing Tang pack try use self pack bundle");
+#endif
+
+            this.isDone = true;
+        }
+
+        private byte[] CreateAssetbundleBytes(out AssetBundle ab)
+        {
+            ab = AssetBundle.LoadFromFile(BundlePathConvert.GetRunningPath(BundleConfig.depAssetBundlePath));
+            if (ab != null)
+            {
+                BundlePkgAsset asset = ab.LoadAsset<BundlePkgAsset>(ab.GetAllAssetNames()[0]);
+                return asset.bytes;
+            }
+            return null;
+        }
+
+        private IEnumerator _LoadAssetInfos()
+        {
+            if (File.Exists(targetVerPath))
+            {
+#if USE_TANGAB
+                using (FileStream fs = new FileStream(targetVerPath, FileMode.Open, FileAccess.Read))
+                {
+                    BinaryReader br = new BinaryReader(fs);
+                    if (br.ReadChar() == 'A' && br.ReadChar() == 'B' && br.ReadChar() == 'D')
+                    {
+                        if (br.ReadChar() == 'T')
+                            this.Info = new BundleTextInfo();
+                        else
+                            this.Info = new BundleBinaryInfo();
+
+                        fs.Position = 0;
+                        this.Info.LoadFromMemory(fs);
+                    }
+                    br.Close();
+                    this.isDone = true;
+                }
+#else
+                throw new FrameWorkException("Missing Tang pack try use self pack bundle");
+#endif
             }
             else
             {
-                WWW w = new WWW(BundlePathConvert.GetWWWPath(depFileName));
+                WWW w = new WWW(BundlePathConvert.GetWWWPath(targetVerPath));
                 yield return w;
-
                 if (w.error == null)
                 {
-                    this.Info.LoadFromMemory(new MemoryStream(w.bytes));
-                    this._Inited = true;
+                    LoadAssetbundleBytes(w.bytes);
                 }
                 else
                 {
-                    Debug.LogError(string.Format("{0} not exist!", depFileName));
+                    LogMgr.LogError(string.Format("{0} not exist! info:{1}", targetVerPath, w.error));
                 }
             }
+
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.Log("bundle info Finish");
         }
 
-        public static void YieldInited(Action DoneEvent)
+        public static void YieldInited(Action<WaitTaskCommand> DoneEvent)
         {
-            if (!ResBundleMgr.mIns.Inited)
+            if (mIns == null || !ResBundleMgr.mIns.isDone)
             {
                 WaitTaskCommand cmd = WaitTaskCommand.Create(new WaitWWWTask(), DoneEvent);
-                cmd.ExcuteAndRelease();
+                cmd.Excute();
             }
             else
             {
-                DoneEvent();
+                DoneEvent(null);
             }
         }
 
@@ -142,7 +205,7 @@ namespace KFrameWork
 
         public void PreLoad(string pathname)
         {
-            if (BundleConfig.SAFE_MODE)
+            if (!BundleConfig.SAFE_MODE)
             {
                 this._SimplePreLoad(pathname);
             }
@@ -163,6 +226,33 @@ namespace KFrameWork
                 }
             }
         }
+
+        public UnityEngine.Object LoadAsset(string pathname)
+        {
+            if (!BundleConfig.SAFE_MODE)
+            {
+                return this._LoadAsset(pathname);
+            }
+            else
+            {
+                try
+                {
+                    return this._LoadAsset(pathname);
+                }
+                catch (FrameWorkException ex)
+                {
+                    LogMgr.LogException(ex);
+                    ex.RaiseExcption();
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    LogMgr.LogException(ex);
+                    return null;
+                }
+            }
+        }
+
         /// <summary>
         /// 如果不开启safe模式的话，用户需小写文件名
         /// </summary>
@@ -171,19 +261,33 @@ namespace KFrameWork
         /// <returns></returns>
         public GameObject Load(string pathname, Component parent)
         {
-            return this.Load(parent: parent.gameObject, pathname: pathname);
+            return this.Load( pathname, parent.gameObject);
         }
 
         public GameObject Load(string pathname, Transform parent)
         {
-            return this.Load( parent: parent.gameObject, pathname: pathname);
+            return this.Load(pathname,  parent.gameObject);
+        }
+
+        /// <summary>
+        /// 直接加载，并不检查实例对象
+        /// </summary>
+        /// <param name="pathname"></param>
+        /// <returns></returns>
+        public AssetBundleResult Load(string pathname)
+        {
+            BaseBundleLoader loader= this._SimpleLoad(pathname, null);
+            AssetBundleResult result = loader.GetABResult();
+
+            loader.Dispose();
+            return result;
         }
 
 
         public GameObject Load(string pathname, GameObject parent)
         {
             /// 通过异常阻断下面逻辑执行
-            if (BundleConfig.SAFE_MODE)
+            if (!BundleConfig.SAFE_MODE)
             {
                 return this._LoadGameobject(pathname, parent);
             }
@@ -198,7 +302,6 @@ namespace KFrameWork
                     LogMgr.LogException(ex);
                     ex.RaiseExcption();
                     return null;
-
                 }
                 catch (Exception ex)
                 {
@@ -210,15 +313,17 @@ namespace KFrameWork
 
         public void Load(string pathname, Action<bool, AssetBundleResult> callback )
         {
-            if (BundleConfig.SAFE_MODE)
+            if (!BundleConfig.SAFE_MODE)
             {
-                this._SimpleLoad(pathname, callback);
+                BaseBundleLoader loader = this._SimpleLoad(pathname, callback);
+                loader.Dispose();
             }
             else
             {
                 try
                 {
-                    this._SimpleLoad(pathname, callback);
+                    BaseBundleLoader loader = this._SimpleLoad(pathname, callback);
+                    loader.Dispose();
                 }
                 catch (FrameWorkException ex)
                 {
@@ -233,27 +338,70 @@ namespace KFrameWork
             }
         }
 
-        public void LoadAsync(string pathname, Component parent)
+        public void LoadSceneAsync(KEnum scene, Action<bool, AssetBundleResult> oncomplete)
         {
-            this.LoadAsync(parent: parent.gameObject, pathname: pathname);
+            LoadSceneAsync(scene, null, oncomplete);
         }
 
-        public void LoadAsync(string pathname, Transform parent)
+        public void LoadSceneAsync(KEnum scene, Action<BaseBundleLoader, int, int> OnProgressHandler)
         {
-            this.LoadAsync(parent: parent.gameObject, pathname: pathname);
+            LoadSceneAsync(scene, OnProgressHandler,null);
         }
 
-        public void LoadAsync(string pathname, GameObject parent)
+        public void LoadSceneAsync(KEnum scene)
         {
-            if (BundleConfig.SAFE_MODE)
+            LoadSceneAsync(scene, null,null);
+        }
+
+        public void LoadSceneAsync(string pathname, Action<BaseBundleLoader, int, int> OnProgressHandler,Action<bool,AssetBundleResult> oncomplete)
+        {
+            if (Cache.ContainsLoading(pathname))
             {
-                this._LoadGameobjectAsync(pathname,parent);
+                BaseBundleLoader loader = Cache.GetLoading(pathname);
+
+                if (oncomplete != null)
+                    loader.onComplete += oncomplete;
+
+                if (OnProgressHandler != null)
+                    loader.OnProgressHandler += OnProgressHandler;
+            }
+            else
+            {
+                SceneAsyncLoader loader = BaseBundleLoader.CreateLoader<SceneAsyncLoader>();
+                if (loader == null)
+                    loader = new SceneAsyncLoader();
+
+                if (oncomplete != null)
+                    loader.onComplete += oncomplete;
+
+                if (OnProgressHandler != null)
+                    loader.OnProgressHandler += OnProgressHandler;
+
+                loader.Load(pathname);
+            }
+        }
+
+        public void LoadAsync(string pathname, Component parent, Action<bool, AssetBundleResult> onCompelete = null)
+        {
+            this.LoadAsync(pathname,parent !=null? parent.gameObject:null, onCompelete);
+        }
+
+        //public void LoadAsync(string pathname, Transform parent, Action<bool, AssetBundleResult> onCompelete = null)
+        //{
+        //    this.LoadAsync(pathname, parent != null ? parent.gameObject : null, onCompelete);
+        //}
+
+        public void LoadAsync(string pathname, GameObject parent, Action<bool, AssetBundleResult> onCompelete = null)
+        {
+            if (!BundleConfig.SAFE_MODE)
+            {
+                this._LoadGameobjectAsync(pathname,parent, onCompelete);
             }
             else
             {
                 try
                 {
-                    this._LoadGameobjectAsync(pathname, parent);
+                    this._LoadGameobjectAsync(pathname, parent, onCompelete);
                 }
                 catch (FrameWorkException ex)
                 {
@@ -269,7 +417,7 @@ namespace KFrameWork
 
         public void LoadAsync(string pathname, Action<bool, AssetBundleResult> callback)
         {
-            if (BundleConfig.SAFE_MODE)
+            if (!BundleConfig.SAFE_MODE)
             {
                 this._SimpleAysncLoad(pathname, callback);
             }
@@ -291,7 +439,24 @@ namespace KFrameWork
             }
         }
 
-        #region private
+#region private
+
+        private UnityEngine.Object _LoadAsset(string pathname)
+        {
+            SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
+
+            if (loader == null)
+                loader = new SyncLoader();
+
+            loader.Load(pathname);
+
+            AssetBundleResult result = loader.GetABResult();
+            loader.Dispose();
+
+            return result.LoadedObject;
+        }
+
+
         private GameObject _LoadGameobject(string pathname, GameObject parent)
         {
             SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
@@ -303,46 +468,86 @@ namespace KFrameWork
             loader.Load(pathname);
 
             AssetBundleResult result = loader.GetABResult();
-            return result.InstancedObject;
+            loader.Dispose();
 
+            GameObject target = result.InstancedObject;
+            if(target == null)
+                target = result.SimpleInstance();
+
+            return target;
         }
 
-        private void _LoadGameobjectAsync(string pathname,GameObject parnet)
+        private BaseBundleLoader _LoadGameobjectAsync(string pathname,GameObject parnet,Action<bool,AssetBundleResult> onCompelete =null)
         {
+            if (Cache.ContainsLoading(pathname))
+            {
+                BaseBundleLoader baseLoader= Cache.GetLoading(pathname);
+
+                if (onCompelete != null)
+                    baseLoader.onComplete += onCompelete;
+                return baseLoader;
+            }
+
             AsyncLoader loader = BaseBundleLoader.CreateLoader<AsyncLoader>();
             if (loader == null)
                 loader = new AsyncLoader();
+
+            if(onCompelete != null)
+                loader.onComplete += onCompelete;
             loader.PreParedGameObject = parnet;
             loader.Load(pathname);
+            return loader;
         }
 
-        private void _SimplePreLoad(string pathname)
+        private BaseBundleLoader _SimplePreLoad(string pathname)
         {
+            if (Cache.ContainsLoading(pathname))
+            {
+                BaseBundleLoader baseLoader = Cache.GetLoading(pathname);
+                return baseLoader;
+            }
+
             PreLoader loader = BaseBundleLoader.CreateLoader<PreLoader>();
             if (loader == null)
                 loader = new PreLoader();
 
             loader.Load(pathname);
+            return loader;
         }
 
-        private void _SimpleLoad(string pathname, Action<bool, AssetBundleResult> callback)
+        private BaseBundleLoader _SimpleLoad(string pathname, Action<bool, AssetBundleResult> callback)
         {
             SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
             if (loader == null)
                 loader = new SyncLoader();
-            loader.onComplete += callback;
+            
+            if(callback != null)
+                loader.onComplete += callback;
             loader.Load(pathname);
+            return loader;
         }
 
-        private void _SimpleAysncLoad(string pathname, Action<bool, AssetBundleResult> callback)
+        private BaseBundleLoader _SimpleAysncLoad(string pathname, Action<bool, AssetBundleResult> callback)
         {
+            if (Cache.ContainsLoading(pathname))
+            {
+                BaseBundleLoader baseLoader = Cache.GetLoading(pathname);
+
+                if (callback != null)
+                    baseLoader.onComplete += callback;
+                return baseLoader;
+            }
+
             AsyncLoader loader = BaseBundleLoader.CreateLoader<AsyncLoader>();
             if (loader == null)
                 loader = new AsyncLoader();
-            loader.onComplete += callback;
+            
+            if(callback != null)
+                loader.onComplete += callback;
             loader.Load(pathname);
+            return loader;
         }
-        #endregion
+#endregion
 
     }
 }

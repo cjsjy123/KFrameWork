@@ -3,31 +3,28 @@ using System.Collections;
 using KFrameWork;
 using System;
 using KUtils;
-
+#if EXAMPLE
 public class TestNetBuffer : UnityMonoBehaviour {
-    
-    NetByteBuffer buffer = NetByteBuffer.Create(16);
 
-    int intv =12;
-    short shortv=13;
-    long longv=14;
-    ushort ushorv =15;
-    ulong ulongv= 16;
-    bool boolv =true;
-    byte bytev =3;
-    float floatv=34.123f;
+    NetByteBuffer buffer = NetByteBuffer.CreateWithSize(128);
+
+    int intv = 12;
+    short shortv = 13;
+    long longv = 14;
+    ushort ushorv = 15;
+    ulong ulongv = 16;
+    bool boolv = true;
+    byte bytev = 3;
+    float floatv = 34.123f;
     double doublev = 124.123d;
-    string stringv ="你好 Kframework";
+    string stringv = "你好 Kframework";
 
-	// Use this for initialization
+    // Use this for initialization
     protected override  void Start () {
         base.Start();
-        LogMgr.Log("start");
         TestNet();
 
         this.TestPool();
-
-        LogMgr.Log("end");
 	}
 
     void TestNet()
@@ -116,7 +113,7 @@ public class TestNetBuffer : UnityMonoBehaviour {
             && ret_double == this.doublev
             && ret_string == this.stringv)
         {
-            //LogMgr.Log("结果正确");
+            LogMgr.Log("结果正确");
         }
         else
         {
@@ -127,3 +124,4 @@ public class TestNetBuffer : UnityMonoBehaviour {
 	
 
 }
+#endif

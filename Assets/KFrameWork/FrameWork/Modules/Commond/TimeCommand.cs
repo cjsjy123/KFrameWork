@@ -25,13 +25,16 @@ namespace KFrameWork
             }
         }
 
+        private AbstractParams cacheParams;
 
         private System.Action Callback;
 
-        [FrameWokAwakeAttribute]
+        private System.Action<AbstractParams> CallBackWithParams;
+
+        [FrameWorkStartAttribute]
         private static void PreLoad(int v)
         {
-            for (int i = 0; i < FrameWorkDebug.Preload_ParamsCount; ++i)
+            for (int i = 0; i < FrameWorkConfig.Preload_ParamsCount; ++i)
             {
                 KObjectPool.mIns.Push(new TimeCommand());
             }
@@ -42,7 +45,25 @@ namespace KFrameWork
 
         }
 
-        public static TimeCommand Create(System.Action cbk, float time)
+        public static TimeCommand Create(float time, System.Action<AbstractParams> cbk ,AbstractParams p)
+        {
+            TimeCommand Command = null;
+            if (KObjectPool.mIns != null)
+            {
+                Command = KObjectPool.mIns.Pop<TimeCommand>();
+            }
+
+            if (Command == null)
+                Command = new TimeCommand();
+
+            Command.m_delay = time;
+            Command.CallBackWithParams = cbk;
+            Command.cacheParams = p;
+
+            return Command;
+        }
+
+        public static TimeCommand Create(float time,System.Action cbk =null)
         {
             TimeCommand Command = null;
             if(KObjectPool.mIns != null)
@@ -57,19 +78,23 @@ namespace KFrameWork
             Command.Callback = cbk;
 
             return Command;
+        }
 
+        public static void Destroy()
+        {
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
         }
 
         public override void Excute ()
         {
             try
             {
-                if(!this.m_bExcuted)
+                if(!this.isRunning)
                 {
                     base.Excute();
                     this.m_starttime = GameSyncCtr.mIns.FrameWorkTime;
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
+                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
                 }
             }
             catch(FrameWorkException ex)
@@ -85,73 +110,125 @@ namespace KFrameWork
 
         }
 
-        [DelegateMethodAttribute(MainLoopEvent.LateUpdate,"methodID",typeof(TimeCommand))]
+        [DelegateMethodAttribute(MainLoopEvent.BeforeUpdate,"methodID",typeof(TimeCommand))]
         private static void _ConfirmFrameDone(System.Object o, int value)
         {
-            if(o is TimeCommand)
+            try
             {
-                TimeCommand cmd = o as TimeCommand;
-                if(GameSyncCtr.mIns.FrameWorkTime  - cmd.m_starttime >= cmd.m_delay && !cmd.m_paused)
+                if(o is TimeCommand)
                 {
-                    cmd.End();
+                    TimeCommand cmd = o as TimeCommand;
+                    if(GameSyncCtr.mIns.FrameWorkTime  - cmd.m_starttime >= cmd.m_delay && cmd.RunningState != CommandState.Paused)
+                    {
+                        cmd.End();
+                    }
+                }
+                else
+                {
+                    LogMgr.LogError(o);
                 }
             }
-            else
+            catch(FrameWorkException ex)
             {
-                LogMgr.LogError(o);
+                LogMgr.LogException(ex);
+
+                ex.RaiseExcption();
+            }
+            catch(Exception ex)
+            {
+                LogMgr.LogException(ex);
             }
         }
 
         private void End()
         {
-            this.Stop();
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
 
             this.TryBatch();
+            this.SetFinished();
+        }
+
+        protected override bool CancelBy(object o)
+        {
+            if (this.Callback != null)
+            {
+                Delegate d = this.Callback as Delegate;
+                if (d.Target == o)
+                {
+                    return true;
+                }
+            }
+
+            if (this.CallBackWithParams != null)
+            {
+                Delegate d = this.CallBackWithParams as Delegate;
+                if (d.Target == o)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public override void Cancel()
+        {
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
+            this.Callback = null;
+            this.CallBackWithParams = null;
+            base.Cancel();
 
         }
 
-        public override void Stop ()
+        protected override void SetFinished()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
-            this._isDone = true;
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+
             if (this.Callback != null)
             {
                 this.Callback ();
             }
+
+            if (this.CallBackWithParams != null)
+            {
+                this.CallBackWithParams(this.cacheParams);
+            }
+
+            base.SetFinished();
         }
 
         public override void Pause ()
         {
             float delta =GameSyncCtr.mIns.FrameWorkTime  - this.m_starttime;
-            if(delta < this.m_delay)
+            if(delta < this.m_delay && this.RunningState == CommandState.Running)
             {
                 this.m_pausedstarttime = GameSyncCtr.mIns.FrameWorkTime ;
-
-                this.m_paused =true;
+                base.Pause();
             }
         }
 
         public override void Resume ()
         {
-            if(this.m_paused)
+            if(this.RunningState == CommandState.Paused)
             {
+                base.Resume();
                 this.m_pausedtime +=GameSyncCtr.mIns.FrameWorkTime  - this.m_pausedstarttime;
-                this.m_paused =false;
+
                 if(this.isDone)
                     this.TryBatch();
             }
-
         }
             
-
-        public override void AwakeFromPool ()
+        public override void RemoveToPool ()
         {
-            base.AwakeFromPool ();
+            base.RemoveToPool ();
             this.m_pausedtime =0f;
             this.m_pausedstarttime =0f;
             this.m_delay =0f;
             this.m_starttime =0f;
             this.Callback = null;
+            this.CallBackWithParams = null;
+            this.cacheParams = null;
         }
 
 
@@ -159,7 +236,8 @@ namespace KFrameWork
         {
             base.RemovedFromPool();
             this.Callback = null;
-
+            this.CallBackWithParams = null;
+            this.cacheParams = null;
         }
 
         public override void Release (bool force)

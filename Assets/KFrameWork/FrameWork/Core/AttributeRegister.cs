@@ -8,29 +8,27 @@ using System.Runtime.CompilerServices;
 
 public static class AttributeRegister 
 {
-    public static void Register( GameFrameWork frameWork)
+    public static void Register( FrameworkAttRegister frameWork)
     {
         frameWork.RegisterHandler(RegisterType.ClassAttr, typeof(SingleTonAttribute), Register_Singleton);
-        frameWork.RegisterHandler(RegisterType.ClassAttr, typeof(GameServiceAttribute), Register_JustCallContrustion);
-        frameWork.RegisterHandler(RegisterType.ClassAttr, typeof(GSReceiverAttribute), Register_JustCallContrustion);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(LoopEventAttribute), Register_LoopEvent);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(SceneEnterAttribute), Register_SceneAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(ScenLeaveAttribute), Register_SceneLeaveAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(SceneLeaveAttribute), Register_SceneLeaveAtt);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(Script_SharpLogicAttribute), Register_SharpScriptLogicAtt);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(Script_LuaLogicAttribute), Register_LuaScriptLogicAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokAwakeAttribute), Register_KFKAwakecAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokDestroyAttribute), Register_KFKDestroyAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokStartAttribute), Register_KFKStartcAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokDevicePausedAttribute), Register_KFKPauseAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokDeviceQuitAttribute), Register_KFKQuitAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokDisableAttribute), Register_KFKDisableAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokEnableAttribute), Register_KFKEnableAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokFixedUpdateAttribute), Register_KFKFixedupdateAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokUpdateAttribute), Register_KFKUpdateAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokLateUpdateAttribute), Register_KFKLateupdateAtt);
-        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWokBeforeUpdateAttribute), Register_KFKBeforeUpdateAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkDestroyAttribute), Register_KFKDestroyAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkStartAttribute), Register_KFKStartcAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkDevicePausedAttribute), Register_KFKPauseAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkDeviceQuitAttribute), Register_KFKQuitAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkDisableAttribute), Register_KFKDisableAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkEnableAttribute), Register_KFKEnableAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkFixedUpdateAttribute), Register_KFKFixedupdateAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkUpdateAttribute), Register_KFKUpdateAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkLateUpdateAttribute), Register_KFKLateupdateAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkBeforeUpdateAttribute), Register_KFKBeforeUpdateAtt);
+        frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(FrameWorkAfterUpdateAttribute), Register_KFKAfterUpdateAtt);
         frameWork.RegisterHandler(RegisterType.MethodAtt, typeof(DelegateMethodAttribute), Register_DelegateAtt);
 
+        GameAttrRegister.Register(frameWork);
     }
 
     private static void Register_JustCallContrustion(object att,object target)
@@ -59,12 +57,12 @@ public static class AttributeRegister
                     }
                     else
                     {
-                        SceneCtr.Register_SceneSingleton((KEnum)attval.initTp,0,f);
+                        GameSceneCtr.Register_SceneSingleton((KEnum)attval.initTp,0,f);
                     }
 
                     if(attval.destroyTp != -1)
                     {
-                        SceneCtr.Register_SceneSingleton((KEnum)attval.destroyTp,1,f);
+                        GameSceneCtr.Register_SceneSingleton((KEnum)attval.destroyTp,1,f);
                     }
 
                     exist = true;
@@ -77,53 +75,29 @@ public static class AttributeRegister
         }
 
     }
-
-
-    private static void Register_LoopEvent(object att,object target)
-    {
-        LoopEventAttribute attval = att as LoopEventAttribute;
-        MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
-        {
-            MainLoop.getLoop().RegisterLoopEvent(attval.ev,method);
-        }
-
-
-    }
+        
 
     private static void Register_SceneAtt(object att,object target)
     {
+        SceneEnterAttribute scenter = att as SceneEnterAttribute;
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
-            if(method.ReflectedType == typeof(SceneCtr))
-            {
-                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnLevelWasLoaded,method,true);
-            }
-            else
-            {
-                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnLevelWasLoaded,method);
-            }
-
+            if (MainLoop.getLoop() != null)
+                MainLoop.getLoop().RegisterStaticEvent(MainLoopEvent.OnLevelWasLoaded, method,scenter.Priority);
         }
-        
     }
 
     private static void Register_SceneLeaveAtt(object att,object target)
     {
+        SceneLeaveAttribute scene = att as SceneLeaveAttribute;
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if (method.isLoopFunction())
         {
-            if(method.ReflectedType == typeof(SceneCtr))
-            {
-                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnlevelLeaved,method,true);
-            }
-            else
-            {
-                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnlevelLeaved,method);
-            }
-        }
+            if (MainLoop.getLoop() != null)
+                MainLoop.getLoop().RegisterStaticEvent(MainLoopEvent.OnLevelLeaved, method, scene.Priority); 
 
+        }
     }
 
     private static void Register_SharpScriptLogicAtt(object att,object target)
@@ -132,7 +106,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.LogStaticMethod())
         {
-            ScriptLogicCtr.mIns.RegisterLogicFunc(method,attval.CMD,null,ScriptTarget.Sharp);
+            ScriptLogicCtr.mIns.RegisterLogicFunc(method, attval.CMD, method.Name, attval, ScriptTarget.Sharp);
         }
         
     }
@@ -143,26 +117,17 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.LogStaticMethod())
         {
-            ScriptLogicCtr.mIns.RegisterLogicFunc(method,attval.CMD,attval.methodName,ScriptTarget.Lua);
+            string methodname = string.IsNullOrEmpty(attval.methodName) ? method.Name : attval.methodName;
+            ScriptLogicCtr.mIns.RegisterLogicFunc(method,attval.CMD, methodname, attval, ScriptTarget.Lua);
         }
 
     }
     #region framework att
-    private static void Register_KFKAwakecAtt(object att,object target)
-    {
-        MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
-        {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Awake,
-                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
-                false);
-        }
-    }
 
     private static void Register_KFKStartcAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Start,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -173,7 +138,7 @@ public static class AttributeRegister
     private static void Register_KFKFixedupdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.FixedUpdate,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -184,7 +149,7 @@ public static class AttributeRegister
     private static void Register_KFKUpdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Update,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -195,7 +160,7 @@ public static class AttributeRegister
     private static void Register_KFKLateupdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -206,7 +171,7 @@ public static class AttributeRegister
     private static void Register_KFKPauseAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -217,7 +182,7 @@ public static class AttributeRegister
     private static void Register_KFKQuitAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationQuit,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -228,7 +193,7 @@ public static class AttributeRegister
     private static void Register_KFKDestroyAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnDestroy,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -239,7 +204,7 @@ public static class AttributeRegister
     private static void Register_KFKDisableAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnDisable,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -250,7 +215,7 @@ public static class AttributeRegister
     private static void Register_KFKEnableAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnEnable,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
@@ -261,10 +226,21 @@ public static class AttributeRegister
     private static void Register_KFKBeforeUpdateAtt(object att,object target)
     {
         MethodInfo method = target as MethodInfo;
-        if(method.LogStaticMethod())
+        if(method.isLoopFunction())
         {
             MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
+                false);
+        }
+    }
+
+    private static void Register_KFKAfterUpdateAtt(object att, object target)
+    {
+        MethodInfo method = target as MethodInfo;
+        if (method.isLoopFunction())
+        {
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.AfterUpdate,
+                (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), method),
                 false);
         }
     }
@@ -279,7 +255,7 @@ public static class AttributeRegister
         if(method.LogStaticMethod())
         {
             Action<System.Object, int> callback =(Action<System.Object, int>)Delegate.CreateDelegate(typeof(Action<System.Object,int>),method);
-            MainLoop.getLoop().PreRegisterCachedAction(delegateAtt.e,callback);
+            MainLoop.getLoop().PreRegisterCachedAction(delegateAtt.Invokeopportunity,callback);
 
 
             Type tp = delegateAtt.tp;
@@ -287,7 +263,7 @@ public static class AttributeRegister
             FieldInfo fs = tp.GetField(delegateAtt.name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if(fs != null)
             {
-                fs.SetValue(null,RuntimeHelpers.GetHashCode(callback));
+                fs.SetValue(null, FrameWorkTools.GetHashCode(callback));
             }
         }
     }

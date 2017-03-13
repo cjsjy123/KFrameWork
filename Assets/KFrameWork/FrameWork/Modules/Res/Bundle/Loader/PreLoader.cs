@@ -14,51 +14,57 @@ namespace KFrameWork
             base.DownLoad(url);
         }
 
-        public override void OnStart()
+        protected override void OnStart()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("PreLoad Load Asset {0} Start at {1}", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("PreLoad Load Asset {0} Start at {1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnPaused()
+        protected override void OnPaused()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("PreLoad Load Asset {0} Paused at v{1}", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("PreLoad Load Asset {0} Paused at v{1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnResume()
+        protected override void OnResume()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("PreLoad Load Asset {0} Resumed at {1}", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("PreLoad Load Asset {0} Resumed at {1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnError()
+        protected override void OnError()
         {
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("PreLoad Load Asset {0} Error at {1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
+
             base.OnError();
 
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("PreLoad Load Asset {0} Error at {1}", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnFinish()
+        protected override void OnFinish()
         {
-            base.OnFinish();
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("PreLoad Asset {0} Finished at {1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
 
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("PreLoad Asset {0} Finished at {1}", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
+            base.OnFinish();
+            this.Dispose();
         }
 
         protected override void CreateMain()
         {
-            this._BundleRef = ResBundleMgr.mIns.Cache.TryGetValue(this._info);
+            this._BundleRef = ResBundleMgr.mIns.Cache.TryGetValue(this.loadingpkg);
+            if (this._BundleRef == null)
+                this.ThrowLogicError();
 
-            if (this.isRunning()) //double check
-            {
-                this.LoadState = BundleLoadState.Finished;
-            }
+            this._FinishAndRelease();
         }
 
         protected override void LoadMainAsyncRequest(AssetBundleRequest request)
+        {
+            this._Bundle = request.asset;
+        }
+
+        protected override void LoadSceneAssetFinish()
         {
 
         }

@@ -5,15 +5,7 @@ using System;
 using KFrameWork;
 using KUtils;
 
-public class ModelLoader : MonoBehaviour {
+public class ModelLoader  {
 
-	// Use this for initialization
-	void Start () {
-	
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
+
 }

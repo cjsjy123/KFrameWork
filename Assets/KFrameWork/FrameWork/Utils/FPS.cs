@@ -10,8 +10,8 @@ public class FPS : MonoBehaviour {
 
     void Start () {
         if(!MainLoop.getLoop().OpenFps){
+           
             enabled = false;
-            return;
         }
     }
         
@@ -19,7 +19,8 @@ public class FPS : MonoBehaviour {
     {
         try
         {
-            GUI.Label(new Rect(Screen.width-80,0,80,20),string.Format("{0:F2} FPS",GameSyncCtr.mIns.Fps));
+            GUI.skin.label.normal.textColor = Color.black;
+            GUI.Label(new Rect(Screen.width-150,0,150,60),string.Format("{0:F2} FPS",GameSyncCtr.mIns.Fps));
         }
         catch (Exception ex)
         {

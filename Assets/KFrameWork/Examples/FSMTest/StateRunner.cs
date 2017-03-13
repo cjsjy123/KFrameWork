@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System;
 using KFrameWork;
 using KUtils;
-
+#if EXAMPLE
 public class FrameTestRunner:FSMRunner
 {
     public override FSMRunningType runningType {
@@ -54,3 +54,4 @@ public class DelayTimeRunner:FrameTestRunner
     }
 
 }
+#endif

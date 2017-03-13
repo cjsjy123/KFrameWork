@@ -13,40 +13,14 @@ namespace KUtils
         /// <summary>
         /// -1为框架启动初始化，其他为自定义enum，为了多支持使用int存储
         /// </summary>
-        protected int _initTp;
+        public int initTp { get; protected set; }
         /// <summary>
         /// -1为框架退出时候销毁/或者依托于系统关闭app的内存空间释放，其他为自定义enum，为了多支持使用int存储
         /// </summary>
-        protected int _destroyTp;
-
-        public int initTp
-        {
-            get
-            {
-                return _initTp;
-            }
-            private set
-            {
-                _initTp = value;
-            }
-        }
-
-        public int destroyTp
-        {
-            get
-            {
-                return _destroyTp;
-            }
-            private set
-            {
-                _destroyTp = value;
-            }
-        }
+        public int destroyTp { get; protected set; }
 
         public SingleTonAttribute():this(-1,-1){}
-
-        public SingleTonAttribute(int init):this(init,-1){}
-
+        public SingleTonAttribute(int value) : this(value, -1) { }
         public SingleTonAttribute(int init ,int destroy)
         {
             this.initTp = init;

@@ -8,7 +8,7 @@ namespace KFrameWork
     [AttributeUsage(AttributeTargets.Method)]
     public class DelegateMethodAttribute : Attribute {
 
-        public MainLoopEvent   e;
+        public MainLoopEvent   Invokeopportunity;
 
         public string name;
 
@@ -21,7 +21,7 @@ namespace KFrameWork
 
         public DelegateMethodAttribute(MainLoopEvent ev,string pname,Type passtp)
         {
-            this.e =ev;
+            this.Invokeopportunity =ev;
             this.name = pname;
             this.tp = passtp;
         }

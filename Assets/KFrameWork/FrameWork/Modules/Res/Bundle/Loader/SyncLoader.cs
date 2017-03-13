@@ -9,6 +9,30 @@ namespace KFrameWork
 {
     public class SyncLoader : BaseBundleLoader
     {
+
+        private int total =0;
+
+        private int current =0;
+
+        private Queue<BundlePkgInfo> loaderqueue = new Queue<BundlePkgInfo>();
+
+        public override void RemoveToPool ()
+        {
+            base.RemoveToPool ();
+            this.loaderqueue.Clear();
+            this.total =0;
+            this.current =0;
+        }
+
+        public override void RemovedFromPool ()
+        {
+            base.RemovedFromPool ();
+            this.loaderqueue.Clear();
+            this.loaderqueue =null;
+            this.total =0;
+            this.current =0;
+        }
+
         public override void DownLoad(string url)
         {
             
@@ -18,119 +42,137 @@ namespace KFrameWork
         {
             base.Load(name);
 
-            BundlePkgInfo pkginfo = this._SeekPkgInfo(name);
+            loadingpkg = this._SeekPkgInfo(name);
 
-            for (int i = 0; i < pkginfo.Depends.Length; ++i)
-            {
-                if (this.isRunning())
-                {
-                    this._AddBundleDpend(pkginfo.Depends[i]);
-                }
-                else if (FrameWorkDebug.Open_DEBUG)
-                    LogMgr.LogFormat("{0} loader 状态不符", this.targetname);
-                else
-                    break;
-            }
+            ResBundleMgr.mIns.Cache.PushLoading(loadingpkg.BundleName,this);
 
+            _PushDepend(loadingpkg);
+
+            this.total = this.loaderqueue.Count;
+
+            StartLoad();
+
+        }
+
+        private void AfterDependDone()
+        {
             if (this.isRunning())
             {
-                this._BundleRef = this._LoadBundle(pkginfo);
+                this._BundleRef = this._LoadBundle(loadingpkg);
+                this.AppendDepends(this.loadingpkg, _BundleRef);
+
                 this.CreateFromAsset(this._BundleRef,out this._Bundle );
+                this.InvokeProgressHandler(total, total);
 
                 if (this.isRunning()) //double check
                 {
                     this.LoadState = BundleLoadState.Finished;
                 }
             }
-
         }
 
-
-        private void _AddBundleDpend(string name)
+        private void StartLoad()
         {
-            BundlePkgInfo pkginfo = this._SeekPkgInfo(name);
+            while(this.loaderqueue.Count >0)
+            {
+                BundlePkgInfo pkginfo = this.loaderqueue.Dequeue();
+                if (this.isRunning())
+                {
+                    bool isasyncLoading = ResBundleMgr.mIns.Cache.ContainsLoadingBundle(pkginfo.BundleName);
+                    if(isasyncLoading)
+                    {
+                        ResBundleMgr.mIns.Cache.PushLoadingBundle(pkginfo.BundleName,this.YiedAsyncDone);
+                    }
+                    else
+                    {
+                        this._LoadBundle(pkginfo);
+                        current++;
+                        this.InvokeProgressHandler(current,total);
+                    }
+                } 
+            }
 
+            if(current == total)
+            {
+                AfterDependDone();
+            }
+        }
+
+        private void _PushDepend(BundlePkgInfo pkginfo)
+        {
             for (int i = 0; i < pkginfo.Depends.Length; ++i)
             {
                 if (this.isRunning())
                 {
-                    this._AddBundleDpend(pkginfo.Depends[i]);
+                    this._PushDepend(this._SeekPkgInfo( pkginfo.Depends[i]));
                 }
-                else if (FrameWorkDebug.Open_DEBUG)
-                    LogMgr.LogFormat("{0} loader 状态不符", this.targetname);
+                else if (BundleConfig.Bundle_Log)
+                    LogMgr.LogFormat("{0} loader 状态不符", this.LoadResPath);
                 else
                     break;
             }
 
-            if (this.isRunning())
-            {
-                this._LoadBundle(pkginfo);
-            }
-                
+            this.loaderqueue.Enqueue(pkginfo);
         }
 
+        private void YiedAsyncDone(string key)
+        {
+            if(BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("异步通知同步任务:{0}",key);
+
+            current++;
+            this.InvokeProgressHandler(current,total);
+
+            if(current == total)
+            {
+                this.AfterDependDone();
+            }
+            else if(current > total)
+            {
+                LogMgr.LogError("计数异常");
+            }
+        }
 
         private IBundleRef _LoadBundle(BundlePkgInfo pkginfo)
         {
-
             IBundleRef bundle = this.LoadFullAssetToMem(pkginfo);
-
-            if (bundle != null)
-            {
-                for (int i = 0; i < pkginfo.Depends.Length; ++i)
-                {
-                   IBundleRef depbund =  ResBundleMgr.mIns.Cache.TryGetValue(pkginfo.Depends[i]);
-                    if (depbund != null)
-                    {
-                        depbund.NeedThis(bundle);
-                    }
-                    else
-                    {
-                        this.ThrowBundleMissing(pkginfo.Depends[i]);
-                    }
-                }
-            }
-            else
-            {
-                this.ThrowBundleMissing(pkginfo.BundleName);
-            }
-
+            this.AppendDepends(pkginfo, bundle);
             return bundle;
         }
 
-
-        public override void OnError()
+        protected override void OnError()
         {
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Sync Load Asset {0} Error Frame:{1}", this.LoadResPath,GameSyncCtr.mIns.RenderFrameCount);
+            
             base.OnError();
-
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Sync Load Asset {0} Error ", this.targetname);
         }
 
-        public override void OnFinish()
+        protected override void OnFinish()
         {
+
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Sync Load Asset {0} Finish Frame:{1}", this.LoadResPath,GameSyncCtr.mIns.RenderFrameCount);
+            
             base.OnFinish();
-
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Sync Load Asset {0} Finish ", this.targetname);
         }
 
-        public override void OnPaused()
+        protected override void OnPaused()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Sync Load Asset {0} Paused ", this.targetname);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Sync Load Asset {0} Paused Frame:{1}", this.LoadResPath,GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnResume()
+        protected override void OnResume()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Sync Load Asset {0} Resume ", this.targetname);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Sync Load Asset {0} Resume Frame:{1}", this.LoadResPath,GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnStart()
+        protected override void OnStart()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Sync Load Asset {0} Start ", this.targetname);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Sync Load Asset {0} Start Frame:{1}", this.LoadResPath,GameSyncCtr.mIns.RenderFrameCount);
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿#define FLIP
-#define KEEP_OBS
 using System.Collections;
 using System;
 using System.Collections.Generic;
@@ -27,7 +26,7 @@ namespace KFrameWork
         /// 剩余可读字节
         /// </summary>
         /// <value>The left data count.</value>
-        private int byteAviliable
+        public int byteAviliable
         {
             get
             {
@@ -92,6 +91,12 @@ namespace KFrameWork
             this._datacnt = 0;
         }
 
+        private void _ResetWithBytes(byte[] bys)
+        {
+            this._Reset();
+            this.Write(bys);
+        }
+
         private static int _SeekFunc(NetByteBuffer buffer,int target)
         {
             if(buffer == null)
@@ -102,15 +107,22 @@ namespace KFrameWork
             }
         }
 
-        public static NetByteBuffer Create(int size)
+        public static NetByteBuffer Create<T>() where T : struct
         {
-            NetByteBuffer buffer =  null;
-            if(KObjectPool.mIns != null)
+            int size = Marshal.SizeOf(typeof(T));
+            return CreateWithSize(size);
+        }
+
+        public static NetByteBuffer CreateWithSize(int size)
+        {
+            NetByteBuffer buffer = null;
+            if (KObjectPool.mIns != null)
             {
-                buffer = KObjectPool.mIns.Seek<NetByteBuffer,int>(_SeekFunc,size,5);
+
+                buffer = KObjectPool.mIns.Seek<NetByteBuffer, int>(_SeekFunc, size, 5);
             }
 
-            if(buffer == null)
+            if (buffer == null)
             {
                 buffer = new NetByteBuffer(size);
             }
@@ -121,13 +133,7 @@ namespace KFrameWork
             return buffer;
         }
 
-        public static NetByteBuffer Create<T>() where T:struct
-        {
-            int size = Marshal.SizeOf(typeof(T));
-            return Create(size);
-        }
-
-        public static NetByteBuffer Create(byte[] bys)
+        public static NetByteBuffer CreateWithBytes(byte[] bys)
         {
             NetByteBuffer buffer =  null;
             if(KObjectPool.mIns != null)
@@ -137,25 +143,24 @@ namespace KFrameWork
                     byslen = bys.Length;
 
                 buffer = KObjectPool.mIns.Seek<NetByteBuffer,int>(_SeekFunc,byslen,5);
+                if (buffer != null)
+                {
+                    buffer._ResetWithBytes(bys);
+                }  
             }
 
             if(buffer == null)
             {
                 buffer = new NetByteBuffer(bys);
             }
-            else
-            {
-                buffer._Reset();
-            }
+
             return buffer;
         }
 
-        public void AwakeFromPool ()
+        public void RemoveToPool ()
         {
             this._Reset();
         }
-
-
 
         public void RemovedFromPool ()
         {
@@ -207,6 +212,17 @@ namespace KFrameWork
                 this._Position = endIndex;
             }
             return retbys;
+        }
+        /// <summary>
+        /// 获得结果，同时对象放入对象池
+        /// </summary>
+        /// <returns></returns>
+        public byte[] GetResult()
+        {
+            int len = this.DataCount;
+            byte[] result = this.Read(0, len);
+            this.Dispose();
+            return result;
         }
 
         public byte ReadByte()
@@ -296,9 +312,9 @@ namespace KFrameWork
 
         protected static void _Reverse(byte[] bys)
         {
-            #if FILP
+            #if FLIP
             if (!BitConverter.IsLittleEndian)
-                _MyReverse(right);
+                _MyReverse(bys);
             #else
             if (BitConverter.IsLittleEndian)
                 _MyReverse(bys);
@@ -487,6 +503,42 @@ namespace KFrameWork
             return left;
         }
 
+        public static NetByteBuffer operator +(NetByteBuffer left, List<bool> right)
+        {
+
+            left += (short)right.Count;
+            for (int i = 0; i < right.Count; ++i)
+            {
+                left += right[i];
+            }
+
+            return left;
+        }
+
+        public static NetByteBuffer operator +(NetByteBuffer left, List<float> right)
+        {
+
+            left += (short)right.Count;
+            for (int i = 0; i < right.Count; ++i)
+            {
+                left += right[i];
+            }
+
+            return left;
+        }
+
+        public static NetByteBuffer operator +(NetByteBuffer left, List<double> right)
+        {
+
+            left += (short)right.Count;
+            for (int i = 0; i < right.Count; ++i)
+            {
+                left += right[i];
+            }
+
+            return left;
+        }
+
         public static NetByteBuffer operator +(NetByteBuffer left, List<uint> right)
         {
 
@@ -641,7 +693,7 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 2)
             {
-                int strLen = (short)left;
+                short strLen = (short)left;
                 var tempBys = left.Read(left.Position,strLen);
                 _Reverse(tempBys);
                 return System.Text.Encoding.UTF8.GetString(tempBys);
@@ -654,16 +706,25 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 2)
             {
-                int strLen = (short)left;
-                if (strLen >0)
+                short strLen = (short)left;
+                if (strLen > 0)
                 {
                     List<int> list = new List<int>();
-                    for (int i = 0; i < strLen; ++i)
+                    if (left.byteAviliable >= strLen * 4)
                     {
-                        list.Add((int)left);
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((int)left);
+                        }
+                        return list;
                     }
-                    return list;
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    } 
                 }
+                else
+                    return null;
             }
             LogMgr.LogError("List<int> Read from ByteBuffer Error");
             return null;
@@ -673,16 +734,25 @@ namespace KFrameWork
         {
             if (left != null && left.DataCount >= 2)
             {
-                int strLen = (short)left;
+                short strLen = (short)left;
                 if (strLen >0)
                 {
                     List<short> list = new List<short>();
-                    for (int i = 0; i < strLen; ++i)
+                    if (left.byteAviliable >= strLen * 2)
                     {
-                        list.Add((short)left);
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((short)left);
+                        }
+                        return list;
                     }
-                    return list;
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
                 }
+                else
+                    return null;
             }
             LogMgr.LogError("List<short> Read from ByteBuffer Error");
 
@@ -693,16 +763,25 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 2)
             {
-                int strLen = (short)left;
+                short strLen = (short)left;
                 if (strLen >0)
                 {
                     List<long> list = new List<long>();
-                    for (int i = 0; i < strLen; ++i)
+                    if (left.byteAviliable >= strLen * 8)
                     {
-                        list.Add((long)left);
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((long)left);
+                        }
+                        return list;
                     }
-                    return list;
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
                 }
+                else
+                    return null;
             }
             LogMgr.LogError("List<long> Read from ByteBuffer Error");
 
@@ -713,16 +792,25 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 2)
             {
-                int strLen = (short)left;
+                short strLen = (short)left;
                 if (strLen >0)
                 {
                     List<uint> list = new List<uint>();
-                    for (int i = 0; i < strLen; ++i)
+                    if (left.byteAviliable >= strLen * 4)
                     {
-                        list.Add((uint)left);
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((uint)left);
+                        }
+                        return list;
                     }
-                    return list;
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
                 }
+                else
+                    return null;
             }
             LogMgr.LogError("List<uint> Read from ByteBuffer Error");
             return null;
@@ -732,16 +820,25 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 2)
             {
-                int strLen = (short)left;
+                short strLen = (short)left;
                 if (strLen >0)
                 {
                     List<ushort> list = new List<ushort>();
-                    for (int i = 0; i < strLen; ++i)
+                    if (left.byteAviliable >= strLen * 2)
                     {
-                        list.Add((ushort)left);
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((ushort)left);
+                        }
+                        return list;
                     }
-                    return list;
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
                 }
+                else
+                    return null;
             }
             LogMgr.LogError("List<ushort> Read from ByteBuffer Error");
  
@@ -752,19 +849,112 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 2)
             {
-                int strLen = (short)left;
+                short strLen = (short)left;
                 if (strLen >0)
                 {
                     List<ulong> list = new List<ulong>();
-                    for (int i = 0; i < strLen; ++i)
+                    if (left.byteAviliable >= strLen * 8)
                     {
-                        list.Add((ulong)left);
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((ulong)left);
+                        }
+                        return list;
                     }
-                    return list;
-                }            
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
+                }
+                else
+                    return null;
             }
             LogMgr.LogError("List<ulong> Read from ByteBuffer Error");
 
+            return null;
+        }
+
+        public static explicit operator List<double>(NetByteBuffer left)
+        {
+            if (left != null && left.byteAviliable >= 2)
+            {
+                short strLen = (short)left;
+                if (strLen > 0)
+                {
+                    List<double> list = new List<double>();
+                    if (left.byteAviliable >= strLen * 8)
+                    {
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((double)left);
+                        }
+                        return list;
+                    }
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
+                }
+                else
+                    return null;
+            }
+            LogMgr.LogError("List<double> Read from ByteBuffer Error");
+            return null;
+        }
+
+        public static explicit operator List<float>(NetByteBuffer left)
+        {
+            if (left != null && left.byteAviliable >= 2)
+            {
+                short strLen = (short)left;
+                if (strLen > 0)
+                {
+                    List<float> list = new List<float>();
+                    if (left.byteAviliable >= strLen * 4)
+                    {
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((float)left);
+                        }
+                        return list;
+                    }
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
+                }
+                else
+                    return null;
+            }
+            LogMgr.LogError("List<float> Read from ByteBuffer Error");
+            return null;
+        }
+
+        public static explicit operator List<bool>(NetByteBuffer left)
+        {
+            if (left != null && left.byteAviliable >= 2)
+            {
+                short strLen = (short)left;
+                if (strLen > 0)
+                {
+                    List<bool> list = new List<bool>();
+                    if (left.byteAviliable >= strLen )
+                    {
+                        for (int i = 0; i < strLen; ++i)
+                        {
+                            list.Add((bool)left);
+                        }
+                        return list;
+                    }
+                    else
+                    {
+                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                    }
+                }
+                else
+                    return null;
+            }
+            LogMgr.LogError("List<bool> Read from ByteBuffer Error");
             return null;
         }
 
@@ -772,7 +962,7 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 2)
             {
-                int strLen = (short)left;
+                short strLen = (short)left;
                 if (strLen >0)
                 {
                     List<string> list = new List<string>();
@@ -781,111 +971,410 @@ namespace KFrameWork
                         list.Add((string)left);
                     }
                     return list;
-                }     
+                }
+                else
+                    return null;
             }
             LogMgr.LogError("List<string>  Read from ByteBuffer Error");
 
             return null;
         }
-        #if KEEP_OBS
-        [Obsolete]
+
+        #region generic
+
+        public void WriteGeneric<T>(T data) where T : ISeriable
+        {
+            this.Write(data.Seriable());
+        }
+
+        public void WriteGenericList<T>(List<T> data) where T : ISeriable
+        {
+            if (data == null)
+            {
+                this.WriteShort(0);
+            }
+            else
+            {
+                this.WriteShort((short)data.Count);
+                for (int i = 0; i < data.Count; ++i)
+                {
+                    this.Write(data[i].Seriable());
+                }
+            }
+        }
+
+        public void WriteGenericDictionary<K, V>(Dictionary<K, V> dict) where K : ISeriable where V : ISeriable
+        {
+            List<K> keys = new List<K>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteGenericList(keys);
+            this.WriteGenericList(values);
+        }
+
+
+        public void WriteGenericDictionary<V>(Dictionary<float, V> dict) where V : ISeriable
+        {
+            List<float> keys = new List<float>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteFloatList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<double, V> dict) where V : ISeriable
+        {
+            List<double> keys = new List<double>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteDoubleList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<int, V> dict) where V : ISeriable
+        {
+            List<int> keys = new List<int>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteIntList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<short, V> dict) where V : ISeriable
+        {
+            List<short> keys = new List<short>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteShortList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<long, V> dict) where V : ISeriable
+        {
+            List<long> keys = new List<long>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteLongList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<uint, V> dict) where V : ISeriable
+        {
+            List<uint> keys = new List<uint>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteUintList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<ushort, V> dict) where V : ISeriable
+        {
+            List<ushort> keys = new List<ushort>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteUShortList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<ulong, V> dict) where V : ISeriable
+        {
+            List<ulong> keys = new List<ulong>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteUlongList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<bool, V> dict) where V : ISeriable
+        {
+            List<bool> keys = new List<bool>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteBoolList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public void WriteGenericDictionary<V>(Dictionary<string, V> dict) where V : ISeriable
+        {
+            List<string> keys = new List<string>(dict.Keys);
+            List<V> values = new List<V>(dict.Values);
+            this.WriteStringList(keys);
+            this.WriteGenericList(values);
+        }
+
+        public Dictionary<K, V> ReadGenericDictionary<K, V>() where K:IDeseriable,new()  where V:IDeseriable,new()
+        {
+            List<K> keys = ReadGenericList<K>();
+            List<V> values= ReadGenericList<V>();
+
+            Dictionary<K, V> dict = new Dictionary<K, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i],values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<int, V> ReadIntDictionary< V>() where V : IDeseriable, new()
+        {
+            List<int> keys = ReadIntList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<int, V> dict = new Dictionary<int, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<short, V> ReadShortDictionary<V>() where V : IDeseriable, new()
+        {
+            List<short> keys = ReadShortList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<short, V> dict = new Dictionary<short, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<long, V> ReadLongDictionary<V>() where V : IDeseriable, new()
+        {
+            List<long> keys = ReadLongList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<long, V> dict = new Dictionary<long, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<uint, V> ReadUintDictionary<V>() where V : IDeseriable, new()
+        {
+            List<uint> keys = ReadUIntList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<uint, V> dict = new Dictionary<uint, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<ushort, V> ReadUshortDictionary<V>() where V : IDeseriable, new()
+        {
+            List<ushort> keys = ReadUShortList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<ushort, V> dict = new Dictionary<ushort, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<ulong, V> ReadULongictionary<V>() where V : IDeseriable, new()
+        {
+            List<ulong> keys = ReadULongList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<ulong, V> dict = new Dictionary<ulong, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<bool, V> ReadBoolDictionary<V>() where V : IDeseriable, new()
+        {
+            List<bool> keys = ReadBoolList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<bool, V> dict = new Dictionary<bool, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<float, V> ReadFloatDictionary<V>() where V : IDeseriable, new()
+        {
+            List<float> keys = ReadFloatList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<float, V> dict = new Dictionary<float, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<double, V> ReadDoubleDictionary<V>() where V : IDeseriable, new()
+        {
+            List<double> keys = ReadDoubleList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<double, V> dict = new Dictionary<double, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public Dictionary<string, V> ReadStringDictionary<V>() where V : IDeseriable, new()
+        {
+            List<string> keys = ReadStringList();
+            List<V> values = ReadGenericList<V>();
+
+            Dictionary<string, V> dict = new Dictionary<string, V>(keys.Count);
+
+            for (int i = 0; i < keys.Count; ++i)
+            {
+                dict.Add(keys[i], values[i]);
+            }
+            return dict;
+        }
+
+        public List<T> ReadGenericList<T>() where T : IDeseriable,new()
+        {
+            List<T> list = ListPool.TrySpawn<List<T>>();
+            short cnt = (short)this;
+            for (int i = 0; i < cnt; ++i)
+            {
+                list.Add(ReadGeneric<T>());
+            }
+
+            return list;
+        }
+
+        public T ReadGeneric<T>() where T:IDeseriable,new()
+        {
+            T data = new T();
+            data.Deseriable(this);
+            return data;
+        }
+        #endregion
         public short ReadShort()
         {
             return (short)this;
         }
 
-        [Obsolete]
+        
         public ushort ReadUShort()
         {
             return (ushort)this;
         }
 
-        [Obsolete]
+        
         public uint ReadUInt()
         {
             return (uint)this;
         }
 
-        [Obsolete]
+        
         public int ReadInt()
         {
             return (int)this;
         }
 
-        [Obsolete]
+        
         public float ReadFloat()
         {
             return (float)this;
         }
 
-        [Obsolete]
+        
         public double ReadDouble()
         {
             return (double)this;
         }
 
-        [Obsolete]
+        
         public long ReadLong()
         {
             return (long)this;
         }
 
-        [Obsolete]
+        
         public ulong ReadULong()
         {
             return (ulong)this;
         }
 
-        [Obsolete]
+        
         public string ReadString()
         {
             return (string)this;
         }
 
-        [Obsolete]
+        
         public List<int> ReadIntList()
         {
             return (List<int>)this;
         }
 
-        [Obsolete]
+        
         public List<uint> ReadUIntList()
         {
             return (List<uint>)this;
         }
 
-        [Obsolete]
+        
         public List<short> ReadShortList()
         {
             return (List<short>)this;
         }
 
-        [Obsolete]
+        
         public List<ushort> ReadUShortList()
         {
             return (List<ushort>)this;
         }
 
-        [Obsolete]
+        
         public List<long> ReadLongList()
         {
             return (List<long>)this;
         }
 
-        [Obsolete]
+        
         public List<ulong> ReadULongList()
         {
             return (List<ulong>)this;
         }
 
-        [Obsolete]
+        public List<float> ReadFloatList()
+        {
+            return (List<float>)this;
+        }
+
+        public List<double> ReadDoubleList()
+        {
+            return (List<double>)this;
+        }
+
         public List<string> ReadStringList()
         {
             return (List<string>)this;
         }
 
 
-        [Obsolete]
+        public List<bool> ReadBoolList()
+        {
+            return (List<bool>)this;
+        }
+
         public void WriteShort(short value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -893,7 +1382,7 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        
         public void WriteUShort(ushort value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -901,7 +1390,7 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        
         public void WriteInt(int value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -909,7 +1398,7 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        
         public void WriteUint(uint value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -917,7 +1406,7 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        
         public void WriteLong(long value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -925,7 +1414,7 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        
         public void WriteUlong(ulong value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -933,14 +1422,14 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        
         public void WriteBool(bool value)
         {
             byte[] bys = BitConverter.GetBytes(value);
             _Reverse(bys);
             this.Write(bys);
         }
-        [Obsolete]
+        
         public void WriteString(string value)
         {
             byte[] bys = System.Text.Encoding.UTF8.GetBytes(value);
@@ -949,7 +1438,7 @@ namespace KFrameWork
             _Reverse(bys);
             this.Write(bys);
         }
-        [Obsolete]
+        
         public void WriteFloat(float value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -957,7 +1446,7 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        
         public void WriteDouble(double value)
         {
             byte[] bys = BitConverter.GetBytes(value);
@@ -965,7 +1454,24 @@ namespace KFrameWork
             this.Write(bys);
         }
 
-        [Obsolete]
+        public void WriteDoubleList(List<double> value)
+        {
+            this.WriteShort((short)value.Count);
+            for (int i = 0; i < value.Count; ++i)
+            {
+                this.WriteDouble(value[i]);
+            }
+        }
+
+        public void WriteFloatList(List<float> value)
+        {
+            this.WriteShort((short)value.Count);
+            for (int i = 0; i < value.Count; ++i)
+            {
+                this.WriteFloat(value[i]);
+            }
+        }
+
         public void WriteShortList(List<short> value)
         {
             this.WriteShort((short)value.Count);
@@ -975,7 +1481,7 @@ namespace KFrameWork
             }
         }
 
-        [Obsolete]
+        
         public void WriteUShortList(List<ushort> value)
         {
             this.WriteShort((short)value.Count);
@@ -985,7 +1491,7 @@ namespace KFrameWork
             }
         }
 
-        [Obsolete]
+        
         public void WriteIntList(List<int> value)
         {
             this.WriteShort((short)value.Count);
@@ -995,7 +1501,7 @@ namespace KFrameWork
             }
         }
 
-        [Obsolete]
+        
         public void WriteUintList(List<uint> value)
         {
             this.WriteShort((short)value.Count);
@@ -1005,7 +1511,7 @@ namespace KFrameWork
             }
         }
 
-        [Obsolete]
+        
         public void WriteUlongList(List<ulong> value)
         {
             this.WriteShort((short)value.Count);
@@ -1015,7 +1521,7 @@ namespace KFrameWork
             }
         }
 
-        [Obsolete]
+        
         public void WriteLongList(List<long> value)
         {
             this.WriteShort((short)value.Count);
@@ -1024,7 +1530,7 @@ namespace KFrameWork
                 this.WriteLong(value[i]);
             }
         }
-        [Obsolete]
+        
         public void WriteStringList(List<string> value)
         {
             this.WriteShort((short)value.Count);
@@ -1034,7 +1540,14 @@ namespace KFrameWork
             }
         }
 
-        #endif
+        public void WriteBoolList(List<bool> value)
+        {
+            this.WriteShort((short)value.Count);
+            for (int i = 0; i < value.Count; ++i)
+            {
+                this.WriteBool(value[i]);
+            }
+        }
 
     }
 }

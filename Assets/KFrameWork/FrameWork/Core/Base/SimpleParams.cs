@@ -3,11 +3,12 @@ using UnityEngine;
 using System.Runtime.InteropServices;
 using KUtils;
 using System.Text;
+using System.Reflection;
 
 namespace KFrameWork
 {
 //    [StructLayout(LayoutKind.Sequential)]
-    public class SimpleParams:AbstractParams,KUtils.IPool
+    public class SimpleParams:AbstractParams,IPool
     {
         private long bitIndex =0;
         private long bitDataSort =0;
@@ -44,6 +45,10 @@ namespace KFrameWork
         private Vector3? m_v2;
         private Vector3? m_v3;
 
+        private Color? m_c1;
+        private Color? m_c2;
+        private Color? m_c3;
+
         private System.Object m_o1;
         private System.Object m_o2;
         private System.Object m_o3;
@@ -52,10 +57,10 @@ namespace KFrameWork
         private UnityEngine.Object m_uo2;
         private UnityEngine.Object m_uo3;
 
-        [FrameWokAwakeAttribute]
+        [FrameWorkStart]
         private static void Preload(int v)
         {
-            for(int i=0; i < FrameWorkDebug.Preload_ParamsCount;++i)
+            for(int i=0; i < FrameWorkConfig.Preload_ParamsCount;++i)
             {
                 KObjectPool.mIns.Push(PreCreate(1));
                 KObjectPool.mIns.Push(PreCreate(2));
@@ -66,7 +71,7 @@ namespace KFrameWork
         private static SimpleParams PreCreate(int origion =-1)
         {
             SimpleParams p = new SimpleParams();
-            p._OrigionArgCount = origion;
+            p._OriginArgCount = origion;
             p._virtualArg = 0;
             p._LimitMax = 16;//64/4
             return p;
@@ -87,7 +92,7 @@ namespace KFrameWork
 
             if(origion != -1)
             {
-                p._OrigionArgCount = origion;
+                p._OriginArgCount = origion;
                 p._virtualArg = 0;
             }
 
@@ -107,7 +112,7 @@ namespace KFrameWork
                 KObjectPool.mIns.Push(this);
         }
 
-        public void AwakeFromPool ()
+        public override void RemoveToPool ()
         {
             this.m_l1 = null;
             this.m_l2 = null;
@@ -133,6 +138,10 @@ namespace KFrameWork
             this.m_f2 = null;
             this.m_f3 = null;
 
+            this.m_c1 = null;
+            this.m_c2 = null;
+            this.m_c3 = null;
+
             this.m_d1 = null;
             this.m_d2 = null;
             this.m_d3 = null;
@@ -150,13 +159,15 @@ namespace KFrameWork
             this.m_uo3 = null;
 
             this._ArgCount = 0;
-            this._OrigionArgCount =-1;
+            this._virtualArg = 0;
+            this._NextReadIndex = 0;
+            this._OriginArgCount =-1;
             this.bitIndex = 0;
             this.bitDataSort =0;
         }
 
 
-        public void RemovedFromPool ()
+        public override void RemovedFromPool ()
         {
             this.m_l1 = null;
             this.m_l2 = null;
@@ -173,6 +184,10 @@ namespace KFrameWork
             this.m_string1 = null;
             this.m_string2 = null;
             this.m_st3 = null;
+
+            this.m_c1 = null;
+            this.m_c2 = null;
+            this.m_c3 = null;
 
             this.m_b1 = null;
             this.m_b2 = null;
@@ -197,6 +212,7 @@ namespace KFrameWork
             this.m_uo1 = null;
             this.m_uo2 = null;
             this.m_uo3 = null;
+
         }
             
    
@@ -241,11 +257,11 @@ namespace KFrameWork
             int old = this._ArgCount;
             this._ArgCount++;
 
-            if(this._OrigionArgCount >-1)
+            if(this._OriginArgCount >-1)
             {
-                if(this._OrigionArgCount < this.ArgCount)
+                if(this._OriginArgCount < this.ArgCount)
                 {
-                    this._ArgCount = this._OrigionArgCount;
+                    this._ArgCount = this._OriginArgCount;
                 }
                 else
                 {
@@ -275,10 +291,10 @@ namespace KFrameWork
         /// </summary>
         /// <param name="index">Index.</param>
         /// <param name="v">V.</param>
-        public override void InsertInt (int index, int v)
+        public override AbstractParams InsertInt (int index, int v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this._virtualArg;++i)
             {
@@ -311,14 +327,15 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
         }
 
-        public override void InsertShort (int index, short v)
+        public override AbstractParams InsertShort (int index, short v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
@@ -352,14 +369,15 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
         }
 
-        public override void InsertString (int index, string v)
+        public override AbstractParams InsertString (int index, string v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
             {
@@ -392,14 +410,16 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+
+            return this;
         }
 
-        public override void InsertBool (int index, bool v)
+        public override AbstractParams InsertBool (int index, bool v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
             {
@@ -432,14 +452,16 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+
+            return this;
         }
 
-        public override void InsertFloat (int index, float v)
+        public override AbstractParams InsertFloat (int index, float v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
             {
@@ -472,14 +494,15 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
         }
 
-        public override void InsertDouble (int index, double v)
+        public override AbstractParams InsertDouble (int index, double v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
             {
@@ -512,14 +535,15 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
         }
 
-        public override void InsertLong (int index, long v)
+        public override AbstractParams InsertLong (int index, long v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
             {
@@ -552,14 +576,15 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
         }
 
-        public override void InsertVector3(int index, Vector3 v)
+        public override AbstractParams InsertVector3(int index, Vector3 v)
         {
-            if (this._OrigionArgCount > 0)
-                this._OrigionArgCount++;
+            if (this._OriginArgCount > 0)
+                this._OriginArgCount++;
             short count = 0;
             for (int i = 0; i < this.ArgCount; ++i)
             {
@@ -592,14 +617,56 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
         }
 
-        public override void InsertObject (int index, object v)
+        public override AbstractParams InsertColor(int index, Color v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if (this._OriginArgCount > 0)
+                this._OriginArgCount++;
+            short count = 0;
+            for (int i = 0; i < this.ArgCount; ++i)
+            {
+                int tp = this.GetArgIndexType(i);
+                if (tp == (int)ParamType.Color)
+                {
+                    count++;
+                }
+            }
+
+            this.bitDataSort = this._insertBit(this.bitDataSort, 16, index, (int)ParamType.Color);
+
+            if (count == 0)
+            {
+                this.m_c1 = v;
+                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 0);
+                this._ArgCount++;
+            }
+            else if (count == 1)
+            {
+                this.m_c2 = v;
+                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 1);
+                this._ArgCount++;
+            }
+            else if (count == 2)
+            {
+                this.m_c3 = v;
+                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 2);
+                this._ArgCount++;
+            }
+            else
+            {
+                this.throwUseGener();
+            }
+            return this;
+        }
+
+        public override AbstractParams InsertObject (int index, object v)
+        {
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
             {
@@ -632,14 +699,15 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
         }
 
-        public override void InsertUnityObject (int index, UnityEngine.Object v)
+        public override AbstractParams InsertUnityObject (int index, UnityEngine.Object v)
         {
-            if(this._OrigionArgCount >0)
-                this._OrigionArgCount++;
+            if(this._OriginArgCount >0)
+                this._OriginArgCount++;
             short count =0;
             for(int i =0; i < this.ArgCount;++i)
             {
@@ -672,8 +740,18 @@ namespace KFrameWork
             }
             else
             {
-                this.UseGener();
+                this.throwUseGener();
             }
+            return this;
+        }
+
+        public override ParamType NextValue ()
+        {
+            int index;
+            int old = _NextReadIndex;
+            long tp = this._ReadNextTp(out index);
+            _NextReadIndex = old;
+            return (ParamType)tp;
         }
 
         public override int ReadInt ()
@@ -1133,6 +1211,63 @@ namespace KFrameWork
             return Vector3.zero;
         }
 
+        public override Color ReadColor()
+        {
+            int old = _NextReadIndex;
+            int index;
+            long tp = this._ReadNextTp(out index);
+            if (tp == (int)ParamType.Color)
+            {
+                if (index == 0)
+                {
+                    if (this.m_c1.HasValue)
+                    {
+                        return this.m_c1.Value;
+                    }
+                    else
+                    {
+                        _NextReadIndex = old;
+                        LogMgr.LogError("参数异常，未赋值");
+                    }
+                }
+                else if (index == 1)
+                {
+                    if (this.m_c2.HasValue)
+                    {
+                        return this.m_c2.Value;
+                    }
+                    else
+                    {
+                        _NextReadIndex = old;
+                        LogMgr.LogError("参数异常，未赋值");
+                    }
+                }
+                else if (index == 2)
+                {
+                    if (this.m_c3.HasValue)
+                    {
+                        return this.m_c3.Value;
+                    }
+                    else
+                    {
+                        _NextReadIndex = old;
+                        LogMgr.LogError("参数异常，未赋值");
+                    }
+                }
+                else
+                {
+                    _NextReadIndex = old;
+                    LogMgr.LogError("参数索引异常");
+                }
+            }
+            else
+            {
+                _NextReadIndex = old;
+                LogMgr.LogError("参数异常");
+            }
+            return Color.white;
+        }
+
         public override object ReadObject ()
         {
             int old = _NextReadIndex;
@@ -1199,9 +1334,9 @@ namespace KFrameWork
             return null;
         }
 
-        public override void WriteInt (int v)
+        public override AbstractParams WriteInt(int v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1230,11 +1365,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1255,16 +1390,15 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
-
-   
+            return this;
         }
 
-        public override void WriteShort (short v)
+        public override AbstractParams WriteShort (short v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1293,11 +1427,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1318,15 +1452,15 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
-
+            return this;
         }
 
-        public override void WriteString (string v)
+        public override AbstractParams WriteString (string v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1355,11 +1489,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1380,15 +1514,15 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
-
+            return this;
         }
 
-        public override void WriteFloat (float v)
+        public override AbstractParams WriteFloat (float v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1417,11 +1551,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1442,15 +1576,15 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
-
+            return this;
         }
 
-        public override void WriteDouble (double v)
+        public override AbstractParams WriteDouble (double v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1479,11 +1613,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1504,15 +1638,15 @@ namespace KFrameWork
                 } 
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
-
+            return this;
         }
 
-        public override void WriteBool (bool v)
+        public override AbstractParams WriteBool (bool v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1541,11 +1675,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1566,15 +1700,15 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
-
+            return this;
         }
 
-        public override void WriteLong (long v)
+        public override AbstractParams WriteLong (long v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1603,11 +1737,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1628,16 +1762,15 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
-                
-
+            return this;
         }
 
-        public override void WriteVector3(Vector3 v)
+        public override AbstractParams WriteVector3(Vector3 v)
         {
-            if (this._OrigionArgCount > 0)
+            if (this._OriginArgCount > 0)
             {
                 short count = 0;
                 for (int i = 0; i < this._virtualArg; ++i)
@@ -1666,11 +1799,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1691,14 +1824,77 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
+            return this;
         }
 
-        public override void WriteObject (object v)
+        public override AbstractParams WriteColor(Color v)
         {
-            if(this._OrigionArgCount >0)
+            if (this._OriginArgCount > 0)
+            {
+                short count = 0;
+                for (int i = 0; i < this._virtualArg; ++i)
+                {
+                    int tp = this.GetArgIndexType(i);
+                    if (tp == (int)ParamType.Color)
+                    {
+                        count++;
+                    }
+                }
+
+                if (count == 0)
+                {
+                    this.m_c1 = v;
+                    this._SetNextTp((int)ParamType.Color, 0);
+                }
+                else if (count == 1)
+                {
+                    this.m_c2 = v;
+                    this._SetNextTp((int)ParamType.Color, 1);
+                }
+                else if (count == 2)
+                {
+                    this.m_c3 = v;
+                    this._SetNextTp((int)ParamType.Color, 2);
+                }
+                else
+                {
+                    this.throwUseGener();
+                }
+
+                this._virtualArg++;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
+            }
+            else
+            {
+                if (this.m_c1 == null)
+                {
+                    this.m_c1 = v;
+                    this._SetNextTp((int)ParamType.Color, 0);
+                }
+                else if (this.m_c2 == null)
+                {
+                    this.m_c2 = v;
+                    this._SetNextTp((int)ParamType.Color, 1);
+                }
+                else if (this.m_c3 == null)
+                {
+                    this.m_c3 = v;
+                    this._SetNextTp((int)ParamType.Color, 2);
+                }
+                else
+                {
+                    this.throwUseGener();
+                }
+            }
+            return this;
+        }
+
+        public override AbstractParams WriteObject (object v)
+        {
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1727,11 +1923,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1752,15 +1948,16 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
 
+            return this;
         }
 
-        public override void WriteUnityObject (UnityEngine.Object v)
+        public override AbstractParams WriteUnityObject (UnityEngine.Object v)
         {
-            if(this._OrigionArgCount >0)
+            if(this._OriginArgCount >0)
             {
                 short count =0;
                 for(int i =0; i < this._virtualArg;++i)
@@ -1789,11 +1986,11 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
 
                 this._virtualArg++;
-                this._virtualArg = this._virtualArg % this._OrigionArgCount;
+                this._virtualArg = this._virtualArg % this._OriginArgCount;
             }
             else
             {
@@ -1814,13 +2011,14 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                 }
             }
+            return this;
 
         }
 
-        public override void SetInt(int argindex,int v)
+        public override AbstractParams SetInt(int argindex,int v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -1847,9 +2045,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+
+            return this;
         }
 
-        public override void SetShort(int argindex,short v)
+        public override AbstractParams SetShort(int argindex,short v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -1876,9 +2076,10 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+            return this;
         }
 
-        public override void SetString(int argindex,string v)
+        public override AbstractParams SetString(int argindex,string v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -1905,9 +2106,10 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+            return this;
         }
 
-        public override void SetBool(int argindex,bool v)
+        public override AbstractParams SetBool(int argindex,bool v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -1934,9 +2136,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+
+            return this;
         }
 
-        public override void SetLong(int argindex,long v)
+        public override AbstractParams SetLong(int argindex,long v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -1963,9 +2167,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+
+            return this;
         }
 
-        public override void SetVector3(int argindex, Vector3 v)
+        public override AbstractParams SetVector3(int argindex, Vector3 v)
         {
             int index;
             long tp = this._ReadIndex(argindex, out index);
@@ -1992,9 +2198,42 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+
+            return this;
         }
 
-        public override void SetObject (int argindex,object v)
+        public override AbstractParams SetColor(int argindex, Color v)
+        {
+            int index;
+            long tp = this._ReadIndex(argindex, out index);
+            if (tp == (int)ParamType.Color)
+            {
+                if (index == 0)
+                {
+                    this.m_c1 = v;
+                }
+                else if (index == 1)
+                {
+                    this.m_c2 = v;
+                }
+                else if (index == 2)
+                {
+                    this.m_c3 = v;
+                }
+                else
+                {
+                    LogMgr.LogError("参数索引异常");
+                }
+            }
+            else
+            {
+                LogMgr.LogError("参数异常");
+            }
+
+            return this;
+        }
+
+        public override AbstractParams SetObject (int argindex,object v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -2021,9 +2260,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+
+            return this;
         }
 
-        public override void SetUnityObject(int argindex,UnityEngine.Object v)
+        public override AbstractParams SetUnityObject(int argindex,UnityEngine.Object v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -2050,9 +2291,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+
+            return this;
         }
 
-        public override void SetFloat(int argindex,float v)
+        public override AbstractParams SetFloat(int argindex,float v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -2079,9 +2322,11 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+
+            return this;
         }
 
-        public override void SetDouble(int argindex,double v)
+        public override AbstractParams SetDouble(int argindex,double v)
         {
             int index;
             long tp = this._ReadIndex(argindex,out index);
@@ -2108,6 +2353,7 @@ namespace KFrameWork
             {
                 LogMgr.LogError("参数异常");
             }
+            return this;
         }
 
         public override void ResetReadIndex()
@@ -2125,7 +2371,7 @@ namespace KFrameWork
         public override string ToString ()
         {
             StringBuilder sb = new  StringBuilder();
-            sb.AppendFormat("参数个数: {0} ",this.ArgCount.ToString());
+            sb.AppendFormat("{0} 参数个数: {1} ",base.ToString(),this.ArgCount.ToString());
 
             int old = _NextReadIndex;
 
@@ -2181,12 +2427,6 @@ namespace KFrameWork
             }
 
             this._NextReadIndex=old;
-//
-//            if(sb.Length == 0)
-//            {
-//                return "空";
-//            }
-
             return sb.ToString();
 
         }

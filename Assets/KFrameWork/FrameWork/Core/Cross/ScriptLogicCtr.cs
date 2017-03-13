@@ -1,5 +1,5 @@
-﻿//#define TOLUA
-#define TOLUA_EDIT
+﻿
+#define DYNAMIC_REGISTER
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,10 +28,8 @@ namespace KFrameWork
                     return this._script;
                 }
             }
-                
 
-
-            public void AwakeFromPool ()
+            public void RemoveToPool ()
             {
                 if(this.Loader != null)
                     this.Loader.Reset();
@@ -52,9 +50,7 @@ namespace KFrameWork
             {
                 try
                 {
-                  
                     return this.Loader.Invoke(ScriptParms);
-
                 }
                 catch(FrameWorkException ex)
                 {
@@ -68,109 +64,78 @@ namespace KFrameWork
                     LogMgr.LogException(ex);
                     return null;
                 }
-
             }
 
-
-            public static ScriptPkg Create(MethodInfo method,string MethodName,ScriptTarget t)
+            public static ScriptPkg CreateSharp(MethodInfo method, string methodname, object instance = null)
             {
                 ScriptPkg pkg = null;
                 if(KObjectPool.mIns != null)
-                {
                     pkg = KObjectPool.mIns.Pop<ScriptPkg>();
-                }
 
-                if(pkg == null)
+                if (pkg == null)
                     pkg = new ScriptPkg();
 
-                Type RetTp=  method.ReturnType;
 
-                if(t == ScriptTarget.Sharp)
+                pkg._script = new SharpScriptLoader();
+                SimpleParams InitParams = SimpleParams.Create(4);
+                if (instance != null)
                 {
-                    pkg._script = new SharpScriptLoader();
-                    SimpleParams InitParams = SimpleParams.Create(2);
-                    if(RetTp == typeof(void))
+                    InitParams.WriteObject(instance);
+                    var passes = method.GetParameters();
+                    if (passes != null && passes.Length ==1 && passes[0].ParameterType.IsSubclassOf(typeof(AbstractParams)))
                     {
-                        InitParams.WriteObject(Delegate.CreateDelegate(typeof(Action<AbstractParams>),method));
+                        throw new FrameWorkException("method mismatching ");
+                    }
+
+                    InitParams.WriteObject(method);
+                }
+                else
+                {
+                    Type RetTp = method.ReturnType;
+
+                    if (RetTp == typeof(void))
+                    {
+                        InitParams.WriteObject(Delegate.CreateDelegate(typeof(Action<AbstractParams>), method));
                     }
                     else
                     {
-                        InitParams.WriteObject(Delegate.CreateDelegate(typeof(Func<AbstractParams,AbstractParams>),method));
+                        InitParams.WriteObject(Delegate.CreateDelegate(typeof(Func<AbstractParams, AbstractParams>), method));
                     }
-
                     InitParams.WriteObject(RetTp);
+                    InitParams.WriteString(methodname);
+                }
 
+                pkg.Loader.Init(InitParams);
+
+                return pkg;
+            }
+#if TOLUA
+            public static ScriptPkg CreateLua( object attvalue)
+            {
+                ScriptPkg pkg = null;
+                if (KObjectPool.mIns != null)
+                    pkg = KObjectPool.mIns.Pop<ScriptPkg>();
+
+                if (pkg == null)
+                    pkg = new ScriptPkg();
+
+                pkg._script = new LuaScriptLoader();
+                if (LuaClient.Instance != null)
+                {
+                    SimpleParams InitParams = SimpleParams.Create(1);
+                    Script_LuaLogicAttribute luaAttribute = attvalue as Script_LuaLogicAttribute;
+                    InitParams.WriteObject(luaAttribute);
                     pkg.Loader.Init(InitParams);
                 }
-                else if(t == ScriptTarget.Lua)
+                else
                 {
-                    #if TOLUA
-                    pkg._script = new LuaScriptLoader();
-                    if(LuaClient.Instance != null)
-                    {
-                        SimpleParams InitParams = SimpleParams.Create(1);
-                        LuaFunction Func =LuaClient.GetMainState().GetFunction(MethodName);
-                        InitParams.WriteObject(Func);
-                        pkg.Loader.Init(InitParams);
-       
-                        if(Func == null)
-                        {
-                            LogMgr.LogErrorFormat("未发现匹配的lua函数 :{0}",MethodName);
-                        }
-                    }
-                    else
-                    {
-                        LogMgr.Log("场景中未包含LuaClient，但是程序集中包含了带有lua目标的函数的注册");
-                    }
-                    #endif
+                    LogMgr.Log("场景中未包含LuaClient，但是程序集中包含了带有lua目标的函数的注册");
                 }
+
 
                 return pkg;
             }
-
-            public static ScriptPkg Create<T>(Action<AbstractParams> method,T value) where T:new()
-            {
-                ScriptPkg pkg = null;
-                if(KObjectPool.mIns != null)
-                {
-                    pkg = KObjectPool.mIns.Pop<ScriptPkg>();
-                }
-
-                if(pkg == null)
-                    pkg = new ScriptPkg();
- 
-                pkg._script = new SharpScriptLoader();
-
-                SimpleParams initParams = SimpleParams.Create(2);
-                initParams.WriteObject(method);
-                initParams.WriteObject(typeof(void));
-                pkg.Loader.Init(initParams);
-                pkg.Loader.PushAttachObject(value);
-
-                return pkg;
-            }
-
-            public static ScriptPkg Create<T>(Func<AbstractParams,AbstractParams> method,T value) where T:new()
-            {
-                ScriptPkg pkg = null;
-                if(KObjectPool.mIns != null)
-                {
-                    pkg = KObjectPool.mIns.Pop<ScriptPkg>();
-                }
-
-                if(pkg == null)
-                    pkg = new ScriptPkg();
-
-                SimpleParams initParams = SimpleParams.Create(2);
-                initParams.WriteObject(method);
-                initParams.WriteObject(typeof(AbstractParams));
-                pkg.Loader.Init(initParams);
-
-                pkg.Loader.Init(initParams);
-                pkg.Loader.PushAttachObject(value);
-
-                return pkg;
-            }
+#endif
         }
 
 
@@ -180,51 +145,9 @@ namespace KFrameWork
 
         private Dictionary<int ,Dictionary<int,ScriptPkg>> ScriptDic = new Dictionary<int, Dictionary<int, ScriptPkg>>();
 
-
-        public ScriptLogicCtr()
+        public void RegisterLogicFunc(MethodInfo method,int CMD,string MethodName,object attvalue,ScriptTarget target )
         {
-            //MainLoop.getLoop().RegisterLoopEvent(LoopMonoEvent.LateUpdate,DispathCommand);
-        }
-
-        public void RegisterLogicFunc<T>(int CMD, Action<AbstractParams> callback,T value) where T:new()
-        {
-            if(FrameWorkDebug.Open_DEBUG)
-            {
-                System.Delegate d = callback;
-                if(!d.Method.IsStatic)
-                {
-                    throw new FrameWorkException("必须为静态函数");
-                }
-
-            }
-                
-            if(ScriptDic.ContainsKey(CMD))
-            {
-                Dictionary<int,ScriptPkg> dic = this.ScriptDic[CMD];
-                if(dic.ContainsKey((int)ScriptTarget.Sharp))
-                {
-                    dic[(int)ScriptTarget.Sharp].Loader.PushAttachObject(value);
-                }
-                else
-                {
-                    ScriptPkg pkg =  ScriptPkg.Create(callback,value);
-                    dic.Add((int)ScriptTarget.Sharp,pkg);
-                }
-            }
-            else
-            {
-                ScriptPkg pkg =  ScriptPkg.Create(callback,value);
-                Dictionary<int,ScriptPkg> dic = new Dictionary<int, ScriptPkg>();
-                dic.Add((int)ScriptTarget.Sharp,pkg);
-
-                this.ScriptDic.Add(CMD,dic);
-            }
-        }
-
-        public void RegisterLogicFunc(MethodInfo method,int CMD,string MethodName,ScriptTarget target = ScriptTarget.Sharp)
-        {
-
-            if(ScriptDic.ContainsKey(CMD))
+            if (ScriptDic.ContainsKey(CMD))
             {
                 Dictionary<int,ScriptPkg> dic = this.ScriptDic[CMD];
                 if(dic.ContainsKey((int)target))
@@ -233,15 +156,35 @@ namespace KFrameWork
                 }
                 else
                 {
-                    ScriptPkg pkg =  ScriptPkg.Create(method,MethodName,target);
-                    dic.Add((int)target,pkg);
+                    if (target == ScriptTarget.Sharp)
+                    {
+                        dic[(int)target] = ScriptPkg.CreateSharp(method, MethodName);
+                    }
+                    else if(target == ScriptTarget.Lua)
+                    {
+#if TOLUA
+                        dic[(int)target] = ScriptPkg.CreateLua(attvalue);
+#else
+                        throw new FrameWorkException("Missing Lua");
+#endif
+                    }
                 }
             }
             else
             {
-                ScriptPkg pkg =  ScriptPkg.Create(method,MethodName,target);
                 Dictionary<int,ScriptPkg> dic = new Dictionary<int, ScriptPkg>();
-                dic.Add((int)target,pkg);
+                if (target == ScriptTarget.Sharp)
+                {
+                    dic[(int)target] = ScriptPkg.CreateSharp(method, MethodName);
+                }
+                else if (target == ScriptTarget.Lua)
+                {
+#if TOLUA
+                    dic[(int)target] = ScriptPkg.CreateLua(attvalue);
+#else
+                    throw new FrameWorkException("Missing Lua");
+#endif
+                }
 
                 this.ScriptDic.Add(CMD,dic);
             }
@@ -265,44 +208,153 @@ namespace KFrameWork
             }
         }
 
-        public void UnRegisterLogicFunc<T>(int CMD,T value) where T:new()
-        {
-            if(this.ScriptDic.ContainsKey(CMD))
-            {
-                Dictionary<int,ScriptPkg> dic = this.ScriptDic[CMD];
-                if(dic.ContainsKey((int)ScriptTarget.Sharp))
-                {
-                    ScriptPkg pkg = dic[(int)ScriptTarget.Sharp];
-                    if(pkg.Loader.CanDispose)
-                    {
-                        pkg.Dispose();
-                        dic.Remove((int)ScriptTarget.Sharp);
-                    }
-                    else
-                    {
-                        pkg.Loader.RemovettachObject(value);
-                    }
-
-                }
-            }
-        }
-
         public void PushCommand(ScriptCommand command)
         {
 
-            if(command.CMD.HasValue && !command.isDone)
+            if( !command.isDone)
             {
                 CommandQueue.Enqueue(command);
 
                 DispathCommand();
             }
-            else if(command.isDone)
+            else 
             {
                 LogMgr.LogError("消息已经完成");
             }
+
+        }
+
+        private void RegisterLua(ScriptCommand cmd, string path, string methodname)
+        {
+#if TOLUA
+            Script_LuaLogicAttribute att = new Script_LuaLogicAttribute(cmd.CMD, path, methodname);
+            ScriptPkg pkg = ScriptPkg.CreateLua(att);
+            //add
+            var dic = new Dictionary<int, ScriptPkg>();
+            dic.Add((int)cmd.target, pkg);
+            ScriptDic[cmd.CMD] = dic;
+#endif
+        }
+
+        private void Registernew(ScriptCommand cmd)
+        {
+            if ( cmd.InitParams.NextValue() == ParamType.STRING)
+            {
+                string classname = cmd.InitParams.ReadString();
+                if (cmd.InitParams.NextValue() == ParamType.STRING)
+                {
+                    string methodname = cmd.InitParams.ReadString();
+                    //csharp
+                    if (cmd.target == ScriptTarget.Sharp)
+                    {
+                        Type type = Type.GetType(classname);
+                        if (type != null)
+                        {
+                            MethodInfo method = type.GetMethod(methodname, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+                            if (method != null)
+                            {
+                                ScriptPkg pkg = ScriptPkg.CreateSharp(method, methodname);
+                                //add
+
+                                if (!ScriptDic.ContainsKey(cmd.CMD))
+                                {
+                                    var dic = new Dictionary<int, ScriptPkg>();
+                                    dic.Add((int)cmd.target, pkg);
+                                    ScriptDic[cmd.CMD] = dic;
+                                }
+                                else
+                                {
+                                    ScriptDic[cmd.CMD][(int)cmd.target] = pkg;
+                                }
+                            }
+                            else
+                            {
+                                LogMgr.LogWarningFormat("Missing method :{0} in {1}", methodname, classname);
+                            }
+                        }
+                        else
+                        {
+                            LogMgr.LogWarningFormat("Missing Type :{0}", classname);
+                        }
+                    }
+                    else if (cmd.target == ScriptTarget.Lua)
+                    {
+                        RegisterLua(cmd, classname, methodname);
+                    }
+
+                }
+                else
+                {
+                    LogMgr.LogWarningFormat("cant register automatically :{0} for {1}", cmd.CMD,classname);
+                }
+            }
             else
             {
-                LogMgr.Log("命令消息未空");
+                object o = null;
+                if (cmd.InitParams.NextValue() == ParamType.UNITYOBJECT)
+                {
+                    o = cmd.InitParams.ReadUnityObject();
+                }
+                else if (cmd.InitParams.NextValue() == ParamType.OBJECT)
+                {
+                    o = cmd.InitParams.ReadObject();
+                }
+
+                if (o != null)
+                {
+                    if (cmd.InitParams.NextValue() == ParamType.STRING)
+                    {
+                        string classname = cmd.InitParams.ReadString();
+                        if (cmd.InitParams.NextValue() == ParamType.STRING)
+                        {
+                            string methodname = cmd.InitParams.ReadString();
+                            if (cmd.target == ScriptTarget.Sharp)
+                            {
+                                Type type = Type.GetType(classname);
+                                if (type != null)
+                                {
+                                    MethodInfo method = type.GetMethod( methodname, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+                                    if (method != null)
+                                    {
+                                        ScriptPkg pkg = ScriptPkg.CreateSharp(method, methodname,o);
+                                        //add
+
+                                        if (!ScriptDic.ContainsKey(cmd.CMD))
+                                        {
+                                            var dic = new Dictionary<int, ScriptPkg>();
+                                            dic.Add((int)cmd.target, pkg);
+                                            ScriptDic[cmd.CMD] = dic;
+                                        }
+                                        else
+                                        {
+                                            ScriptDic[cmd.CMD][(int)cmd.target] = pkg;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        LogMgr.LogWarningFormat("Missing method :{0} in {1}", methodname, classname);
+                                    }
+                                }
+                                else
+                                {
+                                    LogMgr.LogWarningFormat("Missing Type :{0}", classname);
+                                }
+                            }
+                            else if (cmd.target == ScriptTarget.Lua)
+                            {
+                                RegisterLua( cmd, classname, methodname);
+                            }
+                        }
+                        else
+                        {
+                            LogMgr.LogWarningFormat("Missing Type :{0}", classname);
+                        }
+                    }
+                    else
+                    {
+                        LogMgr.LogWarningFormat("cant register automatically :{0} ", cmd.CMD);
+                    }
+                }
             }
         }
 
@@ -317,22 +369,34 @@ namespace KFrameWork
                     if(cmd.isDone)
                         continue;
 
-                    if(this.ScriptDic.ContainsKey(cmd.CMD.Value))
+#if DYNAMIC_REGISTER
+                    if (cmd.HasInitParams)
                     {
-                        Dictionary<int,ScriptPkg> dic = this.ScriptDic[cmd.CMD.Value];
-                        if(dic.ContainsKey((int)ScriptTarget.Sharp))
+                        if (FrameWorkConfig.Open_DEBUG)
+                            LogMgr.Log("will make a loader for script");
+
+                        Registernew(cmd);
+                    }
+#endif
+
+                    if (this.ScriptDic.ContainsKey(cmd.CMD))
+                    {
+                        Dictionary<int,ScriptPkg> dic = this.ScriptDic[cmd.CMD];
+                        int target= (int)cmd.target;
+
+                        //double check
+                        if (dic.ContainsKey(target))
                         {
-                            if(cmd.HasCallParams)
+                            if (cmd.HasCallParams)
                             {
-                                cmd.ReturnParams = dic[(int)ScriptTarget.Sharp].Invoke(cmd.CallParms);
+                                cmd.ReturnParams = dic[target].Invoke(cmd.CallParams);
                             }
                             else
                             {
-                                cmd.ReturnParams = dic[(int)ScriptTarget.Sharp].Invoke(null);
+                                cmd.ReturnParams = dic[target].Invoke(null);
                             }
 
-
-                            if(cmd.ReturnParams == null)
+                            if (cmd.ReturnParams == null)
                             {
                                 cmd.Release(true);
                             }
@@ -341,26 +405,7 @@ namespace KFrameWork
                                 cmd.Release(false);
                             }
                         }
-                        else if(dic.ContainsKey((int)ScriptTarget.Lua))
-                        {
-                            if(cmd.HasCallParams)
-                            {
-                                cmd.ReturnParams = dic[(int)ScriptTarget.Lua].Invoke(cmd.CallParms);
-                            }
-                            else
-                            {
-                                cmd.ReturnParams = dic[(int)ScriptTarget.Lua].Invoke(null);
-                            }
 
-                            if(cmd.ReturnParams == null)
-                            {
-                                cmd.Release(true);
-                            }
-                            else
-                            {
-                                cmd.Release(false);
-                            }
-                        }
                     }
                     else
                     {

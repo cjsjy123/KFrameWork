@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using KUtils;
+using System.IO;
 
 namespace KFrameWork
 {
@@ -13,6 +14,7 @@ namespace KFrameWork
             NONE,
             AB_CREATE,
             AB_LOAD,
+            SCENE_LOAD,
         }
 
         protected class AsyncBundleTask : ITask
@@ -26,54 +28,44 @@ namespace KFrameWork
                 }
             }
 
-            private string _loadingname;
+            public BaseAsyncLoader Loader;
 
-            public string LoadingName
-            {
-                get
-                {
-                    return this._loadingname;
-                }
-            }
+            public string LoadingName { get; private set; }
 
-            private AsyncBundleTp _tp;
+            public AsyncBundleTp asyncType { get; private set; }
 
-            public AsyncBundleTp asyncType
-            {
-                get
-                {
-                    return this._tp;
-                }
-            }
-
-            private AsyncOperation _currentAsync;
-
-            public AsyncOperation currentAsync
-            {
-                get
-                {
-                    return this._currentAsync;
-                }
-            }
+            public AsyncOperation currentAsync { get; private set; }
 
             public bool KeepWaiting
             {
                 get
                 {
-                    if (_currentAsync == null)
+                    if (currentAsync == null)
                     {
                         LogMgr.LogError("Current Async is Null");
                         return false;
                     }
 
-                    return !_currentAsync.isDone;
+                    if (this.asyncType == AsyncBundleTp.SCENE_LOAD && !this.currentAsync.allowSceneActivation)
+                    {
+                        bool ret = currentAsync.progress < 0.9f && !currentAsync.isDone;
+                        int value = Mathf.FloorToInt(currentAsync.progress * 10);
+                        Loader._loadedCnt = Loader.LoadedCnt + value;
+                        if(ret)
+                            Loader.InvokeProgressHandler(Loader.LoadedCnt, Loader.NeedLoadedCnt);
+
+                        return ret;
+                    }
+
+                    return !currentAsync.isDone;
                 }
             }
 
             private Queue<KeyValuePair<BundlePkgInfo,AsyncOperation>> waitQueue;
 
-            public AsyncBundleTask()
+            public AsyncBundleTask(BaseAsyncLoader loader)
             {
+                this.Loader = loader;
                 this.waitQueue = new Queue<KeyValuePair<BundlePkgInfo, AsyncOperation>>();
             }
 
@@ -82,9 +74,9 @@ namespace KFrameWork
                 if (this.currentAsync == null)
                 {
                     this.pkg = Pkginfo;
-                    this._loadingname = Pkginfo.AbFileName;
-                    this._currentAsync = o;
-                    this._tp = this.Swithtp(this._currentAsync);
+                    this.LoadingName = Pkginfo.AbFileName;
+                    this.currentAsync = o;
+                    this.asyncType = this.Swithtp(this.currentAsync);
                 }
                 else
                 {
@@ -98,9 +90,13 @@ namespace KFrameWork
                 {
                     return AsyncBundleTp.AB_CREATE;
                 }
-                else if ( o is AssetBundleRequest)
+                else if (o is AssetBundleRequest)
                 {
                     return AsyncBundleTp.AB_LOAD;
+                }
+                else if (o is AsyncOperation)
+                {
+                    return AsyncBundleTp.SCENE_LOAD;
                 }
                 return AsyncBundleTp.NONE;
             }
@@ -110,33 +106,58 @@ namespace KFrameWork
                 if (waitQueue.Count > 0)
                 {
                     if (KeepWaiting)
-                    {
                         LogMgr.LogError("current async task hadnt finished yet");
-                    }
+
                     KeyValuePair <BundlePkgInfo, AsyncOperation > p = this.waitQueue.Dequeue();
                     this.pkg = p.Key;
-                    this._loadingname = p.Key.AbFileName;
-                    this._currentAsync = p.Value;
-                    this._tp = this.Swithtp(this._currentAsync);
+                    this.LoadingName = p.Key.AbFileName;
+                    this.currentAsync = p.Value;
+                    this.asyncType = this.Swithtp(this.currentAsync);
 
                     return true;
                 }
                 else
                 {
                     this.pkg = null;
-                    this._currentAsync = null;
-                    this._loadingname = null;
-                    this._tp = AsyncBundleTp.NONE;
+                    this.currentAsync = null;
+                    this.LoadingName = null;
+                    this.asyncType = AsyncBundleTp.NONE;
                     return false;
                 }
             }
         }
 
-        private int LoadedCnt = 0;
+        private int _loadedCnt;
 
-        private int NeedLoadedCnt = 0;
+        public int LoadedCnt
+        {
+            get
+            {
+                return _loadedCnt;
+            }
+            set
+            {
+                int old = _loadedCnt;
+                _loadedCnt = value;
 
-        protected BundlePkgInfo _info;
+                if (old < value)
+                {
+                    if (Task.ChangeToNext())
+                    {
+                        ExcuteCmd();
+
+                        //debug
+                        if (_loadedCnt >= this.NeedLoadedCnt)
+                            this.ThrowLogicError();
+                    }
+                    this.LoadAfterUpdateCnt();
+                }  
+            }
+        }
+
+        protected int NeedLoadedCnt = 0;
+
+        protected Queue<BundlePkgInfo> LoadQueue = new Queue<BundlePkgInfo>();
 
         private AsyncBundleTask m_task;
 
@@ -145,205 +166,256 @@ namespace KFrameWork
             get
             {
                 if (m_task == null)
-                    m_task = new AsyncBundleTask();
+                    m_task = new AsyncBundleTask(this);
                 return m_task;
             }
         }
-
-        private WaitTaskCommand cmd;
 
         public override void Load(string name)
         {
             base.Load(name);
 
-            this._info = this._SeekPkgInfo(name);
+            this.loadingpkg = this._SeekPkgInfo(name);
+            if (this.loadingpkg == null)
+                this.ThrowAssetMissing(name);
 
-            this.NeedLoadedCnt += this._info.Depends.Length;
-
-            for (int i = 0; i < this._info.Depends.Length; ++i)
-            {
-                if (this.isRunning())
-                {
-                    this._AddBundleDpend(this._info.Depends[i]);
-
-                }
-                else if (FrameWorkDebug.Open_DEBUG)
-                    LogMgr.LogFormat("{0} asyncloader 状态不符", this.targetname);
-                else
-                    break;
-            }
-
+            ResBundleMgr.mIns.Cache.PushLoading(loadingpkg.BundleName, this);
+            this.CreateLoadQueue(this.loadingpkg);
+            this.StartLoad();
         }
 
-        private void _AddBundleDpend(string name)
+        private void EnqueueToLoadQueue(BundlePkgInfo pkg)
         {
-            BundlePkgInfo pkginfo = this._SeekPkgInfo(name);
+            if (BundleConfig.Bundle_Log)
+            {
+                if (LoadQueue.Contains(pkg))
+                {
+                    LogMgr.LogFormat("{0} 已经包含此任务 ",pkg);
+                }
+            }
 
-            this.NeedLoadedCnt += pkginfo.Depends.Length;
+            LoadQueue.Enqueue(pkg);
+           
+        }
 
+        private void CreateLoadQueue(BundlePkgInfo pkginfo)
+        {
             for (int i = 0; i < pkginfo.Depends.Length; ++i)
             {
                 if (this.isRunning())
                 {
-                    this._AddBundleDpend(pkginfo.Depends[i]);
+                    BundlePkgInfo pkg = this._SeekPkgInfo(pkginfo.Depends[i]);
+                    this.CreateLoadQueue(pkg);
                 }
-                else if (FrameWorkDebug.Open_DEBUG)
-                    LogMgr.LogFormat("{0} asyncloader 状态不符", this.targetname);
+                else if (BundleConfig.Bundle_Log)
+                    LogMgr.LogFormat("{0} asyncloader 状态不符", this.LoadResPath);
                 else
                     break;
             }
 
-            if (this.isRunning())
+            this.EnqueueToLoadQueue(pkginfo);
+        }
+
+        protected virtual void InitProgress()
+        {
+            this.NeedLoadedCnt = this.LoadQueue.Count;
+            this.LoadedCnt = 0;
+        }
+
+        private void StartLoad()
+        {
+            InitProgress();
+
+            if (this.LoadQueue.Count > 0)
             {
-                this._LoadBundle(pkginfo);
+                _LoadBundle(this.LoadQueue.Dequeue());
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("加载队列异常 :{0}",this.LoadResPath);
+                this.LoadState = BundleLoadState.Error;
             }
         }
 
-        protected virtual void _LoadBundle(BundlePkgInfo pkginfo)
+        private void _LoadBundle(BundlePkgInfo pkginfo)
         {
             if (ResBundleMgr.mIns.Cache.Contains(pkginfo))
             {
+                if (FrameWorkConfig.Open_DEBUG)
+                {
+                    LogMgr.LogFormat("加载了 :{0}",pkginfo.BundleName);
+                }
+
                 this.LoadedCnt++;
-                this.LoadAfterUpdateCnt();
             }
-            else if(!ResBundleMgr.mIns.Cache.ContainsLoading(pkginfo.AbFileName))
+            else if (!isABMode && this.isRunning())
             {
-                Task.PushOperation(pkginfo, this.LoadFullAssetToMemAsync(pkginfo));
-
-                ResBundleMgr.mIns.Cache.PushLoading(Task.LoadingName);
-
-                if (cmd == null)
+                this.AutoCreateBundle();
+            }
+            else if (this.isRunning())
+            {
+                if (!ResBundleMgr.mIns.Cache.ContainsLoadingBundle(pkginfo.BundleName))
                 {
-                    cmd = WaitTaskCommand.Create(Task, _AsyncLoad);
-                    cmd.Excute();
-                }
+                    this._PushTaskAndExcute(pkginfo, this.LoadFullAssetToMemAsync(pkginfo));
+                    ResBundleMgr.mIns.Cache.PushLoadingBundle(pkginfo.BundleName);
+                }   
                 else
-                {
-                    if (cmd.RunningState != CommandState.Running)
-                        cmd.Excute();
-                }
+                    ResBundleMgr.mIns.Cache.PushLoadingBundle(pkginfo.BundleName, this.AttheSametimeUpdate);
             }
         }
 
-        private void _AutoCreate()
+        private void AttheSametimeUpdate(string bundlename)
+        {
+            if (FrameWorkConfig.Open_DEBUG)
+            {
+                LogMgr.LogFormat("加载了 :{0}", bundlename);
+            }
+            this.LoadedCnt++;
+        }
+
+        protected void _PushTaskAndExcute(BundlePkgInfo Pkginfo, AsyncOperation operation)
+        {
+            Task.PushOperation(Pkginfo, operation);
+            this.ExcuteCmd();
+        }
+
+        private void AutoCreateBundle()
         {
             if (Task.asyncType == AsyncBundleTp.AB_LOAD)
             {
                 AssetBundleRequest abReq = Task.currentAsync as AssetBundleRequest;
-                if (LoadedCnt == NeedLoadedCnt)
-                {
-                    this.LoadMainAsyncRequest(abReq);
-                }
+                this.LoadMainAsyncRequest(abReq);
             }
             else if (Task.asyncType == AsyncBundleTp.AB_CREATE)
             {
                 AssetBundleCreateRequest abCreateReq = Task.currentAsync as AssetBundleCreateRequest;
-                AssetBundle ab = abCreateReq.assetBundle;
+                if (BundleConfig.Bundle_Log)
+                    LogMgr.LogFormat(":::::::Aysnc load {0}", Task.Info.BundleName);
 
-                ResBundleMgr.mIns.Cache.PushAsset(Task.Info, ab);
+                if (abCreateReq.assetBundle == null)
+                    ThrowAssetMissing(this.LoadResPath);
+
+                IBundleRef bundle = ResBundleMgr.mIns.Cache.PushAsset(Task.Info, abCreateReq.assetBundle);
+
+                BundlePkgInfo pkg = this._SeekPkgInfo( abCreateReq.assetBundle.name);
+                this.AppendDepends(pkg, bundle);
+
+                ResBundleMgr.mIns.Cache.RemoveLoading(pkg.BundleName);
+                if (FrameWorkConfig.Open_DEBUG)
+                {
+                    LogMgr.LogFormat("加载了 :{0}", pkg.BundleName);
+                }
+                this.LoadedCnt++;
+            }
+            else if (Task.asyncType == AsyncBundleTp.SCENE_LOAD)
+            {
+                this._AsyncOpation = Task.currentAsync;
+                this.LoadSceneAssetFinish();
             }
             else
             {
-                if (BundleConfig.SAFE_MODE)
+                if (isABMode)
                 {
-                    throw new FrameWorkResNotMatchException(string.Format("不被支持的异步类型 {0}",Task.currentAsync));
+                    if (BundleConfig.SAFE_MODE)
+                    {
+                        throw new FrameWorkResNotMatchException(string.Format("不被支持的异步类型 {0}", Task.currentAsync));
+                    }
+                    else
+                    {
+                        LogMgr.LogError("不被支持的异步类型 ");
+                        this.LoadState = BundleLoadState.Error;
+                    }
                 }
                 else
                 {
-                    LogMgr.LogErrorFormat("不被支持的异步类型 {0}", Task.currentAsync);
+                    this._BundleRef = LoadFullAssetToMem(this.loadingpkg);
+                    this._Bundle = this._BundleRef.MainObject;
+                    this.AppendDepends(this.loadingpkg, this._BundleRef);
+
+                    if (isSceneLoad)
+                    {
+                        AsyncOperation asyncOp = GameSceneCtr.LoadSceneAsync(Path.GetFileNameWithoutExtension(this.LoadResPath));
+                        asyncOp.allowSceneActivation = false;
+                        this._PushTaskAndExcute(this.loadingpkg, asyncOp);
+                    }
+                    else
+                    {
+                        this._FinishAndRelease();
+                    }
                 }
             }
         }
 
-        private void _AsyncLoad()
+        private void AsyncLoadFinished(WaitTaskCommand cmd)
         {
-            ResBundleMgr.mIns.Cache.RemoveLoading(Task.LoadingName);
-
             if (this.isRunning())
             {
-                this._AutoCreate();
-
-                bool needNext = Task.ChangeToNext();
-
-                this.LoadedCnt++;
-
-                if (needNext)
+                if (isABMode)
                 {
-                    if (cmd.RunningState != CommandState.Running)
-                        cmd.Excute();
-                    else////debug
-                    {
-                        this.LoadState = BundleLoadState.Error;
-                        throw new FrameWorkException("逻辑异常", ExceptionType.Higher_Excetpion);
-                    }
-
-                    //debug
-                    if (LoadedCnt >= this.NeedLoadedCnt)
-                    {
-                        this.LoadState = BundleLoadState.Error;
-                        throw new FrameWorkException("逻辑异常", ExceptionType.Higher_Excetpion);
-                    }
+                    ResBundleMgr.mIns.Cache.InvokeBundleFinishEvent(Task.Info.BundleName);
+                    ResBundleMgr.mIns.Cache.RemoveLoadingBundle(Task.Info.BundleName);
                 }
-
-                this.LoadAfterUpdateCnt();
-
+                this.AutoCreateBundle();
             }
+        }
+
+        private void ExcuteCmd()
+        {
+            WaitTaskCommand cmd = WaitTaskCommand.Create(Task, AsyncLoadFinished);
+            cmd.Excute();
         }
 
         private void LoadAfterUpdateCnt()
         {
-            if (LoadedCnt == NeedLoadedCnt)
+            InvokeProgressHandler(LoadedCnt, NeedLoadedCnt);
+            if ( this.LoadQueue.Count > 0)
             {
-                if (ResBundleMgr.mIns.Cache.Contains(this._info))
-                {
-                    this.CreateMain();
-                    this.PushTaskToPool();
-                }
-                else
-                {
-                    _LoadBundle(this._info);
-                }
+                _LoadBundle(this.LoadQueue.Dequeue());
             }
-            else if (LoadedCnt == NeedLoadedCnt + 1)
+            else if (this.LoadQueue.Count == 0)
             {
                 this.CreateMain();
-                this.PushTaskToPool();
             }
         }
 
-
-        protected void PushTaskToPool()
+        protected  void _FinishAndRelease()
         {
-            if (cmd != null)
+
+            if (this.isRunning()) //double check
             {
-                cmd.Release(true);
-                cmd = null;
+                this.LoadState = BundleLoadState.Finished;
             }
         }
 
-        public override void AwakeFromPool()
+        public override void RemoveToPool()
         {
-            base.AwakeFromPool();
+            base.RemoveToPool();
+            this.LoadQueue.Clear();
             this.m_task = null;
             this.NeedLoadedCnt = 0;
             this.LoadedCnt = 0;
-            this._info = null;
-            this.cmd = null;
         }
 
         public override void RemovedFromPool()
         {
             base.RemovedFromPool();
+            this.LoadQueue.Clear();
+            this.LoadQueue =null;
             this.m_task = null;
             this.NeedLoadedCnt = 0;
             this.LoadedCnt = 0;
-            this._info = null;
-            this.cmd = null;
         }
-
+        /// <summary>
+        /// 创建bundleref
+        /// </summary>
         protected abstract void CreateMain();
-
+        /// <summary>
+        /// 创建bundle
+        /// </summary>
+        /// <param name="request"></param>
         protected abstract void LoadMainAsyncRequest(AssetBundleRequest request);
+
+        protected abstract void LoadSceneAssetFinish();
 
     }
 }

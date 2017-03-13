@@ -8,13 +8,24 @@ namespace KFrameWork
 {
     public static class BundleConfig
     {
-        public static string ABDownLoadPath = "AssetBundles";
+        public const string ABDownLoadPath = "AssetBundles";
 
-        public static string ABSavePath = "AssetBundles";
+        public const string ABSavePath = "AssetBundles";
 
-        public static string ABVersionPath = "dep.all";
+        public const string ABVersionPath = "dep.all";
 
-        public static bool SAFE_MODE = false;
+        public const string depAssetBundlePath = "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj.ab";
+
+        /// <summary>
+        /// 表示通过底层的异常机制阻断逻辑执行
+        /// </summary>
+        public static bool SAFE_MODE = true;
+
+        public static bool Bundle_Log = false;
+        /// <summary>
+        /// bundle偏移值
+        /// </summary>
+        public static int BundleBitValue = 1;
     }
 }
 

@@ -12,6 +12,47 @@ namespace KFrameWork
     {
         public static GameSyncCtr mIns;
 
+        public static bool ShowDebug = false ;
+
+        #region fields
+        private bool _RenderReCal =false;
+        private bool _LogicRecal =false;
+
+        public bool NeedReCalculateFrameCnt 
+        {
+            get
+            {
+                return this._RenderReCal;
+            }
+            set
+            {
+                this._RenderReCal =value;
+                if(value)
+                {
+                    this._ReCalFrame = this.RenderFrameCount+1;
+                }
+            }
+        }
+
+        public bool NeedReCalculateLogicFrameCnt 
+        {
+            get
+            {
+                return this._LogicRecal;
+            }
+            set
+            {
+                this._LogicRecal =value;
+                if(value)
+                {
+                    this._ReCalLogicFrame = this.LogicFrameCount+1;
+                }
+            }
+        }
+
+        private long _ReCalFrame;
+        private long _ReCalLogicFrame;
+
         public int FrameRate;
 
         public long GameServerTime;
@@ -25,22 +66,92 @@ namespace KFrameWork
         }
 
         private long _RenderFrameCount;
-
+        /// <summary>
+        /// Gets the render frame count. if you want to use this,shoud be regster to frame update event
+        /// </summary>
+        /// <value>The render frame count.</value>
         public long RenderFrameCount
         {
             get
             {
                 return this._RenderFrameCount;
             }
+
+            private set
+            {
+                this._RenderFrameCount =value;
+                if(this._RenderFrameCount == long.MaxValue -1)
+                {
+                    this.NeedReCalculateFrameCnt =true;
+                }
+            }
         }
 
         private long _LogicFrameCount;
-
+        /// <summary>
+        /// Gets the logic frame count.if you want to use this,shoud be regster to frame update event
+        /// </summary>
+        /// <value>The logic frame count.</value>
         public long LogicFrameCount
         {
             get
             {
                 return this._LogicFrameCount;
+            }
+
+            private set
+            {
+                this._LogicFrameCount =value;
+                if(this._LogicFrameCount == long.MaxValue -1)
+                {
+                    this.NeedReCalculateLogicFrameCnt =true;
+                }
+
+            }
+        }
+
+
+        private long NeedWaitMax = 0;
+        private long NeedWaitFrameCnt = 0;
+
+        private float _scale =1f;
+        public float Scale
+        {
+            get
+            {
+                if (!Time.timeScale.FloatEqual(_scale))
+                {
+                    _scale = Time.timeScale;
+                }
+                return _scale;
+            }
+            set
+            {
+                _scale = value;
+                Time.timeScale = value;
+
+                if (value.FloatEqual(0f))
+                    NeedWaitMax = 0;
+                else
+                    NeedWaitMax =(int)(1f / Time.timeScale);
+
+                NeedWaitFrameCnt = NeedWaitMax;
+            }
+        }
+
+        public float RenderDeltaTime
+        {
+            get
+            {
+                return Time.deltaTime;
+            }
+        }
+
+        public float PhyConstantDletaTime
+        {
+            get
+            {
+                return Time.fixedDeltaTime;
             }
         }
         #region FPS
@@ -69,21 +180,39 @@ namespace KFrameWork
         }
         #endregion
 
-
+        #endregion
         public GameSyncCtr()
         {
             this._LogicFrameCount = 0;
             this._RenderFrameCount = 0;
-            this.FrameRate =30;
 
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Update,_RenderFrameUpdate);
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,_LogicFrameUpdate);
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
         }
 
         public void StartSync()
         {
-            
+            this.FrameRate = Application.targetFrameRate;
+            this.Scale = Time.timeScale;
+
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.FixedUpdate,_LogicFrameUpdate);
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate, _FrameUpdateEnd);
+            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
+        }
+
+        public bool DetermineEnableFrame()
+        {
+            if (this.NeedWaitMax == 0)
+                return false;
+
+            this.NeedWaitFrameCnt--;
+            if (this.NeedWaitFrameCnt > 0  )
+            {
+                return false;
+            }
+            else
+            {
+                this.NeedWaitFrameCnt = this.NeedWaitMax;
+                return true;
+            }
         }
 
         private void _GamePaused(int value)
@@ -100,10 +229,11 @@ namespace KFrameWork
 
         private void _RenderFrameUpdate(int value)
         {
+            
             if(this.RenderFrameCount == 0)
             {
                 this.recordLasttime = Time.realtimeSinceStartup - this.accnumPausedTime;
-                this._RenderFrameCount ++;
+                this.RenderFrameCount ++;
             }
             else
             {
@@ -127,27 +257,58 @@ namespace KFrameWork
                         this.FpsRenderCount =0;
                         this.FpsUpdateTimeleft  = this.FpsUpdateInterval;
                     }
-                    this._RenderFrameCount ++;
+                    this.RenderFrameCount ++;
                 }
                 else
                 {
                     this.m_fps =0;
                 }
             }
-
         }
 
         private void _LogicFrameUpdate(int value)
         {
-            this._LogicFrameCount++;   
+
+            this.LogicFrameCount++;   
+        }
+
+        private void _FrameUpdateEnd(int value)
+        {
+            _RenderFrameUpdate(value);
+
+            if (this.NeedReCalculateFrameCnt && (this._ReCalFrame == this.RenderFrameCount || this.RenderFrameCount == long.MaxValue))
+            {
+                if(FrameWorkConfig.Open_DEBUG)
+                {
+                    LogMgr.LogFormat("Re Calculate  Framecnt:{0}",this.RenderFrameCount);
+                }
+
+                this._ReCalFrame =0;
+                this.RenderFrameCount =0;
+                this.NeedReCalculateFrameCnt =false;
+            }
+
+            if(this.NeedReCalculateLogicFrameCnt &&(this._ReCalLogicFrame == this.LogicFrameCount || this.LogicFrameCount == long.MaxValue))
+            {
+                if(FrameWorkConfig.Open_DEBUG)
+                {
+                    LogMgr.LogFormat("Re Calculate  LogicFramecnt:{0}",this.LogicFrameCount);
+                }
+
+                this._ReCalLogicFrame =0;
+                this.LogicFrameCount =0;
+                this.NeedReCalculateLogicFrameCnt =false;
+            }
+
         }
 
         public void EndSync()
         {
-            
+            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.Update,_RenderFrameUpdate);
+            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.FixedUpdate,_LogicFrameUpdate);
+            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate, _FrameUpdateEnd);
+            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
         }
-            
-
 
     }
 

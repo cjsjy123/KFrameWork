@@ -1,11 +1,10 @@
-﻿#define AB_DEBUG
-
+﻿
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
-
 using KUtils;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -13,18 +12,46 @@ using UnityEditor;
 namespace KFrameWork
 {
 
-    public abstract class BaseBundleLoader:IPool
+    public abstract class BaseBundleLoader : PoolCls<BaseBundleLoader>, IPool, IDisposable
     {
+        private static uint Counter =0;
+        protected bool isABMode
+        {
+            get
+            {
+#if UNITY_EDITOR && !AB_DEBUG
+                return false;
+#elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID || AB_DEBUG
+                return true;
+#endif
+            }
+        }
 
-        protected string targetname;
+        protected bool isSceneLoad
+        {
+            get
+            {
+                return this is SceneAsyncLoader;
+            }
+        }
+
+        public uint UID { get; private set; }
+
+        protected string LoadResPath;
+
+        protected BundlePkgInfo loadingpkg;
 
         protected UnityEngine.Object _Bundle;
 
         protected IBundleRef _BundleRef;
 
+        private GameObject HadInstance;
+
+        protected AsyncOperation _AsyncOpation;
+
         public GameObject PreParedGameObject;
 
-        private GameObject LoaderInsObject;
+        protected GameObject LoaderInsObject;
 
         private BundleLoadState _state;
 
@@ -36,61 +63,78 @@ namespace KFrameWork
             }
             protected set
             {
-                if (this._state == BundleLoadState.Prepared && value == BundleLoadState.Running)
+                BundleLoadState old = this._state;
+                this._state = value;
+                if (old == BundleLoadState.Prepared && value == BundleLoadState.Running)
                     this.OnStart();
 
-                if (this._state == BundleLoadState.Running && value == BundleLoadState.Paused)
+                if (old == BundleLoadState.Running && value == BundleLoadState.Paused)
                     this.OnPaused();
 
-                if (this._state == BundleLoadState.Paused && value == BundleLoadState.Running)
+                if (old == BundleLoadState.Paused && value == BundleLoadState.Running)
                     this.OnResume();
 
-                if (this._state == BundleLoadState.Running && value == BundleLoadState.Finished)
+                if (old == BundleLoadState.Running && value == BundleLoadState.Finished)
+                {
                     this.OnFinish();
+                    this.OnProgressHandler = null;
+                }
 
-                if (this._state != BundleLoadState.Error && value == BundleLoadState.Error)
+                if (old != BundleLoadState.Error && value == BundleLoadState.Error)
+                {
                     this.OnError();
-
-                this._state = value;
+                    this.OnProgressHandler = null;
+                }
             }
         }
-
 
         public Action<bool, AssetBundleResult> onComplete;
 
-        
+        public Action<BaseBundleLoader, int, int> OnProgressHandler;
 
         #region events
-        public abstract void OnStart();
+        protected abstract void OnStart();
         /// <summary>
         /// 通常在异步加载中
         /// </summary>
-        public abstract void OnPaused();
+        protected abstract void OnPaused();
 
-        public abstract void OnResume();
+        protected abstract void OnResume();
 
-        public virtual void OnError()
+        protected virtual void OnError()
         {
-            this.InvokeHandler(false, default(AssetBundleResult));
-
+            this.InvokeHandler(false);
         }
 
-        public virtual void OnFinish()
+        protected virtual void OnFinish()
         {
-            if (this.LoadState != BundleLoadState.Error && this.LoadState  != BundleLoadState.Finished
-                && this.LoadState != BundleLoadState.Paused)
+            if(HadInstance == null && this.PreParedGameObject != null)
             {
-                this.PreparedTryIns();
-                this.InvokeHandler(true, this.GetABResult());
+                if (this._Bundle is GameObject)
+                {
+                    GameObject gameobject = GameObject.Instantiate( this._Bundle) as GameObject;
+                    this.HadInstance = PreParedGameObject.AddInstance(gameobject);
+                }
+                else
+                {
+                    LogMgr.LogErrorFormat("{0} 类型错误非gameobject ", _Bundle);
+                }
             }
+
+            this.InvokeHandler(true);
         }
 
         #endregion
 
-        #region interface
+        public BaseBundleLoader()
+        {
+            this.UID = ++Counter;
+        }
+
+#region interface
         public virtual void Load(string name)
         {
-            this.targetname = name;
+            this.LoadResPath = name;
             if (this.LoadState == BundleLoadState.Prepared)
             {
                 this.LoadState = BundleLoadState.Running;
@@ -121,76 +165,77 @@ namespace KFrameWork
             if (this.LoadState != BundleLoadState.Finished && this.LoadState != BundleLoadState.Error
                 && this.LoadState != BundleLoadState.Stopped)
             {
-                this.LoadState = BundleLoadState.Paused;
-
+                this.LoadState = BundleLoadState.Stopped;
             }
         }
 
         public virtual void Resume()
         {
-
             if (this.LoadState != BundleLoadState.Error && this.LoadState != BundleLoadState.Stopped
                 && this.LoadState != BundleLoadState.Finished)
             {
                 this.LoadState = BundleLoadState.Running;
-
             }
         }
 
         public AssetBundleResult GetABResult()
         {
-            AssetBundleResult result = new AssetBundleResult();
-            result.MainObject = this._BundleRef ;
-            result.InstancedObject = this.LoaderInsObject;
+            AssetBundleResult result = new AssetBundleResult(this._BundleRef,this._Bundle,this.PreParedGameObject,this.HadInstance,this.LoadResPath);
+            result.SceneAsyncResult = this._AsyncOpation;
             return result;
         }
 
-        protected void PreparedTryIns()
+        public virtual void Dispose()
         {
-            if (this.PreParedGameObject != null)
-            {
-                UnityEngine.Object res = null;
 
-                if (this._BundleRef.Instantiate(out res))
-                {
-                    if (res is GameObject)
-                    {
-                        this.LoaderInsObject = res as GameObject;
-                        this.LoaderInsObject.BindParent(this.PreParedGameObject);
-                    }
-                    else
-                    {
-                        if (BundleConfig.SAFE_MODE)
-                            throw new FrameWorkResNotMatchException(string.Format("{0} Type Is Not Gameobject", targetname));
-                        else
-                            LogMgr.LogErrorFormat("Not Gameobject cant be instanced as gameobject :{0}",targetname);
-                    }
-                }
+            if (KObjectPool.mIns != null)
+            {
+                KObjectPool.mIns.Push(this);
             }
         }
 
-        #endregion
+        //protected virtual void PreparedTryIns()
+        //{
+        //    if (this.PreParedGameObject != null)
+        //    {
+        //        UnityEngine.Object res = null;
 
-        #region POOL
+        //        if (this._BundleRef.Instantiate(out res))
+        //        {
+        //            if (res is GameObject)
+        //            {
+        //                this.LoaderInsObject = res as GameObject;
+        //                this.PreParedGameObject.AddInstance(this.LoaderInsObject);
+        //            }
+        //            else
+        //            {
+        //                if (BundleConfig.SAFE_MODE)
+        //                    throw new FrameWorkResNotMatchException(string.Format("{0} Type Is Not Gameobject", LoadResPath));
+        //                else
+        //                    LogMgr.LogErrorFormat("Not Gameobject cant be instanced as gameobject :{0}",LoadResPath);
+        //            }
+        //        }
+        //    }
+        //}
+
+#endregion
+
+#region POOL
 
         public static T CreateLoader<T>() where T :BaseBundleLoader,new()
         {
-            T loader = null;
-            if (KObjectPool.mIns != null) {
-                loader = KObjectPool.mIns.Pop<T>();
-            }
-
-            //if (loader == null)
-            //    loader = new T();
-
-            return loader;
+            T t = TrySpawn<T>();
+            if(t != null)
+                t.UID = ++Counter;
+            return t;
         }
 
-        public virtual void AwakeFromPool()
+        public virtual void RemoveToPool()
         {
             this._Bundle = null;
             this._BundleRef = null;
-            this.targetname = null;
+            this.loadingpkg =null;
+            this.LoadResPath = null;
             this.LoadState = BundleLoadState.Prepared;
             this.onComplete = null;
             this.LoaderInsObject = null;
@@ -201,20 +246,34 @@ namespace KFrameWork
         {
             this._Bundle = null;
             this._BundleRef = null;
-            this.targetname = null;
+            this.LoadResPath = null;
             this.LoadState = BundleLoadState.Prepared;
             this.onComplete = null;
             this.LoaderInsObject = null;
             this.PreParedGameObject = null;
         }
 
-        #endregion
+#endregion
 
-        protected void InvokeHandler(bool bvalue, AssetBundleResult result)
+        protected void InvokeHandler(bool bvalue)
         {
+            if (ResBundleMgr.mIns.Cache.ContainsLoading(this.LoadResPath))
+            {
+                ResBundleMgr.mIns.Cache.RemoveLoading(this.LoadResPath);
+            }
+
             if (this.onComplete != null)
             {
-                this.onComplete(bvalue,result);
+                this.onComplete(bvalue,GetABResult());
+            }
+        }
+
+        protected void InvokeProgressHandler( int current,int total)
+        {
+            //LogMgr.LogError("cur "+ current+" t "+ total +" res "+ LoadResPath);
+            if (this.OnProgressHandler != null)
+            {
+                this.OnProgressHandler(this,current, total);
             }
         }
 
@@ -230,7 +289,7 @@ namespace KFrameWork
 
         protected BundlePkgInfo _SeekPkgInfo(string name)
         {
-            BundlePkgInfo pkginfo = ResBundleMgr.mIns.BundleInforMation.SeekInfo(name);
+            BundlePkgInfo pkginfo = ResBundleMgr.mIns.BundleInformation.SeekInfo(name);
 
             if (pkginfo == null)
             {
@@ -251,7 +310,6 @@ namespace KFrameWork
 #else
             return null;
 #endif
-
         }
 
         protected IBundleRef LoadFullAssetToMem(BundlePkgInfo pkginfo)
@@ -291,31 +349,26 @@ namespace KFrameWork
             }
 
             if (ab == null)
-                this.ThrowAssetMissing(this.targetname);
+                this.ThrowAssetMissing(this.LoadResPath);
 
             bundle = ResBundleMgr.mIns.Cache.PushAsset(pkginfo, ab);
             return bundle;
 #endif
         }
 
-
-
         protected AssetBundleCreateRequest LoadFullAssetToMemAsync(BundlePkgInfo pkginfo)
         {
-            if (ResBundleMgr.mIns.Cache.Contains(pkginfo))
+#if UNITY_EDITOR && !AB_DEBUG
+            return null;
+#elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID || AB_DEBUG
+            AssetBundleCreateRequest abRequst = null;
+            using (gstring.Block())
             {
-                return null;
+                abRequst = KAssetBundle.LoadFromFileAsync(BundlePathConvert.GetRunningPath(pkginfo.AbFileName));
             }
-            else
-            {
-                AssetBundleCreateRequest abRequst = null;
-                using (gstring.Block())
-                {
-                    abRequst = KAssetBundle.LoadFromFileAsync( BundlePathConvert.GetRunningPath(pkginfo.AbFileName));
-                }
 
-                return abRequst;
-            }
+            return abRequst;
+#endif
         }
 
         protected bool CreateFromAsset(IBundleRef bundle, out UnityEngine.Object asset)
@@ -323,14 +376,47 @@ namespace KFrameWork
             bool ret = bundle.LoadAsset(out asset);
             if (!ret)
             {
-                this.ThrowAssetMissing(this.targetname);
+                this.ThrowAssetMissing(this.LoadResPath);
             }
 
             return ret;
         }
 
+        protected void AppendDepends(BundlePkgInfo pkginfo, IBundleRef bundle)
+        {
+            if (!isABMode)
+                return;
+
+            if (bundle != null)
+            {
+                for (int i = 0; i < pkginfo.Depends.Length; ++i)
+                {
+                    IBundleRef depbund = ResBundleMgr.mIns.Cache.TryGetValue(pkginfo.Depends[i]);
+                    if (depbund != null)
+                    {
+                        bundle.NeedThis(depbund);
+                    }
+                    else
+                    {
+                        this.ThrowBundleMissing(pkginfo.Depends[i]);
+                    }
+                }
+            }
+            else
+            {
+                this.ThrowBundleMissing(pkginfo.BundleName);
+            }
+        }
+
+        protected void ThrowLogicError()
+        {
+            this.LoadState = BundleLoadState.Error;
+            throw new FrameWorkException("逻辑异常", ExceptionType.Higher_Excetpion);
+        }
+
         protected void ThrowBundleMissing(string resname)
         {
+            //BundlePkgInfo info = this._SeekPkgInfo(resname);
             if (BundleConfig.SAFE_MODE)
                 throw new FrameWorkResMissingException(string.Format("Bundle {0} Missing", resname));
             else

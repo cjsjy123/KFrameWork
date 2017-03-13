@@ -9,15 +9,15 @@ public class TestTask:ITask
     private bool _keep;
     public bool KeepWaiting {
         get {
-            return _keep;
+            return this._keep;
         }
     }
 
     public TestTask()
     {
         this._keep =true;
-        TimeCommand cmd = TimeCommand.Create(Done,5f);
-        cmd.ExcuteAndRelease();
+        TimeCommand cmd = TimeCommand.Create(5f,Done);
+        cmd.Excute();
     }
 
     private void Done()
@@ -31,15 +31,16 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
 
     private CacheCommand CurrentCmd;
 
+    private int waitcnt;
 	// Use this for initialization
     protected override  void Start () {
         base.Start();
 	}
 
 
-    private  void Done()
+    private  void Done(FrameCommand cmd)
     {
-        LogMgr.LogFormat("帧命令已经完成 :{0}", GameSyncCtr.mIns.RenderFrameCount);
+        LogMgr.LogFormat("帧命令已经完成 :{0} :{1}", GameSyncCtr.mIns.RenderFrameCount,Time.renderedFrameCount);
 
     }
 
@@ -65,23 +66,45 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         LogMgr.LogFormat("协程finish:{0}", GameSyncCtr.mIns.RenderFrameCount);
     }
 
-    private void WaitDone()
+    private void WaitDone(WaitTaskCommand cmd)
     {
-        LogMgr.Log("Wait Finished");
+        LogMgr.LogFormat("Wait Finished :{0}" , GameSyncCtr.mIns.RenderFrameCount);
     }
 
     void OnGUI()
     {
-        if(GUILayout.Button("Test Frame CMD"))
+        waitcnt = Mathf.RoundToInt( GUILayout.HorizontalSlider(waitcnt,0,500));
+        if(GUILayout.Button("Test Frame CMD :"+waitcnt))
         {
-            LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
+            LogMgr.LogFormat("Now Frame {0} :{1}",GameSyncCtr.mIns.RenderFrameCount,Time.renderedFrameCount);
 
-            CurrentCmd = FrameCommand.Create(Done,30);
-            CurrentCmd.ExcuteAndRelease();
+            CurrentCmd = FrameCommand.Create(Done, waitcnt);
+            CurrentCmd.Excute();
 
         }
 
+        if (GUILayout.Button("Cancel All"))
+        {
+            CacheCommand.CanCelAll();
+        }
 
+
+        if (GUILayout.Button("Cancel framecmd"))
+        {
+            CurrentCmd.Cancel();
+        }
+
+        if (GUILayout.Button("Cancel framecmd By"))
+        {
+            CacheCommand.CanCelAllBy(this);
+        }
+
+        if (GUILayout.Button("Test Frame Restart"))
+        {
+            LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
+            GameSyncCtr.mIns.NeedReCalculateFrameCnt =true;
+
+        }
         if(GUILayout.Button("Test Multi Frame CMD"))
         {
             LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
@@ -90,7 +113,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             cmd+=FrameCommand.Create(Done,50);
             cmd+=FrameCommand.Create(Done,50);
             cmd+=FrameCommand.Create(Done,50);
-            cmd.ExcuteAndRelease();
+            cmd.Excute();
 
         }
 
@@ -99,18 +122,17 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
             ScriptCommand cmd = ScriptCommand.Create(10,2);
-            cmd.CallParms.WriteUnityObject(this);
-            cmd.CallParms.WriteFloat(1f);
+            cmd.CallParams.WriteUnityObject(this);
+            cmd.CallParams.WriteFloat(1f);
             for(int i=0; i <10;++i)
             {
                 ScriptCommand temp = ScriptCommand.Create(10,2);
-                temp.CallParms.WriteUnityObject(this);
-                temp.CallParms.WriteFloat(1f);
+                temp.CallParams.WriteUnityObject(this);
+                temp.CallParams.WriteFloat(1f);
                 cmd+=temp;
             }
 
             cmd.Excute();
-
         }
 
 
@@ -119,17 +141,17 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("Batch Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
             ScriptCommand cmd1 = ScriptCommand.Create(10,2);
-            cmd1.CallParms.WriteUnityObject(this);
-            cmd1.CallParms.WriteFloat(1f);
+            cmd1.CallParams.WriteUnityObject(this);
+            cmd1.CallParams.WriteFloat(1f);
 
             ScriptCommand cmd2 = ScriptCommand.Create(10,2);
-            cmd2.CallParms.WriteUnityObject(this);
-            cmd2.CallParms.WriteFloat(23f);
+            cmd2.CallParams.WriteUnityObject(this);
+            cmd2.CallParams.WriteFloat(23f);
 
             BatchCommand batch1 = BatchCommand.Create(FrameCommand.Create(Done,50),cmd1);
             BatchCommand batch2 = BatchCommand.Create(FrameCommand.Create(Done,50),cmd2);
             batch1+= batch2;
-            batch1.ExcuteAndRelease();
+            batch1.Excute();
 
         }
 
@@ -139,7 +161,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("BatchFrame Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
             CurrentCmd = BatchCommand.Create(FrameCommand.Create(Done,50),FrameCommand.Create(Done,50),FrameCommand.Create(Done,50),FrameCommand.Create(Done,50));
-            CurrentCmd.ExcuteAndRelease();
+            CurrentCmd.Excute();
 
         }
 
@@ -147,8 +169,8 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("Now Frame : {0} Now Time:{1}",GameSyncCtr.mIns.RenderFrameCount,Time.realtimeSinceStartup);
 
-            CurrentCmd= TimeCommand.Create(TimeDone,2.4f);
-            CurrentCmd.ExcuteAndRelease();
+            CurrentCmd= TimeCommand.Create(2.4f,TimeDone);
+            CurrentCmd.Excute();
 
         }
 
@@ -159,7 +181,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             StartCoroutine(YieldCall());
 
             CurrentCmd = FrameCommand.Create(Done,50);
-            CurrentCmd.ExcuteAndRelease();
+            CurrentCmd.Excute();
 
         }
 
@@ -168,7 +190,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             LogMgr.LogFormat("Wait Cmd Start Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
             CurrentCmd= WaitTaskCommand.Create(new TestTask(),WaitDone);
-            CurrentCmd.ExcuteAndRelease();
+            CurrentCmd.Excute();
 
         }
 

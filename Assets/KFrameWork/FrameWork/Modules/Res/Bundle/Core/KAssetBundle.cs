@@ -15,7 +15,7 @@ namespace KFrameWork
 	/// <summary>
 	/// or struct?
 	/// </summary>
-    public sealed class KAssetBundle :IEquatable<KAssetBundle>, IDisposable, IKClone
+    public sealed class KAssetBundle :IEquatable<AssetBundle>, IEquatable<KAssetBundle>, IDisposable, IKClone
     {
         private bool m_bCloned;
 
@@ -95,12 +95,12 @@ namespace KFrameWork
 
 		public T Load<T>(string name)  where T :Object
 		{
-			return  _assetbundle.LoadAsset<T>(name);
+            return  _assetbundle.LoadAsset<T>(name);
 		}
 
-		public T[] LoadAll<T>()  where T :Object
+        public T[] LoadAll<T>()  where T :Object
 		{
-			return  _assetbundle.LoadAllAssets<T>();
+            return  _assetbundle.LoadAllAssets<T>();
 		}
 
 		public T[] LoadAllSub<T>(string name)  where T :Object
@@ -116,7 +116,7 @@ namespace KFrameWork
 
 		public static AssetBundle LoadFromFile(string name) 
 		{
-#if UNITY_5_3 || UNITY_5_4
+#if UNITY_5_3 || UNITY_5_4 || UNITY_5_5 || UNITY_5_6
             return  AssetBundle.LoadFromFile(name);
 #else
             return  AssetBundle.CreateFromFile(name) ;
@@ -126,7 +126,7 @@ namespace KFrameWork
 
         public static AssetBundleCreateRequest LoadFromFileAsync(string name) 
         {
-            #if UNITY_5_3 || UNITY_5_4
+#if UNITY_5_3 || UNITY_5_4 || UNITY_5_5 || UNITY_5_6
             return AssetBundle.LoadFromFileAsync(name);
             #else
             return  AssetBundle.CreateFromFileAsync(name) ;
@@ -159,7 +159,7 @@ namespace KFrameWork
                 return false;
 
             if(this.assetbundle == null && other.assetbundle == null)
-                return base.Equals(other);
+                return true;
 
             return this.assetbundle == other.assetbundle;
         }
@@ -169,6 +169,17 @@ namespace KFrameWork
             KAssetBundle ab = this.MemberwiseClone()  as KAssetBundle;
             ab.m_bCloned = true;
             return ab;
+        }
+
+        public bool Equals(AssetBundle other)
+        {
+            if (other == null && this.assetbundle != null)
+                return false;
+
+            if (other == null && this.assetbundle == null)
+                return true;
+
+            return this.assetbundle == other;
         }
 
         public static implicit operator AssetBundle( KAssetBundle bundle)

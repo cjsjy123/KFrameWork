@@ -1,13 +1,14 @@
 ﻿using System;
 using UnityEngine;
+using KUtils;
 
 namespace KFrameWork
 {
-    public abstract class AbstractParams:iPush,iPop,iSet,iInsert
+    public abstract class AbstractParams:IPool
     {
         protected int _LimitMax =-1;
 
-        protected int _OrigionArgCount =-1;
+        protected int _OriginArgCount =-1;
         /// <summary>
         /// 无视参数限制的arg计数
         /// </summary>
@@ -24,15 +25,15 @@ namespace KFrameWork
             {
                 if(_LimitMax  > 0)
                 {
-                    if(_OrigionArgCount >0)
+                    if(_OriginArgCount >0)
                     {
-                        return this._ArgCount <_OrigionArgCount && this._ArgCount < _LimitMax;
+                        return this._ArgCount <_OriginArgCount && this._ArgCount < _LimitMax;
                     }
 
                     return  this._ArgCount < _LimitMax;
                 }
 
-                return this._ArgCount <_OrigionArgCount;
+                return this._ArgCount <_OriginArgCount;
             }
         }
 
@@ -55,12 +56,12 @@ namespace KFrameWork
             return ret;
         }
 
-        protected void UsetSimple()
+        protected void throwUsetSimple()
         {
             throw new FrameWorkException("参数较少，请使用Simpleparams");
         }
 
-        protected void UseGener()
+        protected void throwUseGener()
         {
             throw new FrameWorkException("参数过多，请使用genericparams");
         }
@@ -78,13 +79,13 @@ namespace KFrameWork
                 int cnt = args.ArgCount;
                 if(this._LimitMax != -1 && cnt + ArgCount > this._LimitMax)
                 {
-                    this.UseGener();
+                    this.throwUseGener();
                     return;
                 }
 
-                if(this._OrigionArgCount >0)
+                if(this._OriginArgCount >0)
                 {
-                    this._OrigionArgCount += cnt;
+                    this._OriginArgCount += cnt;
                 }
 
                 for(int i =0; i < cnt ;++i)
@@ -134,44 +135,48 @@ namespace KFrameWork
             }
         }
 
+        public abstract ParamType NextValue();
         public abstract int GetArgIndexType(int index);
         public abstract void ResetReadIndex();
         public abstract void Release();
 
         #region interface funcs
-        public abstract void SetInt(int argindex,int v);
-        public abstract void SetShort(int argindex,short v);
-        public abstract void SetString(int argindex,string v);
-        public abstract void SetBool(int argindex,bool v);
-        public abstract void SetLong(int argindex,long v);
-        public abstract void SetFloat(int argindex,float v);
-        public abstract void SetDouble(int argindex,double v);
-        public abstract void SetVector3(int argindex, Vector3 v);
-        public abstract void SetObject(int argindex,System.Object v);
-        public abstract void SetUnityObject(int argindex,UnityEngine.Object v);
+        public abstract AbstractParams SetInt(int argindex,int v);
+        public abstract AbstractParams SetShort(int argindex,short v);
+        public abstract AbstractParams SetString(int argindex,string v);
+        public abstract AbstractParams SetBool(int argindex,bool v);
+        public abstract AbstractParams SetLong(int argindex,long v);
+        public abstract AbstractParams SetFloat(int argindex,float v);
+        public abstract AbstractParams SetDouble(int argindex,double v);
+        public abstract AbstractParams SetVector3(int argindex, Vector3 v);
+        public abstract AbstractParams SetColor(int argindex, Color v);
+        public abstract AbstractParams SetObject(int argindex,System.Object v);
+        public abstract AbstractParams SetUnityObject(int argindex,UnityEngine.Object v);
 
-        public abstract void WriteInt(int v);
-        public abstract void WriteShort(short v);
-        public abstract void WriteString(string v);
-        public abstract void WriteBool(bool v);
-        public abstract void WriteFloat(float v);
-        public abstract void WriteDouble(double v);
-        public abstract void WriteLong(long v);
-        public abstract void WriteVector3(Vector3 v);
-        public abstract void WriteObject(System.Object v);
-        public abstract void WriteUnityObject(UnityEngine.Object v);
+        public abstract AbstractParams WriteInt(int v);
+        public abstract AbstractParams WriteShort(short v);
+        public abstract AbstractParams WriteString(string v);
+        public abstract AbstractParams WriteBool(bool v);
+        public abstract AbstractParams WriteFloat(float v);
+        public abstract AbstractParams WriteDouble(double v);
+        public abstract AbstractParams WriteLong(long v);
+        public abstract AbstractParams WriteVector3(Vector3 v);
+        public abstract AbstractParams WriteColor(Color v);
+        public abstract AbstractParams WriteObject(System.Object v);
+        public abstract AbstractParams WriteUnityObject(UnityEngine.Object v);
 
 
-        public abstract void InsertInt(int index,int v);
-        public abstract void InsertShort(int index,short v);
-        public abstract void InsertString(int index,string v);
-        public abstract void InsertBool(int index,bool v);
-        public abstract void InsertFloat(int index,float v);
-        public abstract void InsertDouble(int index,double v);
-        public abstract void InsertLong(int index,long v);
-        public abstract void InsertVector3(int index, Vector3 v);
-        public abstract void InsertObject(int index,System.Object v);
-        public abstract void InsertUnityObject(int index,UnityEngine.Object v);
+        public abstract AbstractParams InsertInt(int index,int v);
+        public abstract AbstractParams InsertShort(int index,short v);
+        public abstract AbstractParams InsertString(int index,string v);
+        public abstract AbstractParams InsertBool(int index,bool v);
+        public abstract AbstractParams InsertFloat(int index,float v);
+        public abstract AbstractParams InsertDouble(int index,double v);
+        public abstract AbstractParams InsertLong(int index,long v);
+        public abstract AbstractParams InsertVector3(int index, Vector3 v);
+        public abstract AbstractParams InsertColor(int index, Color v);
+        public abstract AbstractParams InsertObject(int index,System.Object v);
+        public abstract AbstractParams InsertUnityObject(int index,UnityEngine.Object v);
 
 
         public abstract int ReadInt();
@@ -182,8 +187,12 @@ namespace KFrameWork
         public abstract float ReadFloat();
         public abstract double ReadDouble();
         public abstract Vector3 ReadVector3();
+        public abstract Color ReadColor();
         public abstract System.Object ReadObject();
         public abstract UnityEngine.Object ReadUnityObject();
+
+        public abstract void RemoveToPool();
+        public abstract void RemovedFromPool();
         #endregion
 
     }

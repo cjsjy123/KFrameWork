@@ -4,19 +4,19 @@ using System.Collections.Generic;
 using System;
 using KUtils;
 using KFrameWork;
-
+#if EXAMPLE
 public class AssetBundle_Test : MonoBehaviour {
     public Canvas canvas;
 
-    private long last;
+    //private long last;
 
-    public long delta =200;
+    //public long delta =200;
 	// Use this for initialization
 	void Start () {
 
-        ResBundleMgr.YieldInited(() =>
+        ResBundleMgr.YieldInited((cmd) =>
         {
-            this.last = GameSyncCtr.mIns.RenderFrameCount;
+            //this.last = GameSyncCtr.mIns.RenderFrameCount;
            // ResBundleMgr.mIns.LoadAsync("ui_test.prefab", canvas);
         });
     }
@@ -52,6 +52,11 @@ public class AssetBundle_Test : MonoBehaviour {
             ResBundleMgr.UnLoadUnused();
         }
 
+        if (GUILayout.Button("UnloadUnused Use Unity"))
+        {
+            Resources.UnloadUnusedAssets();
+        }
+
         if (GUILayout.Button("Dump"))
         {
             ResBundleMgr.mIns.Cache.LogDebugInfo();
@@ -68,3 +73,4 @@ public class AssetBundle_Test : MonoBehaviour {
     //       }
     //}
 }
+#endif

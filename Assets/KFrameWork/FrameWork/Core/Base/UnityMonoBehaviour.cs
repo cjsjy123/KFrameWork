@@ -60,7 +60,7 @@ namespace KFrameWork
 
         protected override void OnLevelWasLoaded(int level)
         {
-            if(!m_isFrameWorkInited && FrameWorkDebug.Open_DEBUG)
+            if(!m_isFrameWorkInited && FrameWorkConfig.Open_DEBUG)
             {
                 LogMgr.LogErrorFormat("框架为启用，或者未启用base.start的框架对象检查",gameObject);
             }
@@ -85,9 +85,8 @@ namespace KFrameWork
 
         protected void DestroySelf ()
         {
-
 #if UNITY_5_5 || UNITY_5_4
-            SceneManager.sceneLoaded += this.OnSceneLoad;
+            SceneManager.sceneLoaded -= this.OnSceneLoad;
 #endif
 #if UNITY_EDITOR
             DestroyImmediate(this);
@@ -112,11 +111,15 @@ namespace KFrameWork
             }
 
 #if UNITY_5_5 || UNITY_5_4
-            SceneManager.sceneLoaded -= this.OnSceneLoad;
+            SceneManager.sceneLoaded += this.OnSceneLoad;
 #endif
 
         }
 
+        protected virtual void OnDestroy()
+        {
+
+        }
 
         protected virtual void Start ()
         {
@@ -124,9 +127,9 @@ namespace KFrameWork
         }
 
 #if UNITY_5_5 || UNITY_5_4
-        private void OnSceneLoad(Scene scene,LoadSceneMode mode)
+        private void OnSceneLoad( Scene scene,LoadSceneMode mode)
         {
-            if (!m_isFrameWorkInited && FrameWorkDebug.Open_DEBUG)
+            if (!m_isFrameWorkInited && FrameWorkConfig.Open_DEBUG)
             {
                 LogMgr.LogErrorFormat("框架为启用，或者未启用base.start的框架对象检查", gameObject);
             }
@@ -134,7 +137,7 @@ namespace KFrameWork
 #else
         private void OnLevelWasLoaded (int level)
         {
-            if (!m_isFrameWorkInited && FrameWorkDebug.Open_DEBUG) {
+            if (!m_isFrameWorkInited && FrameWorkConfig.Open_DEBUG) {
                 LogMgr.LogErrorFormat ("框架为启用，或者未启用base.start的框架对象检查", gameObject);
             }
         }

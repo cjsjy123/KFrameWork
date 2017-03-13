@@ -6,56 +6,19 @@ using KUtils;
 
 namespace KFrameWork
 {
-    public enum CommandState
-    {
-        PrePared,
-        Running,
-        Paused,
-        Stoped,
-        Finished,
-    }
-
-
     public abstract class BaseCommand<T> :CacheCommand,IPool  {
-        protected bool m_bExcuted =false;
+
         protected bool m_bReleased =false;
         protected bool m_isBatching =false;
-
-        [FrameWokAwakeAttribute]
-        public static void Preload(int value)
-        {
-            if(CMDCache == null)
-                CMDCache = new Dictionary<int, Queue<CacheCommand>>(16);
-        }
-
 
         protected BaseCommand()
         {
             this.GenID();
         }
 
-        protected static U Spawn<U>(int CMD_ID)  where U:BaseCommand<T>
-        {
-            if(CMDCache != null && CMDCache.ContainsKey(CMD_ID) && CMDCache[CMD_ID].Count >0)
-            {
-                CacheCommand Top = CMDCache[CMD_ID].Peek();
-                if(Top is U)
-                {
-                    U cmd = CMDCache[CMD_ID].Dequeue() as U;
-                    cmd.m_bReleased =false;
-                    cmd.m_bExcuted =false;
-                    cmd._isDone =false;
-                    cmd.m_isBatching=false;
-                    cmd.Next = null;
-                    return cmd;
-                }
-            }
-            return null;
-        }
-
         protected void _BatchCall()
         {
-            if(this.m_paused )
+            if(this.RunningState == CommandState.Paused )
                 return ;
 
             if(this.Next != null)
@@ -68,18 +31,22 @@ namespace KFrameWork
                     }
                     else
                     {
-                        this._isDone = true;
                         this.m_isBatching =false;
                         this.Next = null;
                         MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
+
+                        if(this.isRunning)
+                            this.SetFinished();
                     }      
                 }
             }
             else
             {
-                this._isDone = true;
                 this.m_isBatching =false;
                 MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
+
+                if (this.isRunning)
+                    this.SetFinished();
             }
         }
 
@@ -100,25 +67,19 @@ namespace KFrameWork
 
 
         //---------------pool--------
-        public virtual void AwakeFromPool ()
+        public virtual void RemoveToPool ()
         {
             this.GenID();
-            this.m_paused =false;
-            this.m_bExcuted =false;
             this.m_bReleased =false;
             this.m_isBatching =false;
             this.Next = null;
-            this._isDone = false;
         }
 
         public virtual void RemovedFromPool ()
         {
-            this.m_paused = false;
-            this.m_bExcuted = false;
             this.m_bReleased = false;
             this.m_isBatching = false;
             this.Next = null;
-            this._isDone = false;
         }
 
         protected void _Add(CacheCommand cmd)
@@ -164,25 +125,13 @@ namespace KFrameWork
             }
         }
 
-        protected override void Reset()
-        {
-            base.Reset();
-            this.m_bExcuted = false;
-            this.m_bReleased = false;
-            this.m_isBatching = false;
-        }
 
-        public override void Excute()
-        {
-            this.m_bExcuted = true;
-        }
         /// <summary>
         /// force 需要用户确保其他地方地方没有其引用，不然容易导致bug
         /// </summary>
         /// <param name="force"></param>
         public override void Release(bool force)
         {
-            
             if (KObjectPool.mIns != null && force)
             {
                 KObjectPool.mIns.Push(this);
@@ -196,19 +145,11 @@ namespace KFrameWork
 
         public static  T operator+(BaseCommand<T>  lft,BaseCommand<T>  rht)
         {
-            //UNABLE TO DO LIKE THIS
-//            if(lft == rht)
-//                return lft;
-//
             return lft.OperatorAdd(rht);
         }
 
         public static T  operator-(BaseCommand<T>  lft,BaseCommand<T>  rht)
-        {
-            //UNABLE TO DO LIKE THIS
-//            if(lft == rht)
-//                return lft;
-//            
+        {  
             return lft.OperatorReduce(rht);
         }
 

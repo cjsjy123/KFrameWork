@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using KUtils;
 
 namespace KFrameWork
 {
@@ -15,9 +16,11 @@ namespace KFrameWork
 
         public static BatchCommand Create(params CacheCommand[] cmds)
         {
-            BatchCommand cmd = new BatchCommand();
+            BatchCommand cmd = KObjectPool.mIns.Pop<BatchCommand>();
+            if (cmd == null)
+                cmd = new BatchCommand();
 
-            if(cmds != null && cmds.Length >0)
+            if (cmds != null && cmds.Length >0)
             {
                 CacheCommand next = cmd;
                 for(int i =0; i < cmds.Length;++i)
@@ -35,7 +38,9 @@ namespace KFrameWork
 
         public static BatchCommand Create()
         {
-            BatchCommand cmd = new BatchCommand();
+            BatchCommand cmd = KObjectPool.mIns.Pop<BatchCommand>();
+            if (cmd == null)
+                cmd = new BatchCommand();
             return cmd;
         }
 
@@ -49,16 +54,17 @@ namespace KFrameWork
             this._Remove(cmd);
         }
 
-        public void Clear()
+        public override void Cancel()
         {
             this._Clear();
+            base.Cancel();
         }
 
         public override void Excute ()
         {
             try
             {
-                if(!this.m_bExcuted)
+                if(!this.isRunning)
                 {
                     base.Excute();
 
@@ -71,23 +77,24 @@ namespace KFrameWork
             }
         }
 
-        public override void Stop ()
+        public override void Release(bool force)
         {
-            if(this.m_isBatching && this.Next != null)
-                this.Next.Stop();
-            
-            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
+
+            base.Release(force);
         }
 
         public override void Pause ()
         {
-            this.m_paused =true;
             CacheCommand nextCmd = this.Next ;
             while(nextCmd != null)
             {
                 nextCmd.Pause();
                 nextCmd = nextCmd.Next;
             }
+
+            base.Pause();
         }
 
         public override void Resume ()
@@ -100,8 +107,7 @@ namespace KFrameWork
                 nextCmd = nextCmd.Next;
             }
 
-            this.m_paused =false;
-
+            base.Resume();
             if(this.isDone)
                 this.TryBatch();
         }

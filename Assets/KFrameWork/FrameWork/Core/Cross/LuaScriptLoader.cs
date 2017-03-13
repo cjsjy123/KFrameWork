@@ -1,4 +1,4 @@
-﻿//#define TOLUA
+﻿
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,35 +13,77 @@ using LuaInterface;
 
 namespace KFrameWork
 {
-
     public sealed class LuaScriptLoader :IScriptLoader
     {
-        #if TOLUA
-        private LuaFunction luafunc;
-        #endif
-        private List<System.Object> AttachedObject;
+#if TOLUA
+        /// <summary>
+        /// just for
+        /// local x = class("xxxx")
+        /// return x
+        /// </summary>
+        private static Dictionary<string, LuaTable> classFuncDictionary = new Dictionary<string, LuaTable>();
 
-        public bool CanDispose {
-            get {
-                if (this.AttachedObject != null && this.AttachedObject.Count > 0) {
-                    return false;
-                }
-                return true;
-            }
-        }
+        private LuaFunction luafunc;
+
+        private LuaTable Luatable;
+#endif
+
+        public string methodname { get; private set; }
+
         static LuaScriptLoader()
         {
             #if UNITY_EDITOR && TOLUA
-
             LogMgr.LogFormat("<color=#00B500FF>ToLua Version : {0}</color>",LuaDLL.version);
             #endif
         }
+#if TOLUA
+        public static LuaFunction TryGetClassLuaFunction(string filename, string methodname)
+        {
+            if (classFuncDictionary.ContainsKey(filename))
+            {
+                return classFuncDictionary[filename][methodname] as LuaFunction;
+            }
+            return null;
+        }
+#endif
 
         public void Init (AbstractParams InitParams)
         {
-            #if TOLUA
-            this.luafunc =InitParams.ReadObject() as LuaFunction;
-            #endif
+            Script_LuaLogicAttribute att = InitParams.ReadObject() as Script_LuaLogicAttribute;
+           
+#if TOLUA
+            if (att != null)
+            {
+                this.methodname = att.methodName;
+                if (classFuncDictionary.ContainsKey(att.luapath) == false)
+                {
+                    object[] retObj = LuaClient.GetMainState().DoFile(att.luapath);
+
+                    if (retObj !=null && retObj.Length > 0)
+                    {
+                        LuaTable table = retObj[0] as LuaTable;
+                        if (table != null)
+                        {
+                            classFuncDictionary[att.luapath] = table;
+                            this.Luatable = table;
+                            this.luafunc = table[methodname] as LuaFunction;
+                        }
+                        else
+                        {
+                            LogMgr.LogErrorFormat("类型不匹配 :{0}", retObj[0]);
+                        }
+                    }
+                    else
+                    {
+                        this.luafunc = LuaClient.GetMainState().GetFunction(methodname);
+                    }
+                }
+                else
+                {
+                    this.luafunc = classFuncDictionary[att.luapath][methodname] as LuaFunction;
+                }
+            }
+#endif
         }
 
         public AbstractParams Invoke (AbstractParams ScriptParms)
@@ -52,8 +94,22 @@ namespace KFrameWork
                 return null;
             }
 
+            if (this.luafunc == null)
+            {
+                this.luafunc = LuaClient.GetMainState().GetFunction(this.methodname.Split('.')[0]+"."+ this.methodname);
+                if (this.luafunc == null)
+                {
+                    //try get function from global
+                    this.luafunc = LuaClient.GetMainState().GetFunction(this.methodname);
+                }
+            }
+
             if (this.luafunc != null) {
                 int oldTop = this.luafunc.BeginPCall ();
+
+                if (Luatable != null)
+                    this.luafunc.Push(Luatable);
+                
                 this._LuaScriptParmsCall (ScriptParms);
                 this.luafunc.PCall ();
                 AbstractParams retparams = this._LuaRetCall(oldTop);
@@ -63,7 +119,6 @@ namespace KFrameWork
             }
             #else
             LogMgr.LogError("Lua Client Missing Cant Invoke Lua Function");
-
             #endif
 
             return null;
@@ -208,31 +263,16 @@ namespace KFrameWork
         }
         #endif
 
-        public void PushAttachObject(System.Object o)
-        {
-            if(this.AttachedObject == null)
-                this.AttachedObject = new List<object>();
-
-            this.AttachedObject.Add(o);
-        }
-
-        public void RemovettachObject(System.Object o)
-        {
-            if(this.AttachedObject != null)
-                this.AttachedObject.Remove(o);
-        }
-
         public void Reset ()
         {
             #if TOLUA
             if (this.luafunc != null) {
                 this.luafunc.Dispose ();
                 this.luafunc = null;
+                Luatable.Dispose();
+                Luatable = null;
             }
             #endif
-
-            if (this.AttachedObject != null)
-                this.AttachedObject.Clear ();
         }
     }
 }

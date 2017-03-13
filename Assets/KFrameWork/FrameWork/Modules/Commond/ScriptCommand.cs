@@ -1,15 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-
+using System;
+using KUtils;
 
 namespace KFrameWork
 {
     public sealed class ScriptCommand :BaseCommand<ScriptCommand>
     {
-        private int? _CMD;
+        private int _CMD;
 
-        public int? CMD
+        public int CMD
         {
             get
             {
@@ -20,7 +21,7 @@ namespace KFrameWork
 
         private AbstractParams _Gparams;
 
-        public AbstractParams CallParms
+        public AbstractParams CallParams
         {
             get
             {
@@ -37,6 +38,28 @@ namespace KFrameWork
                 return _Gparams != null;
             }
         }
+        /// <summary>
+        /// runtime注册时候需要的参数
+        /// </summary>
+        private AbstractParams _Initparams;
+        public AbstractParams InitParams
+        {
+            get
+            {
+                if (_Initparams == null)
+                    _Initparams = GenericParams.Create();
+                return _Initparams;
+            }
+        }
+
+        public bool HasInitParams
+        {
+            get
+            {
+                return _Initparams != null;
+            }
+        }
+
 
         private AbstractParams _RParams;
 
@@ -56,6 +79,16 @@ namespace KFrameWork
             }
         }
 
+        /// <summary>
+        /// 脚本对象
+        /// </summary>
+        public ScriptTarget target = ScriptTarget.Sharp;
+
+        public void SetCallParams(AbstractParams p)
+        {
+            this._Gparams =p;
+        }
+
         private ScriptCommand()
         {
             
@@ -68,100 +101,68 @@ namespace KFrameWork
         /// <param name="argCount">Argument count.</param>
         public static ScriptCommand Create(int CMD_ID,int argcount =-1)
         {
-            ScriptCommand cmd = Spawn<ScriptCommand>(CMD_ID);
-            if(cmd == null)
+            ScriptCommand cmd = KObjectPool.mIns.Pop<ScriptCommand>();
+            if (cmd == null)
             {
                 cmd = new ScriptCommand();
-                cmd._CMD = CMD_ID;
-                if(!cmd.HasCallParams)
+               
+            }
+
+            cmd._CMD = CMD_ID;
+
+            if (!cmd.HasCallParams)
+            {
+                if (argcount > 0 && argcount < 4)
                 {
-                    if(argcount >0 && argcount <4)
-                    {
-                        cmd._Gparams = SimpleParams.Create(argcount);
-                    }
-                    else if(argcount>3)
-                    {
-                        cmd._Gparams = GenericParams.Create(argcount);
-                    }
+                    cmd._Gparams = SimpleParams.Create(argcount);
+                }
+                else if (argcount > 3)
+                {
+                    cmd._Gparams = GenericParams.Create(argcount);
                 }
             }
 
             return cmd;
         }
 
+        public void ExcuteAndRelease()
+        {
+            this.Excute();
+            this.Release(false);
+        }
+
+        public override void Release(bool force)
+        {
+            if (this._state == CommandState.Running)
+            {
+                this._state = CommandState.Finished;
+                if (FrameWorkConfig.Open_DEBUG)
+                    LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
+
+                RunningList.Remove(this);
+
+                this.TryBatch();
+
+                base.Release(force);
+            }     
+        }
+
         public override void Excute ()
         {
             try
             {
-                if (CMD != null && !this.m_bExcuted)
+                if (!this.isRunning)
                 {
                     base.Excute();
                     ScriptLogicCtr.mIns.PushCommand (this);
                 } 
-                else if(!this.m_bExcuted) {
-                    LogMgr.LogError ("命令号未设置");
-                }
+
             }
             catch(System.Exception ex)
             {
                 LogMgr.LogException(ex);
             }
 
-        }
-
-        public override void Release(bool force)
-        {
-            ///也有可能用户主动调用，
-            this._isDone = true;
-
-            if (!this.m_isBatching && this.Next != null)
-            {
-                this.m_isBatching = true;
-                this.Next.Excute();
-            }
-
-            if (!this.CMD.HasValue || this.m_bReleased || !this.isDone)
-                return;
-
-            this.m_bReleased = false;
-            this.m_bExcuted = false;
-
-            if (CMDCache.ContainsKey(this._CMD.Value))
-            {
-                if (this.HasCallParams)
-                {
-                    this._Gparams.ResetReadIndex();
-                }
-                CMDCache[this.CMD.Value].Enqueue(this);
-            }
-            else
-            {
-                if (this.HasCallParams)
-                {
-                    this._Gparams.ResetReadIndex();
-                }
-
-                Queue<CacheCommand> queue = new Queue<CacheCommand>(4);
-                queue.Enqueue(this);
-                CMDCache.Add(this._CMD.Value, queue);
-            }
-        }
-
-        public override void Stop ()
-        {
-            this._isDone =true;
-        }
-
-        public override void Pause ()
-        {
-            this.m_paused =true;
-        }
-
-        public override void Resume ()
-        {
-            this.m_paused =false;
-            if(this.isDone)
-                this.TryBatch();
         }
 
         protected override ScriptCommand OperatorAdd (CacheCommand other)
@@ -183,20 +184,39 @@ namespace KFrameWork
 
         }
 
-        public override void AwakeFromPool()
+        public override void RemoveToPool()
         {
-            base.AwakeFromPool();
-            this._CMD = null;
-            this._Gparams = null;
-            this._RParams = null;
+            base.RemoveToPool();
+            if (this._Gparams != null)
+            {
+                KObjectPool.mIns.Push(this._Gparams);
+                this._Gparams = null;
+            }
+
+            if (this._Initparams != null)
+            {
+                KObjectPool.mIns.Push(this._Initparams);
+                this._Initparams = null;
+            }
+
+            if (this._RParams != null )
+            {
+                KObjectPool.mIns.Push(this._RParams);
+                this._RParams = null;
+            }
+            else
+            {
+                this._RParams =null;
+            }
+
         }
 
         public override void RemovedFromPool()
         {
             base.RemovedFromPool();
-            this._CMD = null;
             this._Gparams = null;
             this._RParams = null;
+            this._Initparams = null;
         }
 
     }

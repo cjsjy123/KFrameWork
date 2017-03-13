@@ -9,54 +9,84 @@ namespace KFrameWork
 {
     public class AsyncLoader :BaseAsyncLoader {
 
-        public override void OnStart()
+        protected override void OnStart()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Async Load Asset {0} Start at {1} ", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Async Load Asset {0} Start at {1} ", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnPaused()
+        protected override void OnPaused()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Async Load Asset {0} Paused at {1}", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Async Load Asset {0} Paused at {1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnResume()
+        protected override void OnResume()
         {
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Async Load Asset {0} Resumed at {1} ", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Async Load Asset {0} Resumed at {1} ", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnError()
+        protected override void OnError()
         {
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Async Load Asset {0} Error at {1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
+            
             base.OnError();
-
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Async Load Asset {0} Error at {1}", this.targetname, GameSyncCtr.mIns.RenderFrameCount);
         }
 
-        public override void OnFinish()
+        protected override void OnFinish()
         {
-            base.OnFinish();
+            if (BundleConfig.Bundle_Log)
+                LogMgr.LogFormat("Async Load Asset {0} Finished at {1}", this.LoadResPath,GameSyncCtr.mIns.RenderFrameCount);
 
-            if (FrameWorkDebug.Open_DEBUG)
-                LogMgr.LogFormat("Async Load Asset {0} Finished at {1}", this.targetname,GameSyncCtr.mIns.RenderFrameCount);
+            base.OnFinish();
+            this.Dispose();
         }
 
         protected override void CreateMain()
         {
-            this._BundleRef = ResBundleMgr.mIns.Cache.TryGetValue(this._info);
+            this._BundleRef = ResBundleMgr.mIns.Cache.TryGetValue(this.loadingpkg);
 
-            if (this.isRunning()) //double check
+            if (this._BundleRef == null)
+                this.ThrowLogicError();
+
+            if (this._BundleRef.MainObject == null)
             {
-                this.LoadState = BundleLoadState.Finished;
+                CreateMainAsset();
+            }
+            else
+            {
+                this._Bundle = this._BundleRef.MainObject;
+                this._FinishAndRelease();
             }
         }
 
+        private void CreateMainAsset()
+        {
+            if (!this._BundleRef.SupportAsync && this._BundleRef.MainObject == null)
+            {
+                this._BundleRef = LoadFullAssetToMem(this.loadingpkg);
+                this._BundleRef.LoadAsset(out _Bundle);
+                this._FinishAndRelease();
+            }
+            else if(this._BundleRef.MainObject != null)
+            {
+                this._BundleRef = LoadFullAssetToMem(this.loadingpkg);
+                this._Bundle = this._BundleRef.MainObject;
+                this._FinishAndRelease();
+            }
+            else
+            {
+                ///需要异步预实例化
+                this._PushTaskAndExcute(this.loadingpkg, this._BundleRef.LoadAssetAsync());
+            }
+        }
 
         protected override void LoadMainAsyncRequest(AssetBundleRequest request)
         {
             this._Bundle = request.asset;
+            this._FinishAndRelease();
         }
 
         public override void DownLoad (string url)
@@ -64,8 +94,10 @@ namespace KFrameWork
             base.DownLoad (url);
         }
 
-
-
+        protected override void LoadSceneAssetFinish()
+        {
+            
+        }
     }
 
 }

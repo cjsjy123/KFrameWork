@@ -12,7 +12,7 @@ namespace KFrameWork
     {
         private static string _streamingAssetsPath;
 
-        private static string streamingAssetsPath
+        public static string streamingAssetsPath
         {
             get
             {
@@ -24,7 +24,7 @@ namespace KFrameWork
 
         private static string _persistentDataPath;
 
-        private static string persistentDataPath
+        public static string persistentDataPath
         {
             get
             {
@@ -36,7 +36,7 @@ namespace KFrameWork
 
         private static string _dataPath;
 
-        private static string dataPath
+        public static string dataPath
         {
             get
             {
@@ -46,7 +46,7 @@ namespace KFrameWork
             }
         }
 
-        [FrameWokAwakeAttribute]
+        [FrameWorkStartAttribute]
         private static void PreLoad(int v)
         {
 
@@ -103,7 +103,7 @@ namespace KFrameWork
 #elif UNITY_IOS || UNITY_IPHONE
                 return gstring.Format("{0}/{1}/{2}",streamingAssetsPath,BundleConfig.ABSavePath,basename);
 #elif UNITY_ANDROID
-                return gstring.Format("{0}!assets/{1}/{2}", dataPath, BundleConfig.ABSavePath, basename);;
+                return gstring.Format("jar:file://{0}!/assets/{1}/{2}", dataPath, BundleConfig.ABSavePath, basename);;
 #endif
                 }
 
@@ -114,10 +114,10 @@ namespace KFrameWork
 #elif UNITY_IOS || UNITY_IPHONE
                 return gstring.Format("{0}/{1}/{2}",streamingAssetsPath,BundleConfig.ABSavePath,basename);
 #elif UNITY_ANDROID
-                return gstring.Format("{0}!assets/{1}/{2}", dataPath, BundleConfig.ABSavePath, basename);;
+                return gstring.Format("jar:file://{0}!/assets/{1}/{2}", dataPath, BundleConfig.ABSavePath, basename);;
 #endif
 
-    }
+        }
 
         public static string getBundlePersistentPath(string basename)
         {
@@ -152,7 +152,11 @@ namespace KFrameWork
             name = name.Replace('\\', '/');
             return name;
         }
-
+        /// <summary>
+        /// 获取运行时路径，优先判断可读写目录下的文件
+        /// </summary>
+        /// <param name="filepath"></param>
+        /// <returns></returns>
         public static string GetRunningPath(string filepath)
         {
             string perpath = getBundlePersistentPath(filepath);

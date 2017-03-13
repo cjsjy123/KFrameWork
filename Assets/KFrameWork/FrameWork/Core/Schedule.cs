@@ -17,6 +17,8 @@ namespace KFrameWork
             public float Delta;
             public Action Callback;
 
+            public bool willRemove { get; private set; }
+
             private int _totalCnt;
             private float _time;
             public float InvokeTime
@@ -47,15 +49,21 @@ namespace KFrameWork
                 this._Repeat = repeat;
                 this.Delta = delta;
                 this.Callback= cbk;
+                this.willRemove = false;
+            }
+
+            public void Destroy()
+            {
+                this.willRemove = true;
             }
                 
-
             public bool Equals (ScheduleData other)
             {
                 if(this.InvokeTime != other.InvokeTime) return false;
                 if(this.RepeatCount != other.RepeatCount) return false;
                 if(this.Delta != other.Delta) return false;
                 if(this.Callback != other.Callback) return false;
+                //if (this.willRemove != other.willRemove) return false;
 
                 return true;
             }
@@ -68,7 +76,15 @@ namespace KFrameWork
 //
         public Schedule()
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,UpdateSchedule);
+            if(MainLoop.getLoop()!= null)
+                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,UpdateSchedule);
+        }
+
+        public void Destroy()
+        {
+            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.BeforeUpdate, UpdateSchedule);
+            scheduleList.Clear();
+            scheduleList = null;
         }
             
         public void ScheduleInvoke(float delay,Action callback)
@@ -104,7 +120,10 @@ namespace KFrameWork
             {
                 if(firstPriorityNode.Value.Callback == callback)
                 {
-                    this.scheduleList.Remove(firstPriorityNode);
+                    var old = firstPriorityNode.Value;
+                    old.Destroy();
+                    firstPriorityNode.Value = old;
+                    //this.scheduleList.Remove(firstPriorityNode);
                     break;
                 }
             }
@@ -157,11 +176,22 @@ namespace KFrameWork
             for(var firstPriorityNode = this.scheduleList.First;firstPriorityNode != null; )
             {
                 ScheduleData data = firstPriorityNode.Value;
-                if(data.InvokeTime < now)
+                if (data.willRemove)
                 {
-                    if(data.RepeatCount >0)
+                    LinkedListNode<ScheduleData> n = firstPriorityNode.Next;
+                    this.scheduleList.Remove(firstPriorityNode);
+                    firstPriorityNode = n;
+                    continue;
+                }
+
+                if(data.InvokeTime < now )
+                {
+                    if(data.RepeatCount >0 )
                     {
                         data.Callback();
+                        //refresh
+                        data = firstPriorityNode.Value;
+                        //
                         data.RepeatCount --;
                         if(data.RepeatCount ==0)
                         {  
@@ -178,17 +208,15 @@ namespace KFrameWork
                     else
                     {
                         data.Callback();
+                        LinkedListNode<ScheduleData> n = firstPriorityNode.Next;
+                        this.scheduleList.Remove(firstPriorityNode);
+                        firstPriorityNode = n;
+                        continue;
                     }
-
                 }
 
                 firstPriorityNode = firstPriorityNode.Next;
             }
-
-//            while(this.removeList.Count >0)
-//            {
-//                this.scheduleList.Remove(this.removeList.Dequeue());
-//            }
 
         }
 

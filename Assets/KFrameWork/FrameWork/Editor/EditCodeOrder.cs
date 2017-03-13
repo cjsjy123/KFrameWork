@@ -30,10 +30,9 @@ public class EditCodeOrder {
             }
         }
 
-  
+
         foreach (MonoScript monoScript in MonoImporter.GetAllRuntimeMonoScripts())
         {
-
             if (targetList.ContainsKey(monoScript.name))
             {
                 int order = targetList[monoScript.name];
@@ -41,7 +40,6 @@ public class EditCodeOrder {
                 {
                     MonoImporter.SetExecutionOrder(monoScript, order);
                 }
-                break;
             }
         }
     }

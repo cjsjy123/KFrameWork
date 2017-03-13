@@ -5,13 +5,23 @@ using System;
 using KFrameWork;
 using KUtils;
 
+public enum CommandState
+{
+    PrePared,
+    Running,
+    Paused,
+    Canceled,
+    Finished,
+}
+
+
 public abstract class CacheCommand
 {
-    protected static Dictionary<int,Queue<CacheCommand>> CMDCache ;
+    protected static List<CacheCommand> RunningList = new List<CacheCommand>();
+
+    public const bool AutoPoolManger = true;
 
     public abstract void Release (bool force);
-
-    public abstract void Excute ();
 
     private static int Counter = 0;
 
@@ -25,32 +35,6 @@ public abstract class CacheCommand
         }
     }
 
-    protected bool m_paused =false;
-
-    public bool Paused
-    {
-        get
-        {
-            return this.m_paused;
-        }
-
-        set
-        {
-            if(value)
-            {
-                this._state = CommandState.Paused;
-                this.Pause();
-            }
-            else
-            {
-                this._state = CommandState.Running;
-                this.Resume();
-            }
-            this.m_paused =value;
-        }
-    }
-
-
     private int m_UID;
 
     public int UID
@@ -60,6 +44,13 @@ public abstract class CacheCommand
         }
     }
 
+    public bool isRunning
+    {
+        get
+        {
+            return this.RunningState == CommandState.Running;
+        }
+    }
 
     private CacheCommand _Next;
     public CacheCommand Next
@@ -75,7 +66,7 @@ public abstract class CacheCommand
         }
     }
 
-    protected bool _isDone;
+
     /// <summary>
     /// 命令是否完成，请确保当完成的时候，其被移除掉，不占用引用
     /// </summary>
@@ -84,23 +75,83 @@ public abstract class CacheCommand
     {
         get
         {
-            return this._isDone;
+            return this.RunningState == CommandState.Finished;
         }
     }
-
-
-        
 
     protected void GenID()
     {
         this.m_UID = Counter++;
     }
 
-    public virtual void Stop()
+    public static void CanCelAll()
+    {
+        for (int i = RunningList.Count - 1; i >= 0; --i)
+        {
+            RunningList[i].Cancel();
+        }
+
+        RunningList.Clear();
+    }
+
+    public static void CanCelAllBy(object o)
+    {
+        for (int i = RunningList.Count-1; i >=0;--i)
+        {
+            CacheCommand cmd = RunningList[i];
+            if (cmd.CancelBy(o))
+            {
+                cmd.Cancel();
+            }
+        }
+    }
+
+    protected virtual bool CancelBy(object o)
+    {
+        return false;
+    }
+
+    public virtual void Cancel()
     {
         if (this._state == CommandState.Running)
         {
-            this._state = CommandState.Stoped;
+            this._state = CommandState.Canceled;
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("********* Cmd Cancel :{0}", this);
+
+            RunningList.Remove(this);
+
+            if (AutoPoolManger)
+                this.Release(true);
+        }
+    }
+
+    public virtual void Excute()
+    {
+        if (this._state != CommandState.Running && this._state != CommandState.Paused)
+        {
+            this._state = CommandState.Running;
+            if (FrameWorkConfig.Open_DEBUG)
+            {
+                if (RunningList.Contains(this))
+                {
+                    LogMgr.LogError("has it In List");
+                }
+            }
+
+            RunningList.Add(this);
+        }
+    }
+
+    protected virtual void SetFinished()
+    {
+        if (this._state == CommandState.Running)
+        {
+            this._state = CommandState.Finished;
+
+            RunningList.Remove(this);
+            if (AutoPoolManger)
+                this.Release(true);
         }
     }
 
@@ -109,6 +160,8 @@ public abstract class CacheCommand
         if (this._state == CommandState.Running)
         {
             this._state = CommandState.Paused;
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("********* Cmd Pause :{0}", this);
         }
     }
 
@@ -117,20 +170,9 @@ public abstract class CacheCommand
         if (this._state == CommandState.Paused)
         {
             this._state = CommandState.Running;
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("********* Cmd Resume :{0}", this);
         }
     }
 
-    protected virtual void Reset()
-    {
-        this.m_paused = false;
-        this._isDone = false;
-        this._state = CommandState.PrePared;
-    }
-
-
-    public void ExcuteAndRelease()
-    {
-        this.Excute();
-        this.Release(false);
-    }
 }

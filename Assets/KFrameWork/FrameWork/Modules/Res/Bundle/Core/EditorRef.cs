@@ -1,17 +1,28 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
 using KUtils;
+using UnityEditor;
+
 namespace KFrameWork
 {
     public class EditorRef : IBundleRef
     {
-        private UnityEngine.Object Mainobejct;
+        public UnityEngine.Object MainObject { get; private set; }
 
         private string _name;
 
         public string name
+        {
+            get
+            {
+                return this._name;
+            }
+        }
+
+        public string LoadName
         {
             get
             {
@@ -27,7 +38,7 @@ namespace KFrameWork
             }
         }
 
-        public int RefCount
+        public int InstanceRefCount
         {
             get
             {
@@ -35,10 +46,29 @@ namespace KFrameWork
             }
         }
 
-        public EditorRef(UnityEngine.Object o,string name)
+        public bool SupportAsync
         {
-            this.Mainobejct = o;
+            get
+            {
+                return false;
+            }
+        }
+
+        public int SelfRefCount
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        private string _editorpath;
+
+        public EditorRef(UnityEngine.Object o,string name,string editorpath)
+        {
+            this.MainObject = o;
             this._name = name;
+            _editorpath = editorpath;
         }
 
         public void NeedThis(IBundleRef dep)
@@ -53,28 +83,39 @@ namespace KFrameWork
 
         public bool Instantiate(out UnityEngine.Object target, Component c = null)
         {
-            if (Mainobejct == null)
+            if (MainObject == null)
             {
                 target = null;
                 return false;
             }
 
 
-            if (Mainobejct is GameObject)
+            if (MainObject is GameObject)
             {
-                target = GameObject.Instantiate(Mainobejct);
+                target = GameObject.Instantiate(MainObject);
             }
             else
             {
-                target = Mainobejct;
+                target = MainObject;
             }
             return true;
         }
 
         public bool LoadAsset(out UnityEngine.Object target)
         {
-            target = this.Mainobejct;
+            target = this.MainObject;
             return true;
+        }
+
+        public bool LoadAsset(string abname, out UnityEngine.Object target)
+        {
+            target = this.MainObject;
+            return true;
+        }
+
+        public AssetBundleRequest LoadAssetAsync()
+        {
+            return null;
         }
 
         public void Lock(LockType tp = LockType.END)
@@ -91,7 +132,55 @@ namespace KFrameWork
         {
 
         }
+
+        public UnityEngine.Object InstantiateWithBundle(UnityEngine.Object prefab, Component c = null)
+        {
+            if (prefab is GameObject)
+            {
+                return GameObject.Instantiate(prefab);
+            }
+            else
+                return prefab;
+        }
+
+        public UnityEngine.Object SimpleInstantiate()
+        {
+            UnityEngine.Object o;
+            this.Instantiate(out o);
+            return o;
+        }
+
+        public void Retain()
+        {
+            
+        }
+
+        public void Retain(UnityEngine.Object o)
+        {
+           
+        }
+
+        public void Release()
+        {
+            
+        }
+
+        public string[] GetAllAssetNames()
+        {
+            return null;
+        }
+
+        public void Release(UnityEngine.Object o)
+        {
+            
+        }
+
+        public bool LoadAllAssets(out UnityEngine.Object[] target)
+        {
+            target = AssetDatabase.LoadAllAssetsAtPath(this._editorpath);
+            return true;
+        }
     }
 }
-
+#endif
 

@@ -4,12 +4,17 @@ using System.Collections.Generic;
 using System;
 using System.IO;
 using KUtils;
+#if USE_TANGAB
+using Tangzx.ABSystem;
 
 namespace KFrameWork
 {
     public class BundleBinaryInfo : BundleInfoFilter
     {
-        private Dictionary<string, BundlePkgInfo> caches = new Dictionary<string, BundlePkgInfo>();
+        /// <summary>
+        /// 放弃一点查询的开销，减少大小写转换的gc开销(统一大小写之后好比较)
+        /// </summary>
+        private SimpleDictionary<string, BundlePkgInfo> caches = new SimpleDictionary<string, BundlePkgInfo>(true);
 
         public void LoadFromMemory(Stream depStream)
         {
@@ -48,28 +53,33 @@ namespace KFrameWork
                 string shortFileName = sr.ReadString();
                 string hash = sr.ReadString();
                 string assetpath = sr.ReadString();
-                int typeData = sr.ReadInt32();
+                sr.ReadInt32();//int typeData =
                 int depsCount = sr.ReadInt32();
                 string[] deps = new string[depsCount];
+                //LogMgr.LogError(shortFileName +" > "+assetpath);
 
                 for (int i = 0; i < depsCount; i++)
                 {
                     deps[i] = names[sr.ReadInt32()];
                 }
-
                 BundlePkgInfo pkg = new BundlePkgInfo(hash, name, shortFileName, assetpath, null, deps);
 
-                if (!this.caches.ContainsKey(shortFileName))
+                this.caches[shortFileName] = pkg;
+                this.caches[name] = pkg;
+                this.caches[assetpath] = pkg;
+
+                if (BundleConfig.SAFE_MODE)
                 {
-                    this.caches.Add(shortFileName, pkg);
-                    this.caches.Add(name, pkg);
-                }
-                else
-                {
-                    LogMgr.LogErrorFormat("short name dupliate {0}", shortFileName);
+#if UNITY_EDITOR
+                    this.caches[assetpath.Replace("\\", "/")] = pkg;
+#else
+                    this.caches.Add(assetpath, pkg);
+#endif
                 }
             }
 
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("Bundle Count Is {0}", this.caches.Count);
 
             sr.Close();
         }
@@ -77,16 +87,14 @@ namespace KFrameWork
 
         public BundlePkgInfo SeekInfo(string name)
         {
-            if (BundleConfig.SAFE_MODE)
-                name = name.ToLower();
 
             if (this.caches.ContainsKey(name))
             {
                 return this.caches[name];
             }
-            else if (FrameWorkDebug.Open_DEBUG)
+            else if (FrameWorkConfig.Open_DEBUG)
             {
-                LogMgr.LogErrorFormat("Not Found {0} ",name);
+                LogMgr.LogErrorFormat("Not Found {0} In Cache cnt:{1}",name, caches.Count);
             }
 
             return null;
@@ -94,5 +102,5 @@ namespace KFrameWork
 
     }
 }
-
+#endif
 

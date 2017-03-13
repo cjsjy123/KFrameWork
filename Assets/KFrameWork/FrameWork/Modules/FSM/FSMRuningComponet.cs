@@ -214,7 +214,7 @@ namespace KFrameWork
                 }
 
             }
-            else if(FrameWorkDebug.Open_DEBUG && element != null && !element.Active)
+            else if(FrameWorkConfig.Open_DEBUG && element != null && !element.Active)
             {
                 LogMgr.LogErrorFormat("inactive in {0} ",element);
             }

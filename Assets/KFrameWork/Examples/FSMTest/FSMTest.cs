@@ -5,7 +5,7 @@ using System;
 using KFrameWork;
 using KUtils;
 
-
+#if EXAMPLE
 public class FSMTestState:KEnum
 {
     public FSMTestState(string key,int value):base(key,value)
@@ -63,8 +63,8 @@ public class FSMTest : UnityMonoBehaviour {
         if(GUILayout.Button("test delay time SecondState "))
         {
             root.RegisterState<FSMElement>(FSMTestState.SecondState,new DelayTimeRunner());
-            TimeCommand cmd = TimeCommand.Create(ToState2,1f);
-            cmd.ExcuteAndRelease();
+            TimeCommand cmd = TimeCommand.Create(1f,ToState2);
+            cmd.Excute();
         }
 
         if(GUILayout.Button("Awake SecondState  "))
@@ -89,8 +89,8 @@ public class FSMTest : UnityMonoBehaviour {
             runner.delaytime =2f;
             root.RegisterState<FSMElement>(FSMTestState.ThirdState,runner);
 
-            TimeCommand cmd = TimeCommand.Create(ToState3,2f);
-            cmd.ExcuteAndRelease();
+            TimeCommand cmd = TimeCommand.Create(2f,ToState3);
+            cmd.Excute();
         }
 
         if(GUILayout.Button("Register and Awake Fourth state"))
@@ -114,3 +114,4 @@ public class FSMTest : UnityMonoBehaviour {
 
 
 }
+#endif

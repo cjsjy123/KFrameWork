@@ -12,12 +12,12 @@ namespace KFrameWork
 
         private ITask m_task;
 
-        private Action m_Done;
+        private Action<WaitTaskCommand> CallBack;
 
-        [FrameWokAwakeAttribute]
+        [FrameWorkStartAttribute]
         private static void PreLoad(int v)
         {
-            for (int i = 0; i < FrameWorkDebug.Preload_ParamsCount; ++i)
+            for (int i = 0; i < FrameWorkConfig.Preload_ParamsCount; ++i)
             {
                 KObjectPool.mIns.Push(new WaitTaskCommand());
             }
@@ -28,7 +28,7 @@ namespace KFrameWork
             
         }
 
-        public static WaitTaskCommand Create(ITask task ,Action DoneEvent = null)
+        public static WaitTaskCommand Create(ITask task ,Action<WaitTaskCommand> DoneEvent = null)
         {
             if(task == null)
                 throw new FrameWorkResMissingException("Missing Task");
@@ -43,7 +43,7 @@ namespace KFrameWork
                 Command = new WaitTaskCommand();
 
             Command.m_task =task;
-            Command.m_Done =DoneEvent;
+            Command.CallBack =DoneEvent;
 
             return Command;
         }
@@ -53,11 +53,13 @@ namespace KFrameWork
             try
             {
 
-                if(!this.m_bExcuted)
+                if(!this.isRunning)
                 {
                     base.Excute();
+                    if(FrameWorkConfig.Open_DEBUG)
+                        LogMgr.LogFormat("{0} ID:{1} start . ::::Task :{2}",this,this.UID,this.m_task);
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
+                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
                 }
             }
             catch(FrameWorkException ex)
@@ -72,14 +74,22 @@ namespace KFrameWork
             }
         }
 
-        [DelegateMethodAttribute(MainLoopEvent.LateUpdate,"methodID",typeof(WaitTaskCommand))]
+        public static void Destroy()
+        {
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
+        }
+
+        [DelegateMethodAttribute(MainLoopEvent.BeforeUpdate,"methodID",typeof(WaitTaskCommand))]
         private static void _ConfirmFrameDone(System.Object o, int value)
         {
             if(o is WaitTaskCommand)
             {
                 WaitTaskCommand cmd = o as WaitTaskCommand;
-                if( (cmd.m_task == null || !cmd.m_task.KeepWaiting) && !cmd.m_paused)
+                if( (cmd.m_task == null || !cmd.m_task.KeepWaiting) && cmd.RunningState != CommandState.Paused)
                 {
+                    if(FrameWorkConfig.Open_DEBUG)
+                        LogMgr.LogFormat("{0} ID:{1} finished . ::::Task :{2}",cmd,cmd.UID,cmd.m_task);
+                    
                     cmd.End();
                 }
             }
@@ -91,44 +101,61 @@ namespace KFrameWork
 
         private void End()
         {
-            this.Stop();
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
+
             this.TryBatch();
+            this.SetFinished();
         }
 
-        public override void Stop ()
+        protected override bool CancelBy(object o)
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
-            this.Reset();
-            this._isDone = true;
-
-            if (this.m_Done != null)
-                this.m_Done();
+            if (this.CallBack != null)
+            {
+                Delegate d = this.CallBack as Delegate;
+                if (d.Target == o)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
-        public override void Pause ()
+        public override void Cancel()
         {
-            this.m_paused =true;
+            base.Cancel();
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
+        }
+
+        protected override void SetFinished()
+        {
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+
+            if (this.CallBack != null)
+                this.CallBack(this);
+
+            base.SetFinished();
         }
 
         public override void Resume ()
         {
-            this.m_paused =false;
+            base.Resume();
             if(this.isDone)
                 this.TryBatch();
         }
 
-        public override void AwakeFromPool ()
+        public override void RemoveToPool ()
         {
-            base.AwakeFromPool ();
+            base.RemoveToPool ();
             this.m_task = null;
-            this.m_Done = null;
+            this.CallBack = null;
         }
 
         public override void RemovedFromPool ()
         {
             base.RemovedFromPool ();
             this.m_task = null;
-            this.m_Done = null;
+            this.CallBack = null;
         }
 
         protected override WaitTaskCommand OperatorAdd (CacheCommand other)

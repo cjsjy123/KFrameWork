@@ -3,129 +3,80 @@ using System.Collections;
 using System.Collections.Generic;
 using KUtils;
 using System;
+using System.Reflection;
 
 namespace KFrameWork
 {
     public sealed class SharpScriptLoader : IScriptLoader {
         
-        private List<System.Object> AttachedObject;
         private Delegate ScriptFunc;
+
         private Type RetTp ;
 
-        public bool CanDispose
-        {
-            get
-            {
-                if(this.AttachedObject != null && this.AttachedObject.Count >0)
-                {
-                    return false;
-                }
-                return true;
-            }
-        }
+        public string methodname { get; private set; }
+
+        private WeakReference weakref;
+
+        private MethodInfo method;
 
         public void Init (AbstractParams InitParams)
         {
-            this.ScriptFunc =InitParams.ReadObject() as Delegate;
-            this.RetTp = InitParams.ReadObject() as Type;
+            object passObject =InitParams.ReadObject() ;
+
+            if (passObject != null && passObject is Delegate)
+            {
+                ScriptFunc = passObject as Delegate;
+                this.RetTp = InitParams.ReadObject() as Type;
+                this.methodname = InitParams.ReadString();
+            }
+            else if (passObject != null)
+            {
+                weakref = new WeakReference(passObject);
+                method = InitParams.ReadObject() as MethodInfo;
+            }
         }
 
         public AbstractParams Invoke (AbstractParams ScriptParms)
         {
-            if(this.RetTp == typeof(void))
+            if (ScriptFunc != null)
             {
-                Action<AbstractParams> f =(Action<AbstractParams>) ScriptFunc;
-                if(AttachedObject != null && AttachedObject.Count >0)
+                if (this.RetTp == typeof(void))
                 {
-                    if(ScriptParms == null)
-                    {
-                        ScriptParms =SimpleParams.Create(1);
-                    }
-
-                    bool first =true;
-
-                    for(int i=AttachedObject.Count -1; i >=0;--i )
-                    {
-                        if(first)
-                        {
-                            ScriptParms.InsertObject(0,AttachedObject[i]);
-                            first =false;
-                        }
-                        else
-                        {
-                            ScriptParms.SetObject(0,AttachedObject[i]);
-                        }
-
-                        f(ScriptParms);
-                    }
-
-                    ScriptParms.Release();
+                    Action<AbstractParams> f = (Action<AbstractParams>)ScriptFunc;
+                    f(ScriptParms);
+                    return null;
                 }
                 else
                 {
-                    f(ScriptParms);
+                    Func<AbstractParams, AbstractParams> f = (Func<AbstractParams, AbstractParams>)ScriptFunc;
+                    return f(ScriptParms);
                 }
-                return null;
-
             }
             else
             {
-                Func<AbstractParams,AbstractParams> f =(Func<AbstractParams,AbstractParams>) ScriptFunc;
-                if(AttachedObject != null && AttachedObject.Count >0)
+                if (weakref != null && weakref.IsAlive && method != null)
                 {
-                    AbstractParams lastRet = null;
-                    if(ScriptParms == null)
+                    object ret = method.Invoke(weakref.Target,new object[] { ScriptParms });
+                    if (ret != null && ret is AbstractParams)
                     {
-                        ScriptParms =SimpleParams.Create(1);
+                        return ret as AbstractParams;
                     }
-                    bool first =true;
-                    for(int i=AttachedObject.Count -1; i >=0;--i )
-                    {
-                        if(first)
-                        {
-                            ScriptParms.InsertObject(0,AttachedObject[i]);
-                            first =false;
-                        }
-                        else
-                        {
-                            ScriptParms.SetObject(0,AttachedObject[i]);
-                        }
-
-                        lastRet = f(ScriptParms);
-                    }
-
-                    ScriptParms.Release();
-
-                    return lastRet;
+                    return null;
                 }
                 else
                 {
-                    return f(ScriptParms);
+                    LogMgr.LogWarningFormat("对象方法已经失效 :{0}", methodname);
+                    return null;
                 }
-
             }
-        }
-
-        public void PushAttachObject(System.Object o)
-        {
-            if(this.AttachedObject == null)
-                this.AttachedObject = new List<object>();
-
-            this.AttachedObject.Add(o);
-        }
-
-        public void RemovettachObject(System.Object o)
-        {
-            if(this.AttachedObject != null)
-                this.AttachedObject.Remove(o);
         }
 
         public void Reset ()
         {
             this.RetTp = null;
             this.ScriptFunc = null;
-            if(this.AttachedObject != null)
-                this.AttachedObject.Clear() ;
+            this.weakref = null;
+            this.methodname = null;
         }
     }
 }

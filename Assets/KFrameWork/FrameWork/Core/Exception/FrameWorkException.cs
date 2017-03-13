@@ -57,6 +57,19 @@ namespace KFrameWork
         }
     }
 
+    public class FrameWorkArgumentException : FrameWorkException
+    {
+        public FrameWorkArgumentException(string info) : base(info, ExceptionType.Higher_Excetpion)
+        {
+
+        }
+
+        public override void RaiseExcption()
+        {
+
+        }
+    }
+
     public class FrameWorkResMissingException : FrameWorkException
     {
         public FrameWorkResMissingException(string info) : base(info, ExceptionType.Lower_Exception)

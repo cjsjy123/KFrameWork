@@ -26,7 +26,7 @@ namespace KFrameWork
 
         private long m_startFrame;
 
-        private System.Action Callback;
+        private Action<FrameCommand> Callback;
 
 
         private FrameCommand()
@@ -34,16 +34,16 @@ namespace KFrameWork
             
         }
 
-        [FrameWokAwakeAttribute]
+        [FrameWorkStartAttribute]
         private static void PreLoad(int v)
         {
-            for(int i=0;i < FrameWorkDebug.Preload_ParamsCount;++i)
+            for(int i=0;i < FrameWorkConfig.Preload_ParamsCount;++i)
             {
                 KObjectPool.mIns.Push(new FrameCommand());
             }
         }
 
-        public static FrameCommand Create(System.Action cbk, int delayFrame=1)
+        public static FrameCommand Create(Action<FrameCommand> cbk, int delayFrame=1)
         {
             FrameCommand Command = null;
             if(KObjectPool.mIns != null)
@@ -61,18 +61,23 @@ namespace KFrameWork
 
         }
 
+        public static void Destroy()
+        {
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
+        }
+
         public override void Excute ()
         {
             try
             {
-                if(!this.m_bExcuted)
+                if(!this.isRunning)
                 {
                     base.Excute();
 
                     this.m_startFrame = GameSyncCtr.mIns.RenderFrameCount;
 
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
+                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
                 }
             }
             catch(FrameWorkException ex)
@@ -88,70 +93,108 @@ namespace KFrameWork
 
         }
 
-        [DelegateMethodAttribute(MainLoopEvent.LateUpdate,"methodID",typeof(FrameCommand))]
+        [DelegateMethodAttribute(MainLoopEvent.BeforeUpdate,"methodID",typeof(FrameCommand))]
         private static void _ConfirmFrameDone(System.Object ins, int value)
         {
-            if(ins is FrameCommand)
+            try
             {
-                FrameCommand cmd = ins as FrameCommand;
-                if(GameSyncCtr.mIns.RenderFrameCount - cmd.m_startFrame >= cmd.FrameCount && !cmd.m_paused)
+                if(ins is FrameCommand)
                 {
-                    cmd.End();
+                    FrameCommand cmd = ins as FrameCommand;
+                    if(GameSyncCtr.mIns.RenderFrameCount - cmd.m_startFrame >= cmd.FrameCount && cmd.RunningState != CommandState.Paused)
+                    {
+                        cmd.End();
+                    }
+
+                    if(GameSyncCtr.mIns.NeedReCalculateFrameCnt)
+                    {
+                        long delta = GameSyncCtr.mIns.RenderFrameCount - cmd.m_startFrame;
+                        cmd._frame -= delta;
+                        cmd.m_startFrame =0;
+                    }
+                }
+                else
+                {
+                    LogMgr.LogError(ins);
                 }
             }
-            else
+            catch(FrameWorkException ex)
             {
-                LogMgr.LogError(ins);
+                LogMgr.LogException(ex);
+
+                ex.RaiseExcption();
             }
-
-
+            catch(Exception ex)
+            {
+                LogMgr.LogException(ex);
+            }
         }
 
         private void End()
         {
-            this.Stop();
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
+
             this.TryBatch();
+            this.SetFinished();
         }
 
-        public override void Stop ()
+        protected override bool CancelBy(object o)
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.LateUpdate,methodID,this);
-            this._isDone = true;
-
             if (this.Callback != null)
             {
-                this.Callback ();
+                Delegate d = this.Callback as Delegate;
+                if (d.Target == o)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public override void Cancel()
+        {
+            base.Cancel();
+
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
+        }
+
+        protected override void SetFinished()
+        {
+            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+            if (this.Callback != null)
+            {
+                this.Callback (this);
             }
 
-            
+            base.SetFinished();
         }
 
         public override void Pause ()
         {
             long deltaFrame = GameSyncCtr.mIns.RenderFrameCount - this.m_startFrame;
-            if(deltaFrame < FrameCount)
+            if(deltaFrame < FrameCount && this.RunningState == CommandState.Running)
             {
                 this._frame = this.FrameCount - deltaFrame;
                 this.m_pausedStartFrame = GameSyncCtr.mIns.RenderFrameCount;
-                this.m_paused =true;
             }
         }
 
         public override void Resume ()
         {
-            if(this.m_paused)
+            if(this.RunningState == CommandState.Paused)
             {
+                base.Resume();
                 this.m_pausedFrameCnt+=GameSyncCtr.mIns.RenderFrameCount - this.m_pausedStartFrame;
-                this.m_paused =false;
 
                 if(!this.isDone)
                     this.TryBatch();
             }
         }
 
-        public override void AwakeFromPool ()
+        public override void RemoveToPool ()
         {
-            base.AwakeFromPool ();
+            base.RemoveToPool ();
             this.m_pausedStartFrame =0;
             this.m_pausedFrameCnt =0;
             this._frame = 0;
@@ -173,7 +216,7 @@ namespace KFrameWork
                 this.m_bReleased =true;
 
                 if(!this.isDone)
-                    LogMgr.LogWarning("帧命令未执行完毕，就被销毁了");
+                    LogMgr.LogWarning("命令未执行完毕，就被销毁了");
 
                 if(KObjectPool.mIns  != null)
                 {

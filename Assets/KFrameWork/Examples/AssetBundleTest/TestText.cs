@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System;
 using KUtils;
 using UnityEngine.UI;
-
+#if EXAMPLE
 public class TestText : MonoBehaviour {
     public Sprite tex;
     public Image img;
@@ -20,3 +20,4 @@ public class TestText : MonoBehaviour {
 	
 	}
 }
+#endif

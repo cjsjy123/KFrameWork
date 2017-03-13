@@ -11,7 +11,7 @@ namespace KFrameWork
     /// 引用计数对象
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public sealed class SharedPtr<T> : ISharedPtr, IEquatable<SharedPtr<T>>,IEquatable<T>, IDisposable where T : class, IDisposable,ICloneable, new()
+    public sealed class SharedPtr<T> : ISharedPtr,IEquatable<SharedPtr<T>>,IEquatable<T>, IDisposable where T : class, IDisposable,ICloneable, new()
     {
 
         private T data;
@@ -24,7 +24,7 @@ namespace KFrameWork
         {
             get
             {
-                return data != null;
+                return data != null && this.Count !=0;
             }
         }
 
@@ -57,11 +57,16 @@ namespace KFrameWork
             this.Restore(target);
         }
 
-        public void Restore(T target)
+        public bool Restore(T target)
         {
-            this.data = target;
-            this.counter = 0;
-            this.lockval = 0;
+            if (this.data == null)
+            {
+                this.data = target;
+                this.counter = 0;
+                this.lockval = 0;
+                return true;
+            }
+            return false;
         }
 
         public void Lock(LockType locktp)
@@ -125,7 +130,6 @@ namespace KFrameWork
             {
                 if (counter == 0 && data != null && !this.isLock(LockType.DontDestroy))
                 {
-
                     data.Dispose();
                     data = null;
                     lockval = 0;

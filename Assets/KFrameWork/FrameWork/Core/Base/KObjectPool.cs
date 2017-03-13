@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using KFrameWork;
+using UnityEngine;
 
 namespace KUtils
 {
@@ -10,7 +11,7 @@ namespace KUtils
     /// </summary>
     public interface IPool
     {
-        void AwakeFromPool();
+        void RemoveToPool();
         void RemovedFromPool();
     }
 
@@ -28,25 +29,47 @@ namespace KUtils
 
         public const float RmovedDelta = 10f;
 
-        private Dictionary<Type, List<IPool>> queue = new Dictionary<Type, List<IPool>>(16);
+        private Dictionary<Type, List<System.Object>> queue = new Dictionary<Type, List<System.Object>>(16);
 
         private Dictionary<Type,List<float> >  deltalist = new Dictionary<Type,List<float>>(16);
 
 
-        public void Push<T>(T data) where T:IPool
+        public void Push(System.Object data)
         {
-            Type tp = typeof(T);
-            if(!this.queue.ContainsKey(tp))
+            Type tp = data.GetType();
+            if (!this.queue.ContainsKey(tp))
             {
-                this.queue.Add(tp, new List<IPool>(8));
-                this.deltalist.Add(tp,new List<float>(8));
+                this.queue.Add(tp, new List<System.Object>(8));
+                this.deltalist.Add(tp, new List<float>(8));
             }
 
-            this.queue[tp].Add(data);
-            this.deltalist[tp].Add(UnityEngine.Time.realtimeSinceStartup);
+#if UNITY_EDITOR
+            if (this.queue[tp].TryAdd(data))
+#else
+                this.queue[tp].Add(data);
+#endif
+            {
+                if (data is IPool)
+                {
+                    (data as IPool).RemoveToPool();
+                }
+
+                //if (FrameWorkConfig.Open_DEBUG)
+                //{
+                //    LogMgr.LogFormat("{0}进入缓存池 ", data);
+                //}
+
+                this.deltalist[tp].Add(Time.realtimeSinceStartup);
+            }
+#if UNITY_EDITOR
+            else
+            {
+                LogMgr.LogErrorFormat("重复添加 :{0}",data);
+            }
+#endif
         }
 
-        [ScenLeave]
+        [SceneLeave]
         public  static void SceneRemoveUnUsed(int level)
         {
             if(KObjectPool.mIns != null)
@@ -55,21 +78,32 @@ namespace KUtils
             }
         }
 
+        public void Destroy()
+        {
+            FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelLeaved, typeof(KObjectPool), "SceneRemoveUnUsed");
+        }
+
         private void RemoveSomeOlded()
         {
             float now = UnityEngine.Time.realtimeSinceStartup;
-            //in unity5.4  fixed foreach bug
+ 
             int removedCount = 0;
 
-            foreach (var kv in this.queue)
+            var en = this.queue.GetEnumerator();
+            while (en.MoveNext())
             {
-                List<float>  list = this.deltalist[kv.Key];
+                var kv = en.Current;
+                List<float> list = this.deltalist[kv.Key];
                 for (int i = list.Count - 1; i >= 0; i--)
                 {
                     if (now - list[i] > RmovedDelta)
                     {
                         list.RemoveAt(i);
-                        kv.Value[i].RemovedFromPool();
+                        object kvvalue = kv.Value[i];
+                        if (kvvalue is IPool)
+                        {
+                            (kvvalue as IPool).RemoveToPool();
+                        }
                         kv.Value.RemoveAt(i);
                         removedCount++;
 
@@ -78,7 +112,6 @@ namespace KUtils
                     }
                 }
             }
- 
         }
 
         public T Seek<T,U>(Func<T,U,int> seekFunc,U userdata,int seekTimes =-1) where T:IPool
@@ -86,11 +119,11 @@ namespace KUtils
             Type tp = typeof(T);
             if (!this.queue.ContainsKey(tp))
             {
-                this.queue.Add(tp, new List<IPool>(8));
+                this.queue.Add(tp, new List<System.Object>(8));
                 this.deltalist.Add(tp, new List<float>(8));
             }
 
-            List<IPool> list = this.queue[tp];
+            List<System.Object> list = this.queue[tp];
 
             if (list.Count == 0)
             {
@@ -132,12 +165,15 @@ namespace KUtils
                     }
                 }
 
-                list.Remove(nearst);
+                int index = list.IndexOf(nearst);
+                if (index != -1)
+                {
+                    list.RemoveAt(index);
+                    this.deltalist[tp].RemoveAt(index);
+                }
+
                 return nearst;
             }
-            
-           
-
         }
 
         public void Clear()
@@ -150,16 +186,16 @@ namespace KUtils
         /// Pop this instance.(不使用New（） 因为这个会调用反射的Activator.CreateInstance 产生GC)
         /// </summary>
         /// <typeparam name="T">The 1st type parameter.</typeparam>
-        public T Pop<T>() where T:IPool
+        public T Pop<T>()
         {
             Type tp = typeof(T);
             if (!this.queue.ContainsKey(tp))
             {
-                this.queue.Add(tp, new List<IPool>(8));
+                this.queue.Add(tp, new List<System.Object>(8));
                 this.deltalist.Add(tp, new List<float>(8));
             }
 
-           List<IPool> list = this.queue[tp];
+           List<System.Object> list = this.queue[tp];
 
            if (list.Count == 0)
             {
@@ -167,10 +203,13 @@ namespace KUtils
             }
             else
             {
-                IPool first = list[0];
+                System.Object first = list[0];
                 list.RemoveAt(0);
                 this.deltalist[tp].RemoveAt(0);
-                first.AwakeFromPool();
+                //if (FrameWorkConfig.Open_DEBUG)
+                //{
+                //    LogMgr.LogFormat("{0}离开缓存缓存池 ", first);
+                //}
                 return (T)first;
             }
         }

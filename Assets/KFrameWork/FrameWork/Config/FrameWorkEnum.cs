@@ -5,6 +5,18 @@ using KUtils;
 namespace KFrameWork
 {
 
+    public enum UIAlign
+    {
+        LEFT_TOP,
+        LEFT_DOWN,
+        RIGHT_TOP,
+        RIGHT_DOWN,
+        CENTER,
+        CENTER_TOP,
+        CENTER_DOWN,
+    }
+
+
     public enum RegisterType
     {
         None ,
@@ -12,6 +24,10 @@ namespace KFrameWork
         ClassAttr ,
 
         MethodAtt ,
+        /// <summary>
+        /// just runtime
+        /// </summary>
+        InstacenMethodAttr,
 
         END,
 
@@ -26,24 +42,16 @@ namespace KFrameWork
 
     }
 
-    public enum FrameWorkEvent
-    {
-        EnterScene,
-        LeaveScene,
-        NetSend,
-        NetReceiver,
-
-    }
     /// <summary>
     /// MainLoop 的生命周期事件
     /// </summary>
     public enum MainLoopEvent
-    {
-        Awake,
+    { 
         Start,
         FixedUpdate,
         BeforeUpdate,
         Update,
+        AfterUpdate,
         LateUpdate,
         OnLevelWasLoaded,
 
@@ -55,7 +63,7 @@ namespace KFrameWork
         OnEnable,
 
         ///extensions
-        OnlevelLeaved,
+        OnLevelLeaved,
         END
     }
 
@@ -72,6 +80,7 @@ namespace KFrameWork
         VETOR3  = 8,
         OBJECT  = 9,
         UNITYOBJECT = 10,
+        Color       = 11,
     }
 
     public enum ScriptTarget
