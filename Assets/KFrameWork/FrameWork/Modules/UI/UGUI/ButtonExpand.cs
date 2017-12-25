@@ -12,7 +12,7 @@ namespace KFrameWork
     {
         private RectTransform rect;
 
-        public RectTransform recttransform
+        public RectTransform rectTransform
         {
             get
             {
@@ -34,70 +34,85 @@ namespace KFrameWork
             }
         }
 
-        public override bool IsActive ()
-    	{
-    		return base.IsActive ();
-    	}
+        public TextExpand btnlabel;
 
-    	protected override void OnRectTransformDimensionsChange ()
-    	{
-    		base.OnRectTransformDimensionsChange ();
-    	}
+        public override bool IsActive()
+        {
+            return base.IsActive();
+        }
 
-    	protected override void OnBeforeTransformParentChanged ()
-    	{
-    		base.OnBeforeTransformParentChanged ();
-    	}
+        protected override void Awake()
+        {
+            base.Awake();
 
-    	protected override void OnTransformParentChanged ()
-    	{
-    		base.OnTransformParentChanged ();
-    	}
+            if (btnlabel == null)
+            {
+                Transform tr = this.transform.Find("Label");
+                if (tr != null)
+                    btnlabel = tr.GetComponent<TextExpand>();
+            }
 
-    	protected override void OnDidApplyAnimationProperties ()
-    	{
-    		base.OnDidApplyAnimationProperties ();
-    	}
+        }
 
-    	protected override void OnCanvasGroupChanged ()
-    	{
-    		base.OnCanvasGroupChanged ();
-    	}
+        //protected override void OnRectTransformDimensionsChange()
+        //{
+        //    base.OnRectTransformDimensionsChange();
+        //}
 
-    	protected override void OnCanvasHierarchyChanged ()
-    	{
-    		base.OnCanvasHierarchyChanged ();
-    	}
+        //protected override void OnBeforeTransformParentChanged()
+        //{
+        //    base.OnBeforeTransformParentChanged();
+        //}
 
-    	public override bool IsInteractable ()
-    	{
-    		return base.IsInteractable ();
-    	}
+        //protected override void OnTransformParentChanged()
+        //{
+        //    base.OnTransformParentChanged();
+        //}
 
-    	public override Selectable FindSelectableOnLeft ()
-    	{
-    		return base.FindSelectableOnLeft ();
-    	}
+        //protected override void OnDidApplyAnimationProperties()
+        //{
+        //    base.OnDidApplyAnimationProperties();
+        //}
 
-    	public override Selectable FindSelectableOnRight ()
-    	{
-    		return base.FindSelectableOnRight ();
-    	}
+        //protected override void OnCanvasGroupChanged()
+        //{
+        //    base.OnCanvasGroupChanged();
+        //}
 
-    	public override Selectable FindSelectableOnUp ()
-    	{
-    		return base.FindSelectableOnUp ();
-    	}
+        //protected override void OnCanvasHierarchyChanged()
+        //{
+        //    base.OnCanvasHierarchyChanged();
+        //}
 
-    	public override Selectable FindSelectableOnDown ()
-    	{
-    		return base.FindSelectableOnDown ();
-    	}
+        //public override bool IsInteractable()
+        //{
+        //    return base.IsInteractable();
+        //}
 
-    	public override void Select ()
-    	{
-    		base.Select ();
-    	}
+        //public override Selectable FindSelectableOnLeft()
+        //{
+        //    return base.FindSelectableOnLeft();
+        //}
+
+        //public override Selectable FindSelectableOnRight()
+        //{
+        //    return base.FindSelectableOnRight();
+        //}
+
+        //public override Selectable FindSelectableOnUp()
+        //{
+        //    return base.FindSelectableOnUp();
+        //}
+
+        //public override Selectable FindSelectableOnDown()
+        //{
+        //    return base.FindSelectableOnDown();
+        //}
+
+        //public override void Select()
+        //{
+        //    base.Select();
+        //}
 
     }
 }

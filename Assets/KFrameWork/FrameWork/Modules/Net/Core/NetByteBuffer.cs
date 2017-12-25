@@ -1,4 +1,4 @@
-﻿#define FLIP
+﻿//#define FLIP
 using System.Collections;
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace KFrameWork
 
     public class NetByteBuffer :IPool,IDisposable
     {
-        private int _Position;
+        private int _Position ;
         /// <summary>
         /// 获得它下一次将要读取的位置
         /// </summary>
@@ -20,6 +20,17 @@ namespace KFrameWork
             get
             {
                 return _Position;
+            }
+
+            set
+            {
+                _Position = value;
+                if (_Position >= DataCount)
+                {
+                    _Position = DataCount - 1;
+                    if (FrameWorkConfig.Open_DEBUG)
+                        ThrowError("Position out of Index");
+                }
             }
         }
         /// <summary>
@@ -47,7 +58,6 @@ namespace KFrameWork
             }
         }
 
-        private int? _capacity;
         /// <summary>
         /// 容量
         /// </summary>
@@ -56,9 +66,9 @@ namespace KFrameWork
         {
             get
             {
-                if(_capacity.HasValue)
+                if(sourceArray != null)
                 {
-                    return _capacity.Value;
+                    return sourceArray.Length;
                 }
                 return 0;
             }
@@ -73,21 +83,18 @@ namespace KFrameWork
         private NetByteBuffer(int size)
         {
             sourceArray = new byte[size];
-            _capacity = size;
         }
 
         private NetByteBuffer(byte[] bys)
         {
             sourceArray = new byte[bys.Length];
             Array.Copy(bys,sourceArray,bys.Length);
-            _capacity = bys.Length;
             this._datacnt = bys.Length;
         }
 
         private void _Reset()
         {
             this._Position =0;
-            this._capacity = this.sourceArray.Length;
             this._datacnt = 0;
         }
 
@@ -95,16 +102,6 @@ namespace KFrameWork
         {
             this._Reset();
             this.Write(bys);
-        }
-
-        private static int _SeekFunc(NetByteBuffer buffer,int target)
-        {
-            if(buffer == null)
-                return -1000000;
-            else
-            {
-                return buffer.capacity - target;
-            }
         }
 
         public static NetByteBuffer Create<T>() where T : struct
@@ -118,8 +115,7 @@ namespace KFrameWork
             NetByteBuffer buffer = null;
             if (KObjectPool.mIns != null)
             {
-
-                buffer = KObjectPool.mIns.Seek<NetByteBuffer, int>(_SeekFunc, size, 5);
+                buffer = KObjectPool.mIns.Pop<NetByteBuffer>();
             }
 
             if (buffer == null)
@@ -128,9 +124,43 @@ namespace KFrameWork
             }
             else
             {
+                if (buffer.capacity < size)
+                {
+                    buffer.Resize(size);
+                }
+
                 buffer._Reset();
             }
             return buffer;
+        }
+
+        private void Resize(int newsize)
+        {
+            byte[] newarray = new byte[newsize];
+            if (this.sourceArray != null)
+            {
+                if (newsize >= this.sourceArray.Length)
+                {
+                    Array.Copy(this.sourceArray, newarray, this.sourceArray.Length);
+                }
+                else
+                {
+                    Array.Copy(this.sourceArray, this.sourceArray.Length - newsize, newarray, 0, newsize);
+                }
+            }
+
+            this.sourceArray = newarray;
+        }
+
+        private void Clear(int offset,int len)
+        {
+            if (this.Position > offset)
+            {
+                this.Position = Math.Max(0,this.Position-len);
+            }
+
+            Array.Copy(this.sourceArray,offset+len,this.sourceArray,offset, this.capacity - offset - len);
+            this._datacnt -= len;
         }
 
         public static NetByteBuffer CreateWithBytes(byte[] bys)
@@ -142,7 +172,7 @@ namespace KFrameWork
                 if(bys  != null)
                     byslen = bys.Length;
 
-                buffer = KObjectPool.mIns.Seek<NetByteBuffer,int>(_SeekFunc,byslen,5);
+                buffer = KObjectPool.mIns.Pop<NetByteBuffer>();
                 if (buffer != null)
                 {
                     buffer._ResetWithBytes(bys);
@@ -167,6 +197,45 @@ namespace KFrameWork
             this.sourceArray = null;
         }
 
+        public static void ThrowErrorFormat<A>(string format, A s1)
+        {
+            throw new ArgumentException(string.Format(format, s1));
+        }
+
+        public static void ThrowErrorFormat<A, B>(string format, A s1, B s2)
+        {
+            throw new ArgumentException(string.Format(format, s1,s2));
+        }
+
+        public static void ThrowErrorFormat<A, B, C>(string format, A s1, B s2, C s3)
+        {
+            throw new ArgumentException(string.Format(format, s1, s2,s3));
+        }
+
+        public static void ThrowErrorFormat<A, B, C, D>(string format, A s1, B s2, C s3, D s4)
+        {
+            throw new ArgumentException(string.Format(format, s1, s2,s3,s4));
+        }
+
+        public static void ThrowErrorFormat<A, B, C, D, F>(string format, A s1, B s2, C s3, D s4, F s5)
+        {
+            throw new ArgumentException(string.Format(format, s1, s2, s3, s4,s5));
+        }
+
+        private static void ThrowError(string info)
+        {
+            throw new ArgumentException(info);
+            //LogMgr.LogError(info);
+        }
+
+        public NetByteBuffer Copy()
+        {
+            NetByteBuffer buffer = CreateWithSize(this.DataCount);
+            buffer.Write(this.sourceArray,0,this.DataCount);
+
+            return buffer;
+        }
+
         public void Dispose ()
         {
             if(KObjectPool.mIns != null)
@@ -185,7 +254,6 @@ namespace KFrameWork
                 Array.Copy(this.sourceArray,newbys,this.sourceArray.Length);
 
                 this.sourceArray = newbys;
-                this._capacity = nextSize;
             }
         }
         /// <summary>
@@ -225,7 +293,7 @@ namespace KFrameWork
             return result;
         }
 
-        public byte ReadByte()
+        public byte Readbyte()
         {
             int endIndex = this.Position;
             if(endIndex < this.DataCount)
@@ -237,7 +305,7 @@ namespace KFrameWork
             throw new ArgumentOutOfRangeException();
         }
 
-        public void WriteByte(byte b)
+        public void Writebyte(byte b)
         {
             int writelen =1;
             int nextsize = this.DataCount + writelen;
@@ -261,8 +329,8 @@ namespace KFrameWork
             {
                 readlen -=(endIndex - this.DataCount);
             }
-            byte[] retbys = null;
 
+            byte[] retbys = null;
             if(readlen >0)
             {
                 retbys = new byte[readlen];
@@ -272,8 +340,39 @@ namespace KFrameWork
 
             return retbys;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="len"></param>
+        /// <returns></returns>
+        public byte[] PopBytes(int offset,int len)
+        {
+            int readlen = len;
 
-        public virtual void Write(byte[] bys, int len =-1)
+            byte[] retbys = null;
+            if (readlen > 0)
+            {
+                retbys = ArrayPool.TrySpawn<byte>(readlen);// new byte[readlen];
+
+                Array.Copy(this.sourceArray, offset, retbys, 0, readlen);
+
+                this._Position = Math.Max(0,_Position - readlen);
+                this._datacnt -= len;
+                //
+                //Array.Clear(this.sourceArray, 0, readlen);
+
+                Resize(this.sourceArray.Length - len);
+            }
+
+            return retbys;
+        }
+
+        public void ClearBytes(int offset, int len)
+        {
+            Clear(offset, len);
+        }
+
+        public virtual void Write(byte[] bys,int offset =0, int len =-1)
         {
             int writelen = 0;
             if(bys != null && bys.Length >0)
@@ -290,7 +389,7 @@ namespace KFrameWork
                 int nextsize = this.DataCount + writelen;
                 this._IncreaseCapacity(nextsize);
 
-                Array.Copy(bys,0,this.sourceArray,this.DataCount,writelen);
+                Array.Copy(bys, offset, this.sourceArray,this.DataCount,writelen);
                 this._datacnt += writelen;
             }
         }
@@ -310,7 +409,7 @@ namespace KFrameWork
             return val;
         }
 
-        protected static void _Reverse(byte[] bys)
+        public static void _Reverse(byte[] bys)
         {
             #if FLIP
             if (!BitConverter.IsLittleEndian)
@@ -345,7 +444,6 @@ namespace KFrameWork
             if (right != null && left != right)
             {
                 left.Write(right.sourceArray);
-                right._capacity =0;
                 right.sourceArray = null;
                 right._Position =0;
             }
@@ -357,7 +455,6 @@ namespace KFrameWork
         {
             if (right != null )
             {
-                _Reverse(right);
                 left.Write(right);
             }
             return left;
@@ -365,13 +462,16 @@ namespace KFrameWork
 
         public static NetByteBuffer operator +(NetByteBuffer left, byte right)
         {
-            left.WriteByte(right);
+            left.Writebyte(right);
             return left;
         }
 
         public static NetByteBuffer operator +(NetByteBuffer left, int right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
@@ -385,43 +485,57 @@ namespace KFrameWork
 
         public static NetByteBuffer operator +(NetByteBuffer left, float right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
         public static NetByteBuffer operator +(NetByteBuffer left, double right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
         public static NetByteBuffer operator +(NetByteBuffer left, short right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
         public static NetByteBuffer operator +(NetByteBuffer left, long right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
         public static NetByteBuffer operator +(NetByteBuffer left, uint right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
         public static NetByteBuffer operator +(NetByteBuffer left, ulong right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
         public static NetByteBuffer operator +(NetByteBuffer left, ushort right)
         {
-            left += BitConverter.GetBytes(right);
+            byte[] bys = BitConverter.GetBytes(right);
+            _Reverse(bys);
+            left += bys;
             return left;
         }
 
@@ -435,6 +549,7 @@ namespace KFrameWork
             {
                 byte[] bs = System.Text.Encoding.UTF8.GetBytes(right);
                 left += (short)bs.Length;
+
                 if (bs.Length > 0)
                     left += bs;
             }
@@ -568,7 +683,7 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 1)
             {
-                byte b  = left.ReadByte();
+                byte b  = left.Readbyte();
 
                 return b ==1 ?true:false;
             }
@@ -584,7 +699,7 @@ namespace KFrameWork
                 
                 return BitConverter.ToInt32(tempBys, 0);
             }
-            LogMgr.LogError("int Read from ByteBuffer Error");
+            ThrowError("int Read from ByteBuffer Error");
 
             return default(int);
         }
@@ -597,7 +712,7 @@ namespace KFrameWork
                 _Reverse(tempBys);
                 return BitConverter.ToUInt32(tempBys, 0);
             }
-            LogMgr.LogError("uint Read from ByteBuffer Error");
+            ThrowError("uint Read from ByteBuffer Error");
 
             return default(UInt32);
         }
@@ -610,7 +725,7 @@ namespace KFrameWork
                 _Reverse(tempBys);
                 return BitConverter.ToInt16(tempBys, 0);
             }
-            LogMgr.LogError("short Read from ByteBuffer Error");
+            ThrowError("short Read from ByteBuffer Error");
 
             return default(short);
         }
@@ -623,7 +738,7 @@ namespace KFrameWork
                 _Reverse(tempBys);
                 return BitConverter.ToSingle(tempBys, 0);
             }
-            LogMgr.LogError("float Read from ByteBuffer Error");
+            ThrowError("float Read from ByteBuffer Error");
 
             return default(float);
         }
@@ -636,7 +751,7 @@ namespace KFrameWork
                 _Reverse(tempBys);
                 return BitConverter.ToDouble(tempBys, 0);
             }
-            LogMgr.LogError("double Read from ByteBuffer Error");
+            ThrowError("double Read from ByteBuffer Error");
 
             return default(double);
         }
@@ -649,7 +764,7 @@ namespace KFrameWork
                 _Reverse(tempBys);
                 return BitConverter.ToUInt16(tempBys, 0);
             }
-            LogMgr.LogError("ushort Read from ByteBuffer Error");
+            ThrowError("ushort Read from ByteBuffer Error");
 
             return default(ushort);
         }
@@ -662,7 +777,7 @@ namespace KFrameWork
                 _Reverse(tempBys);
                 return BitConverter.ToUInt64(tempBys, 0);
             }
-            LogMgr.LogError("ulong Read from ByteBuffer Error");
+            ThrowError("ulong Read from ByteBuffer Error");
 
             return default(ulong);
         }
@@ -671,9 +786,9 @@ namespace KFrameWork
         {
             if (left != null && left.byteAviliable >= 1)
             {
-                return left.ReadByte();
+                return left.Readbyte();
             }
-            LogMgr.LogError("byte Read from ByteBuffer Error");
+            ThrowError("byte Read from ByteBuffer Error");
             return default(byte);
         }
 
@@ -685,7 +800,7 @@ namespace KFrameWork
                 _Reverse(tempBys);
                 return BitConverter.ToInt64(tempBys, 0);
             }
-            LogMgr.LogError("long Read from ByteBuffer Error");
+            ThrowError("long Read from ByteBuffer Error");
             return default(long);
         }
 
@@ -694,11 +809,14 @@ namespace KFrameWork
             if (left != null && left.byteAviliable >= 2)
             {
                 short strLen = (short)left;
+                if (strLen == 0)
+                    return string.Empty;
+
                 var tempBys = left.Read(left.Position,strLen);
-                _Reverse(tempBys);
+                //_Reverse(tempBys);
                 return System.Text.Encoding.UTF8.GetString(tempBys);
             }
-            LogMgr.LogError("string Read from ByteBuffer Error");
+            ThrowError("string Read from ByteBuffer Error");
             return "";
         }
 
@@ -720,13 +838,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     } 
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<int> Read from ByteBuffer Error");
+            ThrowError("List<int> Read from ByteBuffer Error");
             return null;
         }
 
@@ -748,13 +866,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<short> Read from ByteBuffer Error");
+            ThrowError("List<short> Read from ByteBuffer Error");
 
             return null;
         }
@@ -777,13 +895,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<long> Read from ByteBuffer Error");
+            ThrowError("List<long> Read from ByteBuffer Error");
 
             return null;
         }
@@ -806,13 +924,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<uint> Read from ByteBuffer Error");
+            ThrowError("List<uint> Read from ByteBuffer Error");
             return null;
         }
 
@@ -834,13 +952,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<ushort> Read from ByteBuffer Error");
+            ThrowError("List<ushort> Read from ByteBuffer Error");
  
             return null;
         }
@@ -863,13 +981,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<ulong> Read from ByteBuffer Error");
+            ThrowError("List<ulong> Read from ByteBuffer Error");
 
             return null;
         }
@@ -892,13 +1010,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<double> Read from ByteBuffer Error");
+            ThrowError("List<double> Read from ByteBuffer Error");
             return null;
         }
 
@@ -920,13 +1038,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<float> Read from ByteBuffer Error");
+            ThrowError("List<float> Read from ByteBuffer Error");
             return null;
         }
 
@@ -948,13 +1066,13 @@ namespace KFrameWork
                     }
                     else
                     {
-                        LogMgr.LogErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
+                        ThrowErrorFormat("字节空间数量不足！ 只有 {0} 但是需求为:{1}", left.byteAviliable, strLen * 4);
                     }
                 }
                 else
                     return null;
             }
-            LogMgr.LogError("List<bool> Read from ByteBuffer Error");
+            ThrowError("List<bool> Read from ByteBuffer Error");
             return null;
         }
 
@@ -975,278 +1093,35 @@ namespace KFrameWork
                 else
                     return null;
             }
-            LogMgr.LogError("List<string>  Read from ByteBuffer Error");
+            ThrowError("List<string>  Read from ByteBuffer Error");
 
             return null;
         }
 
         #region generic
 
-        public void WriteGeneric<T>(T data) where T : ISeriable
+        public void WriteGeneric<T>(T data) where T : ISerialize
         {
-            this.Write(data.Seriable());
+            this.Write(data.Serialize());
         }
 
-        public void WriteGenericList<T>(List<T> data) where T : ISeriable
+        public void WriteGenericList<T>(List<T> data) where T : ISerialize
         {
             if (data == null)
             {
-                this.WriteShort(0);
+                this.Writeshort(0);
             }
             else
             {
-                this.WriteShort((short)data.Count);
+                this.Writeshort((short)data.Count);
                 for (int i = 0; i < data.Count; ++i)
                 {
-                    this.Write(data[i].Seriable());
+                    this.Write(data[i].Serialize());
                 }
             }
         }
 
-        public void WriteGenericDictionary<K, V>(Dictionary<K, V> dict) where K : ISeriable where V : ISeriable
-        {
-            List<K> keys = new List<K>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteGenericList(keys);
-            this.WriteGenericList(values);
-        }
-
-
-        public void WriteGenericDictionary<V>(Dictionary<float, V> dict) where V : ISeriable
-        {
-            List<float> keys = new List<float>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteFloatList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<double, V> dict) where V : ISeriable
-        {
-            List<double> keys = new List<double>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteDoubleList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<int, V> dict) where V : ISeriable
-        {
-            List<int> keys = new List<int>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteIntList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<short, V> dict) where V : ISeriable
-        {
-            List<short> keys = new List<short>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteShortList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<long, V> dict) where V : ISeriable
-        {
-            List<long> keys = new List<long>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteLongList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<uint, V> dict) where V : ISeriable
-        {
-            List<uint> keys = new List<uint>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteUintList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<ushort, V> dict) where V : ISeriable
-        {
-            List<ushort> keys = new List<ushort>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteUShortList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<ulong, V> dict) where V : ISeriable
-        {
-            List<ulong> keys = new List<ulong>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteUlongList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<bool, V> dict) where V : ISeriable
-        {
-            List<bool> keys = new List<bool>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteBoolList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public void WriteGenericDictionary<V>(Dictionary<string, V> dict) where V : ISeriable
-        {
-            List<string> keys = new List<string>(dict.Keys);
-            List<V> values = new List<V>(dict.Values);
-            this.WriteStringList(keys);
-            this.WriteGenericList(values);
-        }
-
-        public Dictionary<K, V> ReadGenericDictionary<K, V>() where K:IDeseriable,new()  where V:IDeseriable,new()
-        {
-            List<K> keys = ReadGenericList<K>();
-            List<V> values= ReadGenericList<V>();
-
-            Dictionary<K, V> dict = new Dictionary<K, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i],values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<int, V> ReadIntDictionary< V>() where V : IDeseriable, new()
-        {
-            List<int> keys = ReadIntList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<int, V> dict = new Dictionary<int, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<short, V> ReadShortDictionary<V>() where V : IDeseriable, new()
-        {
-            List<short> keys = ReadShortList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<short, V> dict = new Dictionary<short, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<long, V> ReadLongDictionary<V>() where V : IDeseriable, new()
-        {
-            List<long> keys = ReadLongList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<long, V> dict = new Dictionary<long, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<uint, V> ReadUintDictionary<V>() where V : IDeseriable, new()
-        {
-            List<uint> keys = ReadUIntList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<uint, V> dict = new Dictionary<uint, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<ushort, V> ReadUshortDictionary<V>() where V : IDeseriable, new()
-        {
-            List<ushort> keys = ReadUShortList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<ushort, V> dict = new Dictionary<ushort, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<ulong, V> ReadULongictionary<V>() where V : IDeseriable, new()
-        {
-            List<ulong> keys = ReadULongList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<ulong, V> dict = new Dictionary<ulong, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<bool, V> ReadBoolDictionary<V>() where V : IDeseriable, new()
-        {
-            List<bool> keys = ReadBoolList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<bool, V> dict = new Dictionary<bool, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<float, V> ReadFloatDictionary<V>() where V : IDeseriable, new()
-        {
-            List<float> keys = ReadFloatList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<float, V> dict = new Dictionary<float, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<double, V> ReadDoubleDictionary<V>() where V : IDeseriable, new()
-        {
-            List<double> keys = ReadDoubleList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<double, V> dict = new Dictionary<double, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public Dictionary<string, V> ReadStringDictionary<V>() where V : IDeseriable, new()
-        {
-            List<string> keys = ReadStringList();
-            List<V> values = ReadGenericList<V>();
-
-            Dictionary<string, V> dict = new Dictionary<string, V>(keys.Count);
-
-            for (int i = 0; i < keys.Count; ++i)
-            {
-                dict.Add(keys[i], values[i]);
-            }
-            return dict;
-        }
-
-        public List<T> ReadGenericList<T>() where T : IDeseriable,new()
+        public List<T> ReadGenericList<T>() where T : IDeSerialize,new()
         {
             List<T> list = ListPool.TrySpawn<List<T>>();
             short cnt = (short)this;
@@ -1258,124 +1133,131 @@ namespace KFrameWork
             return list;
         }
 
-        public T ReadGeneric<T>() where T:IDeseriable,new()
+        public T ReadGeneric<T>() where T:IDeSerialize,new()
         {
             T data = new T();
-            data.Deseriable(this);
+            data.DeSerialize(this);
             return data;
         }
         #endregion
-        public short ReadShort()
+        public short Readshort()
         {
             return (short)this;
         }
 
         
-        public ushort ReadUShort()
+        public ushort Readushort()
         {
             return (ushort)this;
         }
 
         
-        public uint ReadUInt()
+        public uint Readuint()
         {
             return (uint)this;
         }
 
         
-        public int ReadInt()
+        public int Readint()
         {
             return (int)this;
         }
 
         
-        public float ReadFloat()
+        public float Readfloat()
         {
             return (float)this;
         }
 
         
-        public double ReadDouble()
+        public double Readdouble()
         {
             return (double)this;
         }
 
         
-        public long ReadLong()
+        public long Readlong()
         {
             return (long)this;
         }
 
         
-        public ulong ReadULong()
+        public ulong Readulong()
         {
             return (ulong)this;
         }
 
         
-        public string ReadString()
+        public string Readstring()
         {
             return (string)this;
         }
 
         
-        public List<int> ReadIntList()
+        public List<int> ReadintList()
         {
             return (List<int>)this;
         }
 
         
-        public List<uint> ReadUIntList()
+        public List<uint> ReaduintList()
         {
             return (List<uint>)this;
         }
 
         
-        public List<short> ReadShortList()
+        public List<short> ReadshortList()
         {
             return (List<short>)this;
         }
 
         
-        public List<ushort> ReadUShortList()
+        public List<ushort> ReadushortList()
         {
             return (List<ushort>)this;
         }
 
         
-        public List<long> ReadLongList()
+        public List<long> ReadlongList()
         {
             return (List<long>)this;
         }
 
         
-        public List<ulong> ReadULongList()
+        public List<ulong> ReadulongList()
         {
             return (List<ulong>)this;
         }
 
-        public List<float> ReadFloatList()
+        public List<float> ReadfloatList()
         {
             return (List<float>)this;
         }
 
-        public List<double> ReadDoubleList()
+        public List<double> ReaddoubleList()
         {
             return (List<double>)this;
         }
 
-        public List<string> ReadStringList()
+        public List<string> ReadstringList()
         {
             return (List<string>)this;
         }
 
 
-        public List<bool> ReadBoolList()
+        public List<bool> ReadboolList()
         {
             return (List<bool>)this;
         }
 
-        public void WriteShort(short value)
+        public void Writeshort(short value)
+        {
+            byte[] bys = BitConverter.GetBytes(value);
+            _Reverse(bys);
+            this.Write(bys);
+        }
+
+        public void Writeushort(ushort value)
         {
             byte[] bys = BitConverter.GetBytes(value);
             _Reverse(bys);
@@ -1383,7 +1265,7 @@ namespace KFrameWork
         }
 
         
-        public void WriteUShort(ushort value)
+        public void Writeint(int value)
         {
             byte[] bys = BitConverter.GetBytes(value);
             _Reverse(bys);
@@ -1391,7 +1273,7 @@ namespace KFrameWork
         }
 
         
-        public void WriteInt(int value)
+        public void Writeuint(uint value)
         {
             byte[] bys = BitConverter.GetBytes(value);
             _Reverse(bys);
@@ -1399,7 +1281,14 @@ namespace KFrameWork
         }
 
         
-        public void WriteUint(uint value)
+        public void Writelong(long value)
+        {
+            byte[] bys = BitConverter.GetBytes(value);
+            _Reverse(bys);
+            this.Write(bys);
+        }
+        
+        public void Writeulong(ulong value)
         {
             byte[] bys = BitConverter.GetBytes(value);
             _Reverse(bys);
@@ -1407,39 +1296,23 @@ namespace KFrameWork
         }
 
         
-        public void WriteLong(long value)
+        public void Writebool(bool value)
         {
-            byte[] bys = BitConverter.GetBytes(value);
-            _Reverse(bys);
-            this.Write(bys);
-        }
+            byte[] bys = new byte[1];
+            bys[0] = value ? (byte)1 : (byte)0;
 
-        
-        public void WriteUlong(ulong value)
-        {
-            byte[] bys = BitConverter.GetBytes(value);
-            _Reverse(bys);
-            this.Write(bys);
-        }
-
-        
-        public void WriteBool(bool value)
-        {
-            byte[] bys = BitConverter.GetBytes(value);
-            _Reverse(bys);
             this.Write(bys);
         }
         
-        public void WriteString(string value)
+        public void Writestring(string value)
         {
             byte[] bys = System.Text.Encoding.UTF8.GetBytes(value);
-            this.WriteShort((short)bys.Length);
+            this.Writeshort((short)bys.Length);
 
-            _Reverse(bys);
             this.Write(bys);
         }
         
-        public void WriteFloat(float value)
+        public void Writefloat(float value)
         {
             byte[] bys = BitConverter.GetBytes(value);
             _Reverse(bys);
@@ -1447,105 +1320,105 @@ namespace KFrameWork
         }
 
         
-        public void WriteDouble(double value)
+        public void Writedouble(double value)
         {
             byte[] bys = BitConverter.GetBytes(value);
             _Reverse(bys);
             this.Write(bys);
         }
 
-        public void WriteDoubleList(List<double> value)
+        public void WritedoubleList(List<double> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteDouble(value[i]);
+                this.Writedouble(value[i]);
             }
         }
 
-        public void WriteFloatList(List<float> value)
+        public void WritefloatList(List<float> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteFloat(value[i]);
+                this.Writefloat(value[i]);
             }
         }
 
-        public void WriteShortList(List<short> value)
+        public void WriteshortList(List<short> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteShort(value[i]);
-            }
-        }
-
-        
-        public void WriteUShortList(List<ushort> value)
-        {
-            this.WriteShort((short)value.Count);
-            for (int i = 0; i < value.Count; ++i)
-            {
-                this.WriteUShort(value[i]);
+                this.Writeshort(value[i]);
             }
         }
 
         
-        public void WriteIntList(List<int> value)
+        public void WriteushortList(List<ushort> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteInt(value[i]);
+                this.Writeushort(value[i]);
             }
         }
 
         
-        public void WriteUintList(List<uint> value)
+        public void WriteintList(List<int> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteUint(value[i]);
+                this.Writeint(value[i]);
             }
         }
 
         
-        public void WriteUlongList(List<ulong> value)
+        public void WriteuintList(List<uint> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteUlong(value[i]);
+                this.Writeuint(value[i]);
             }
         }
 
         
-        public void WriteLongList(List<long> value)
+        public void WriteulongList(List<ulong> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteLong(value[i]);
-            }
-        }
-        
-        public void WriteStringList(List<string> value)
-        {
-            this.WriteShort((short)value.Count);
-            for (int i = 0; i < value.Count; ++i)
-            {
-                this.WriteString(value[i]);
+                this.Writeulong(value[i]);
             }
         }
 
-        public void WriteBoolList(List<bool> value)
+        
+        public void WritelongList(List<long> value)
         {
-            this.WriteShort((short)value.Count);
+            this.Writeshort((short)value.Count);
             for (int i = 0; i < value.Count; ++i)
             {
-                this.WriteBool(value[i]);
+                this.Writelong(value[i]);
+            }
+        }
+        
+        public void WritestringList(List<string> value)
+        {
+            this.Writeshort((short)value.Count);
+            for (int i = 0; i < value.Count; ++i)
+            {
+                this.Writestring(value[i]);
+            }
+        }
+
+        public void WriteboolList(List<bool> value)
+        {
+            this.Writeshort((short)value.Count);
+            for (int i = 0; i < value.Count; ++i)
+            {
+                this.Writebool(value[i]);
             }
         }
 

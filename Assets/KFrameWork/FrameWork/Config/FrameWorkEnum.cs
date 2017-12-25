@@ -21,6 +21,8 @@ namespace KFrameWork
     {
         None ,
 
+        Register,
+
         ClassAttr ,
 
         MethodAtt ,
@@ -46,7 +48,8 @@ namespace KFrameWork
     /// MainLoop 的生命周期事件
     /// </summary>
     public enum MainLoopEvent
-    { 
+    {
+        Awake,
         Start,
         FixedUpdate,
         BeforeUpdate,
@@ -85,7 +88,10 @@ namespace KFrameWork
 
     public enum ScriptTarget
     {
-        None,
+        /// <summary>
+        /// unknown, 将会从
+        /// </summary>
+        Unknown,
         Sharp,
         Lua,
     }

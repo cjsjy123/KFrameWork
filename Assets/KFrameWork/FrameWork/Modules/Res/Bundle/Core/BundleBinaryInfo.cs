@@ -5,7 +5,9 @@ using System;
 using System.IO;
 using KUtils;
 #if USE_TANGAB
-using Tangzx.ABSystem;
+
+
+
 
 namespace KFrameWork
 {
@@ -18,6 +20,7 @@ namespace KFrameWork
 
         public void LoadFromMemory(Stream depStream)
         {
+            caches.Clear();
             if (depStream.Length > 4)
             {
                 BinaryReader br = new BinaryReader(depStream);
@@ -34,7 +37,6 @@ namespace KFrameWork
 
             depStream.Close();
         }
-
         private void ReadBinary(BinaryReader sr,Stream fs)
         {
             int namesCount = sr.ReadInt32();
@@ -62,18 +64,24 @@ namespace KFrameWork
                 {
                     deps[i] = names[sr.ReadInt32()];
                 }
-                BundlePkgInfo pkg = new BundlePkgInfo(hash, name, shortFileName, assetpath, null, deps);
+                //if (name.Contains("ai_")|| shortFileName.Contains("ai_"))
+                //{
+                //    LogMgr.LogError("--");
+                //}
+
+                BundlePkgInfo pkg = new BundlePkgInfo(hash, name, shortFileName, assetpath, BundlePkgInfo.ChooseType(assetpath), deps);
 
                 this.caches[shortFileName] = pkg;
-                this.caches[name] = pkg;
+                this.caches[name] = pkg;//hashvalue
+
+#if UNITY_EDITOR
                 this.caches[assetpath] = pkg;
+#endif
 
                 if (BundleConfig.SAFE_MODE)
                 {
 #if UNITY_EDITOR
                     this.caches[assetpath.Replace("\\", "/")] = pkg;
-#else
-                    this.caches.Add(assetpath, pkg);
 #endif
                 }
             }
@@ -87,16 +95,10 @@ namespace KFrameWork
 
         public BundlePkgInfo SeekInfo(string name)
         {
-
             if (this.caches.ContainsKey(name))
             {
                 return this.caches[name];
             }
-            else if (FrameWorkConfig.Open_DEBUG)
-            {
-                LogMgr.LogErrorFormat("Not Found {0} In Cache cnt:{1}",name, caches.Count);
-            }
-
             return null;
         }
 

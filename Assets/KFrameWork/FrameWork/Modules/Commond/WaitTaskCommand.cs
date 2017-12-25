@@ -56,8 +56,8 @@ namespace KFrameWork
                 if(!this.isRunning)
                 {
                     base.Excute();
-                    if(FrameWorkConfig.Open_DEBUG)
-                        LogMgr.LogFormat("{0} ID:{1} start . ::::Task :{2}",this,this.UID,this.m_task);
+                    //if(FrameWorkConfig.Open_DEBUG)
+                    //    LogMgr.LogFormat("{0} ID:{1} start . ::::Task :{2}",this,this.UID,this.m_task);
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
                     MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
                 }
@@ -87,8 +87,8 @@ namespace KFrameWork
                 WaitTaskCommand cmd = o as WaitTaskCommand;
                 if( (cmd.m_task == null || !cmd.m_task.KeepWaiting) && cmd.RunningState != CommandState.Paused)
                 {
-                    if(FrameWorkConfig.Open_DEBUG)
-                        LogMgr.LogFormat("{0} ID:{1} finished . ::::Task :{2}",cmd,cmd.UID,cmd.m_task);
+                    //if(FrameWorkConfig.Open_DEBUG)
+                    //    LogMgr.LogFormat("{0} ID:{1} finished . ::::Task :{2}",cmd,cmd.UID,cmd.m_task);
                     
                     cmd.End();
                 }
@@ -99,10 +99,15 @@ namespace KFrameWork
             }
         }
 
+        public ITask GetTask()
+        {
+            return this.m_task;
+        }
+
         private void End()
         {
-            if (FrameWorkConfig.Open_DEBUG)
-                LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
+            //if (FrameWorkConfig.Open_DEBUG)
+            //    LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
 
             this.TryBatch();
             this.SetFinished();

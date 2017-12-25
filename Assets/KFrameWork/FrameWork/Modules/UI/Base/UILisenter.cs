@@ -2,134 +2,416 @@
 using System.Collections;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using System;
+using UnityEngine.UI;
 
 namespace KFrameWork
 {
-    public class UILisenter : EventTrigger
+    public class ListenerEvent:MonoBehaviour
     {
         public delegate void TriggerDelegate(GameObject go, BaseEventData data);
-        public TriggerDelegate onPointerEnter;
-        public TriggerDelegate onPointerExit;
-        public TriggerDelegate onDrag;
-        public TriggerDelegate onDrop;
-        public TriggerDelegate onPointerDown;
-        public TriggerDelegate onPointerUp;
-        public TriggerDelegate onPointerClick;
-        public TriggerDelegate onSelect;
-        public TriggerDelegate onDeselect;
-        public TriggerDelegate onScroll;
-        public TriggerDelegate onMove;
-        public TriggerDelegate onUpdateSelected;
-        public TriggerDelegate onBeginDrag;
-        public TriggerDelegate onEndDrag;
-        public TriggerDelegate onSubmit;
-        public TriggerDelegate onCancel;
 
-        public override void OnPointerEnter(PointerEventData eventData)
+        TriggerDelegate triggerEvent;
+
+
+        //private Selectable[] scomps;
+
+
+        //void Awake()
+        //{
+        //    scomps = this.GetComponents<Selectable>();
+        //}
+
+        protected bool EventEnable()
         {
-            if (onPointerEnter != null) onPointerEnter(eventData.selectedObject, eventData);
+            if (!isActiveAndEnabled)
+                return false;
+
+            //if (scomps != null)
+            //{
+            //    for (int i = 0; i < scomps.Length; ++i)
+            //    {
+            //        if (!scomps[i].IsInteractable())
+            //            return false;
+            //    }
+            //}
+
+            return true;
         }
 
-        public override void OnPointerExit(PointerEventData eventData)
+        public void Add(TriggerDelegate d)
         {
-            if (onPointerExit != null) onPointerExit(eventData.selectedObject, eventData);
+            triggerEvent += d;
         }
 
-        public override void OnDrag(PointerEventData eventData)
+        public void Remove(TriggerDelegate d)
         {
-            if (onDrag != null)
+            triggerEvent -= d;
+        }
+
+        public void Clear()
+        {
+            triggerEvent = null;
+        }
+
+        public void Invoke(GameObject go, BaseEventData data)
+        {
+            if (triggerEvent != null)
             {
-                onDrag(eventData.selectedObject, eventData);
+                triggerEvent(go, data);
+            }
+        }
+    }
+
+    public class IPointerEnterEvent : ListenerEvent, IPointerEnterHandler
+    {
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IPointerEixtEvent : ListenerEvent, IPointerExitHandler
+    {
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IScrollEvent : ListenerEvent, IScrollHandler
+    {
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IDropEvent : ListenerEvent, IDropHandler
+    {
+
+        public void OnDrop(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IEndDragEvent : ListenerEvent, IEndDragHandler
+    {
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IDragEvent : ListenerEvent, IDragHandler
+    {
+        public void OnDrag(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IBeginDragtEvent : ListenerEvent, IBeginDragHandler
+    {
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IPointerClicEvent : ListenerEvent, IPointerClickHandler
+    {
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IPointerUpEvent : ListenerEvent, IPointerUpHandler
+    {
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IPointerDownEvent : ListenerEvent, IPointerDownHandler
+    {
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IUpdateSelectedEvent : ListenerEvent, IUpdateSelectedHandler
+    {
+        public void OnUpdateSelected(BaseEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class ISubmitEvent : ListenerEvent, ISubmitHandler
+    {
+        public void OnSubmit(BaseEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IMoveEvent : ListenerEvent, IMoveHandler
+    { 
+        public void OnMove(AxisEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class IDeselectEvent : ListenerEvent, IDeselectHandler
+    {
+        public void OnDeselect(BaseEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+    }
+
+    public class ISelectEvent : ListenerEvent, ISelectHandler
+    {
+        public void OnSelect(BaseEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+
+    }
+
+    public class ICancelEvent : ListenerEvent, ICancelHandler
+    {
+
+        public void OnCancel(BaseEventData eventData)
+        {
+            if (EventEnable())
+                this.Invoke(gameObject, eventData);
+        }
+
+    }
+
+    public class UILisenter :MonoBehaviour
+    {
+        private ListenerEvent _onPointerEnter;
+        public ListenerEvent onPointerEnter
+        {
+            get
+            {
+                if (_onPointerEnter == null)
+                    _onPointerEnter = this.gameObject.AddComponent< IPointerEnterEvent>();
+                return _onPointerEnter;
             }
         }
 
-        public override void OnDrop(PointerEventData eventData)
+        private ListenerEvent _onPointerExit;
+        public ListenerEvent onPointerExit
         {
-            if (onDrop != null) onDrop(eventData.selectedObject, eventData);
-        }
-
-        public override void OnPointerDown(PointerEventData eventData)
-        {
-            if (onPointerDown != null) onPointerDown(eventData.selectedObject, eventData);
-        }
-
-        public override void OnPointerUp(PointerEventData eventData)
-        {
-            if (onPointerUp != null) onPointerUp(eventData.selectedObject, eventData);
-        }
-
-        public override void OnPointerClick(PointerEventData eventData)
-        {
-            if (onPointerClick != null) onPointerClick(eventData.selectedObject, eventData);
-        }
-
-        public override void OnSelect(BaseEventData eventData)
-        {
-            if (onSelect != null) onSelect(eventData.selectedObject, eventData);
-        }
-
-        public override void OnDeselect(BaseEventData eventData)
-        {
-            if (onDeselect != null) onDeselect(eventData.selectedObject, eventData);
-        }
-
-        public override void OnScroll(PointerEventData eventData)
-        {
-            if (onScroll != null) onScroll(eventData.selectedObject, eventData);
-        }
-
-        public override void OnMove(AxisEventData eventData)
-        {
-            if (onPointerEnter != null) onPointerEnter(eventData.selectedObject, eventData);
-        }
-
-        public override void OnUpdateSelected(BaseEventData eventData)
-        {
-            if (onUpdateSelected != null) onUpdateSelected(eventData.selectedObject, eventData);
-        }
-
-        public override void OnBeginDrag(PointerEventData eventData)
-        {
-            if (onBeginDrag != null) onBeginDrag(eventData.selectedObject, eventData);
-        }
-
-        public override void OnEndDrag(PointerEventData eventData)
-        {
-            if (onEndDrag != null)
+            get
             {
-                onEndDrag(eventData.selectedObject, eventData);
-            } 
+                if (_onPointerExit == null)
+                    _onPointerExit = this.gameObject.AddComponent< IPointerEixtEvent>();
+                return _onPointerExit;
+            }
         }
 
-        public override void OnSubmit(BaseEventData eventData)
+        private ListenerEvent _onDrag;
+        public ListenerEvent onDrag
         {
-            if (onSubmit != null) onSubmit(eventData.selectedObject, eventData);
+            get
+            {
+                if (_onDrag == null)
+                    _onDrag = this.gameObject.AddComponent< IDragEvent>();
+                return _onDrag;
+            }
         }
 
-        public override void OnCancel(BaseEventData eventData)
+        private ListenerEvent _onDrop;
+        public ListenerEvent onDrop
         {
-            if (onCancel != null) onCancel(eventData.selectedObject, eventData);
+            get
+            {
+                if (_onDrop == null)
+                    _onDrop = this.gameObject.AddComponent< IDropEvent>();
+                return _onDrop;
+            }
         }
 
-        void OnDestroy()
+        private ListenerEvent _onPointerDown;
+        public ListenerEvent onPointerDown
         {
-            this.onPointerEnter = null;
-            this.onPointerExit = null;
-            this.onDrag = null;
-            this.onDrop = null;
-            this.onPointerDown = null;
-            this.onPointerUp = null;
-            this.onPointerClick = null;
-            this.onSelect = null;
-            this.onDeselect = null;
-            this.onScroll = null;
-            this.onMove = null;
-            this.onUpdateSelected = null;
-            this.onBeginDrag = null;
-            this.onEndDrag = null;
-            this.onSubmit = null;
-            this.onCancel = null;
+            get
+            {
+                if (_onPointerDown == null)
+                    _onPointerDown = this.gameObject.AddComponent< IPointerDownEvent>();
+                return _onPointerDown;
+            }
         }
+
+        private ListenerEvent _onPointerUp;
+        public ListenerEvent onPointerUp
+        {
+            get
+            {
+                if (_onPointerUp == null)
+                    _onPointerUp = this.gameObject.AddComponent<IPointerUpEvent>();
+                return _onPointerUp;
+            }
+        }
+
+        private ListenerEvent _onPointerClick;
+        public ListenerEvent onPointerClick
+        {
+            get
+            {
+                if (_onPointerClick == null)
+                    _onPointerClick = this.gameObject.AddComponent<IPointerClicEvent>();
+                return _onPointerClick;
+            }
+        }
+
+        private ListenerEvent _onSelect;
+        public ListenerEvent onSelect
+        {
+            get
+            {
+                if (_onSelect == null)
+                    _onSelect = this.gameObject.AddComponent< ISelectEvent>();
+                return _onSelect;
+            }
+        }
+
+        private ListenerEvent _onDeselect;
+        public ListenerEvent onDeselect
+        {
+            get
+            {
+                if (_onDeselect == null)
+                    _onDeselect = this.gameObject.AddComponent< IDeselectEvent>();
+                return _onDeselect;
+            }
+        }
+
+        private ListenerEvent _onScroll;
+        public ListenerEvent onScroll
+        {
+            get
+            {
+                if (_onScroll == null)
+                    _onScroll = this.gameObject.AddComponent< IScrollEvent>();
+                return _onScroll;
+            }
+        }
+
+        private ListenerEvent _onMove;
+        public ListenerEvent onMove
+        {
+            get
+            {
+                if (_onMove == null)
+                    _onMove = this.gameObject.AddComponent< IMoveEvent>();
+                return _onMove;
+            }
+        }
+
+        private ListenerEvent _onUpdateSelected;
+        public ListenerEvent onUpdateSelected
+        {
+            get
+            {
+                if (_onUpdateSelected == null)
+                    _onUpdateSelected = this.gameObject.AddComponent< IUpdateSelectedEvent>();
+                return _onUpdateSelected;
+            }
+        }
+
+        private ListenerEvent _onBeginDrag;
+        public ListenerEvent onBeginDrag
+        {
+            get
+            {
+                if (_onBeginDrag == null)
+                    _onBeginDrag = this.gameObject.AddComponent< IBeginDragtEvent>();
+                return _onBeginDrag;
+            }
+        }
+
+        private ListenerEvent _onEndDrag;
+        public ListenerEvent onEndDrag
+        {
+            get
+            {
+                if (_onEndDrag == null)
+                    _onEndDrag = this.gameObject.AddComponent< IEndDragEvent>();
+                return _onEndDrag;
+            }
+        }
+
+        private ListenerEvent _onSubmit;
+        public ListenerEvent onSubmit
+        {
+            get
+            {
+                if (_onSubmit == null)
+                    _onSubmit = this.gameObject.AddComponent< ISubmitEvent>();
+                return _onSubmit;
+            }
+        }
+
+        private ListenerEvent _onCancel;
+        public ListenerEvent onCancel
+        {
+            get
+            {
+                if (_onCancel == null)
+                    _onCancel = this.gameObject.AddComponent< ICancelEvent>();
+                return _onCancel;
+            }
+        }
+
+        //void OnDestroy()
+        //{
+        //    this._onPointerEnter = null;
+        //    this._onPointerExit = null;
+        //    this._onDrag = null;
+        //    this._onDrop = null;
+        //    this._onPointerDown = null;
+        //    this._onPointerUp = null;
+        //    this._onPointerClick = null;
+        //    this._onSelect = null;
+        //    this._onDeselect = null;
+        //    this._onScroll = null;
+        //    this._onMove = null;
+        //    this._onUpdateSelected = null;
+        //    this._onBeginDrag = null;
+        //    this._onEndDrag = null;
+        //    this._onSubmit = null;
+        //    this._onCancel = null;
+        //}
+
+
     }
 }
 

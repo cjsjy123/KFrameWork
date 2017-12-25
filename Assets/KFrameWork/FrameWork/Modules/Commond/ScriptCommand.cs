@@ -29,6 +29,15 @@ namespace KFrameWork
                     _Gparams = GenericParams.Create();
                 return _Gparams;
             }
+            set
+            {
+                if (_Gparams != value)
+                {
+                    if (_Gparams != null)
+                        _Gparams.Release();
+                    _Gparams = value;
+                }
+            }
         }
 
         public bool HasCallParams
@@ -39,7 +48,7 @@ namespace KFrameWork
             }
         }
         /// <summary>
-        /// runtime注册时候需要的参数
+        /// runtime注册时候需要的参数(c#动态注册时一个对象-》一个对象类型=》对象方法---- lua则是文件名和方法)
         /// </summary>
         private AbstractParams _Initparams;
         public AbstractParams InitParams
@@ -82,7 +91,7 @@ namespace KFrameWork
         /// <summary>
         /// 脚本对象
         /// </summary>
-        public ScriptTarget target = ScriptTarget.Sharp;
+        public ScriptTarget target = ScriptTarget.Unknown;
 
         public void SetCallParams(AbstractParams p)
         {
@@ -189,7 +198,7 @@ namespace KFrameWork
             base.RemoveToPool();
             if (this._Gparams != null)
             {
-                KObjectPool.mIns.Push(this._Gparams);
+                //KObjectPool.mIns.Push(this._Gparams);
                 this._Gparams = null;
             }
 
@@ -204,11 +213,8 @@ namespace KFrameWork
                 KObjectPool.mIns.Push(this._RParams);
                 this._RParams = null;
             }
-            else
-            {
-                this._RParams =null;
-            }
 
+            this.target = ScriptTarget.Unknown;
         }
 
         public override void RemovedFromPool()

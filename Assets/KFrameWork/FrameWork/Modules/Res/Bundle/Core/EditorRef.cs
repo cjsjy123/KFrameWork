@@ -62,13 +62,16 @@ namespace KFrameWork
             }
         }
 
+        public string filename { get; private set; }
+
         private string _editorpath;
 
-        public EditorRef(UnityEngine.Object o,string name,string editorpath)
+        public EditorRef(UnityEngine.Object o,string bundlename,string name,string editorpath)
         {
             this.MainObject = o;
             this._name = name;
-            _editorpath = editorpath;
+            this.filename = name;
+            this._editorpath = editorpath;
         }
 
         public void NeedThis(IBundleRef dep)

@@ -24,11 +24,14 @@ namespace KFrameWork
 
         private Dictionary<int ,Action<Object,int>> dic;
 
+        private Queue<KeyValuePair<int, Object>> loadQueue ;
+
         public InstanceCacheDelegate()
         {
             this.caches = new List<int>(8);
             this.dic = new Dictionary<int, Action<object, int>>(8);
             this.listDic = new Dictionary<int, List<object>>(8);
+            this.loadQueue = new Queue<KeyValuePair<int, Object>>();
         }
 
         public void Dump(MainLoopEvent mainloopevent)
@@ -111,10 +114,16 @@ namespace KFrameWork
                     }
                     else
                     {
-                        List<Object> l =listDic[id];
-                        for(int j=0; j <l.Count;++j)
+                        List<Object> list =listDic[id];
+                        for(int j= list.Count -1 ; j>=0;--j)
                         {
-                            dic[id](l[j],arg);
+                            dic[id](list[j], arg);
+                        }
+
+                        while (loadQueue.Count > 0)
+                        {
+                            var cell = loadQueue.Dequeue();
+                            listDic[cell.Key].Insert(0,cell.Value);
                         }
                     }
                 }
@@ -134,15 +143,15 @@ namespace KFrameWork
             if(!this.listDic.ContainsKey(id))
             {
                 List<Object> list = new List<object>(8);
-                list.Add(t);
                 this.listDic.Add(id,list);
+                loadQueue.Enqueue(new KeyValuePair<int, object>(id, t));
             }
             else
             {
                 List<Object> list =this.listDic[id];
                 if(!list.Contains(t))
                 {
-                    this.listDic[id].Add(t);
+                    loadQueue.Enqueue(new KeyValuePair<int, object>(id, t));
                 }
 
             }
@@ -186,11 +195,7 @@ namespace KFrameWork
             List<Object> list = this.Get(hashcode);
             if(list != null)
             {
-
-                if(list.Contains(ins))
-                {
-                    return list.Remove(ins) ;
-                }
+                return list.Remove(ins);
             }
             return false;
         }

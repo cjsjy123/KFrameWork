@@ -66,12 +66,17 @@ namespace KFrameWork
 
         public void RemoveLayot(string name)
         {
-            this.layouts.Remove(name);
+            this.layouts.RemoveKey(name);
         }
 
         public void RemoveLayout(AbstractLayout lay)
         {
-            layouts.Remove(lay);
+            layouts.RemoveValue(lay);
+        }
+
+        public bool HasLayout(string name)
+        {
+            return this.layouts.ContainsKey(name);
         }
 
         public void ShowUILayout(string layoutname)
@@ -92,17 +97,26 @@ namespace KFrameWork
             }
         }
 
+        public void CreateALLLayoutForScene()
+        {
+            List<AbstractLayout> values =  layouts.Values;
+            for (int i = 0; i < values.Count; ++i)
+            {
+                values[i].AskCanvas();
+                values[i].HideUILayout();
+            }
+        }
+
         /// <summary>
         /// not include all of the layouts
         /// </summary>
-        public void ClearUI()
+        public void ClearUI(bool all)
         {
             List<AbstractLayout> lays = this.layouts.ReadOnlyValues;
 
             for (int i = 0; i < lays.Count; ++i)
             {
-                if(lays[i].CanDestory)
-                    lays[i].Clear();
+                lays[i].Clear(all);
             }
         }
 
@@ -114,13 +128,21 @@ namespace KFrameWork
             for (int i = 0; i < lays.Count; ++i)
             {
                 AbstractLayout lay = lays[i];
-                if (!lay.CanDestory)
-                {
-                    this.layouts.Add(lay.LayoutName, lay);
-                }
+                this.layouts.Add(lay.LayoutName, lay);
             }
 
             ListPool.TryDespawn(lays);
+        }
+
+        public void Dump()
+        {
+            List<AbstractLayout> lays = this.layouts.Values;
+
+            for (int i = 0; i < lays.Count; ++i)
+            {
+                AbstractLayout lay = lays[i];
+                lay.Dump();
+            }
         }
 
         [SceneEnter]
@@ -133,7 +155,8 @@ namespace KFrameWork
         private static void ListenerScene(int lv)
         {
             mIns.eventsystem = null;
-            mIns.ClearUI();
+            mIns.Dump();
+            mIns.ClearUI(false);
         }
 
         public void Destroy()
@@ -143,7 +166,7 @@ namespace KFrameWork
             {
                 AbstractLayout lay = lays[i];
                 lay.Release();
-                lay.Clear();
+                lay.Clear(true);
             }
 
             this.layouts.Clear();
@@ -151,5 +174,7 @@ namespace KFrameWork
             FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelLeaved, typeof(GameUIControl), "ListenerScene");
             FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelWasLoaded, typeof(GameUIControl), "ListenSceneEnter");
         }
+
+
     }
 }

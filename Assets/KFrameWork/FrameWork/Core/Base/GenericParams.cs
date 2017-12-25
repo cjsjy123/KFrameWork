@@ -16,7 +16,7 @@ namespace KFrameWork
         {
             private List<T> _list ;
 
-            private int ReadCount =0;
+            //private int ReadCount = 0;
 
             public ParamsList()
             {
@@ -46,18 +46,9 @@ namespace KFrameWork
                 }
             }
 
-            public T Pop()
-            {
-                if(_list.Count > ReadCount)
-                {
-                    return _list[ReadCount++];
-                }
-                throw new System.ArgumentOutOfRangeException();
-            }
-
             public void Reset()
             {
-                ReadCount =0;
+                //ReadCount =0;
             }
 
             public void Clear()
@@ -245,13 +236,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                intList.Insert(index,v);
+                intList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.INT,intList.Count-1));
             }
             else
             {
                 _ArgCount++;
-                intList.Insert(index,v);
+                intList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.INT,intList.Count-1));
             }
 
@@ -267,13 +258,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                shortlist.Insert(index,v);
+                shortlist.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.SHORT,shortlist.Count-1));
             }
             else
             {
                 _ArgCount++;
-                shortlist.Insert(index,v);
+                shortlist.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.SHORT,shortlist.Count-1));
             }
 
@@ -289,13 +280,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                strlist.Insert(index,v);
+                strlist.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.STRING,strlist.Count-1));
             }
             else
             {  
                 _ArgCount++;
-                strlist.Insert(index,v);
+                strlist.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.STRING,strlist.Count-1));
             }
 
@@ -311,13 +302,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                boollist.Insert(index,v);
+                boollist.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.BOOL,boollist.Count-1));
             }
             else
             {
                 _ArgCount++;
-                boollist.Insert(index,v);
+                boollist.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.BOOL,boollist.Count-1));
             }
 
@@ -333,13 +324,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                floatList.Insert(index,v);
+                floatList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.FLOAT,floatList.Count-1));
             }
             else
             {   
                 _ArgCount++;
-                floatList.Insert(index,v);
+                floatList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.FLOAT,floatList.Count-1));
             }
 
@@ -355,13 +346,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                doubleList.Insert(index,v);
+                doubleList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.DOUBLE,doubleList.Count-1));
             }
             else
             {
                 _ArgCount++;
-                doubleList.Insert(index,v);
+                doubleList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.DOUBLE,doubleList.Count-1));
             }
 
@@ -377,13 +368,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                longList.Insert(index,v);
+                longList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.LONG,longList.Count-1));
             }
             else
             {
                 _ArgCount++;
-                longList.Insert(index,v);
+                longList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.LONG,longList.Count-1));
             }
             return this;
@@ -398,13 +389,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                vector3List.Insert(index, v);
+                vector3List.Add( v);
                 ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.VETOR3, vector3List.Count - 1));
             }
             else
             {
                 _ArgCount++;
-                vector3List.Insert(index, v);
+                vector3List.Add( v);
                 ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.VETOR3, vector3List.Count - 1));
             }
             return this;
@@ -419,13 +410,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                colorList.Insert(index, v);
+                colorList.Add( v);
                 ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.Color, colorList.Count - 1));
             }
             else
             {
                 _ArgCount++;
-                colorList.Insert(index, v);
+                colorList.Add(v);
                 ArgSortList.Insert(index, new KeyValuePair<int, int>((int)ParamType.Color, colorList.Count - 1));
             }
             return this;
@@ -440,13 +431,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                objList.Insert(index,v);
+                objList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.OBJECT,objList.Count-1));
             }
             else
             {
                 _ArgCount++;
-                objList.Insert(index,v);
+                objList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.OBJECT,objList.Count-1));
             }
 
@@ -462,13 +453,13 @@ namespace KFrameWork
                 _ArgCount++;
                 _virtualArg++;
                 _OriginArgCount++;
-                UnityObjList.Insert(index,v);
+                UnityObjList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.UNITYOBJECT,UnityObjList.Count-1));
             }
             else
             {
                 _ArgCount++;
-                UnityObjList.Insert(index,v);
+                UnityObjList.Add(v);
                 ArgSortList.Insert(index,new KeyValuePair<int, int>((int)ParamType.UNITYOBJECT,UnityObjList.Count-1));
             }
 
@@ -806,7 +797,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Short类型 ");
+                ThrowError("参数类型错误 此为非Short类型 ");
             }
         }
 
@@ -821,7 +812,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非bool类型 ");
+                ThrowError("参数类型错误 此为非bool类型 ");
             }
         }
 
@@ -836,7 +827,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Int类型 ");
+                ThrowError("参数类型错误 此为非Int类型 ");
             }
         }
 
@@ -851,7 +842,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非string类型 ");
+                ThrowError("参数类型错误 此为非string类型 ");
             }
         }
 
@@ -866,7 +857,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Long类型 ");
+                ThrowError("参数类型错误 此为非Long类型 ");
             }
         }
 
@@ -881,7 +872,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Color类型 ");
+                ThrowError("参数类型错误 此为非Color类型 ");
             }
         }
 
@@ -895,7 +886,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Vector3类型 ");
+                ThrowError("参数类型错误 此为非Vector3类型 ");
             }
         }
 
@@ -910,7 +901,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Object类型 ");
+                ThrowError("参数类型错误 此为非Object类型 ");
             }
         }
 
@@ -925,7 +916,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非UnityObject类型 ");
+                ThrowError("参数类型错误 此为非UnityObject类型 ");
             }
         }
 
@@ -940,7 +931,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非float类型 ");
+                ThrowError("参数类型错误 此为非float类型 ");
             }
         }
 
@@ -955,7 +946,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非double类型 ");
+                ThrowError("参数类型错误 此为非double类型 ");
             }
         }
 
@@ -967,11 +958,11 @@ namespace KFrameWork
                 {
                     if(intList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else if(intList != null && ArgSortList[argIndex].Value >= intList.Count)
                     {
-                        LogMgr.LogError("参数索引错误");
+                        ThrowError("参数索引错误");
                     }
                     else
                     {
@@ -980,12 +971,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数类型错误 此为非Int类型 ");
+                    ThrowError("参数类型错误 此为非Int类型 ");
                 }
             }
             else
             {
-                LogMgr.LogError("参数索引错误");
+                ThrowError("参数索引错误");
             }
 
             return this;
@@ -999,11 +990,11 @@ namespace KFrameWork
                 {
                     if(shortlist == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else if(shortlist != null && ArgSortList[argIndex].Value >= shortlist.Count)
                     {
-                        LogMgr.LogError("参数索引错误");
+                        ThrowError("参数索引错误");
                     }
                     else
                     {
@@ -1012,12 +1003,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数类型错误 此为非short类型 ");
+                    ThrowError("参数类型错误 此为非short类型 ");
                 }
             }
             else
             {
-                LogMgr.LogError("参数索引错误");
+                ThrowError("参数索引错误");
             }
 
             return this;
@@ -1029,11 +1020,11 @@ namespace KFrameWork
             {
                 if(boollist == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if(boollist != null && ArgSortList[argIndex].Value >= boollist.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1042,7 +1033,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非bool类型 ");
+                ThrowError("参数类型错误 此为非bool类型 ");
             }
 
             return this;
@@ -1054,11 +1045,11 @@ namespace KFrameWork
             {
                 if(strlist == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if(strlist != null && ArgSortList[argIndex].Value >= strlist.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1067,7 +1058,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非string类型 ");
+                ThrowError("参数类型错误 此为非string类型 ");
             }
 
             return this;
@@ -1079,11 +1070,11 @@ namespace KFrameWork
             {
                 if(longList == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if(longList != null && ArgSortList[argIndex].Value >= longList.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1092,7 +1083,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非long类型 ");
+                ThrowError("参数类型错误 此为非long类型 ");
             }
 
             return this;
@@ -1104,11 +1095,11 @@ namespace KFrameWork
             {
                 if (objList == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if (vector3List != null && ArgSortList[argIndex].Value >= vector3List.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1117,7 +1108,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Vector3类型 ");
+                ThrowError("参数类型错误 此为非Vector3类型 ");
             }
             return this;
         }
@@ -1128,11 +1119,11 @@ namespace KFrameWork
             {
                 if (objList == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if (colorList != null && ArgSortList[argIndex].Value >= colorList.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1141,7 +1132,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非Color类型 ");
+                ThrowError("参数类型错误 此为非Color类型 ");
             }
 
             return this;
@@ -1153,11 +1144,11 @@ namespace KFrameWork
             {
                 if(objList == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if(objList != null && ArgSortList[argIndex].Value >= objList.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1166,7 +1157,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非object类型 ");
+                ThrowError("参数类型错误 此为非object类型 ");
             }
 
             return this;
@@ -1178,11 +1169,11 @@ namespace KFrameWork
             {
                 if(UnityObjList == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if(UnityObjList != null && ArgSortList[argIndex].Value >= UnityObjList.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1191,7 +1182,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非UnityObject类型 ");
+                ThrowError("参数类型错误 此为非UnityObject类型 ");
             }
             return this;
         }
@@ -1202,11 +1193,11 @@ namespace KFrameWork
             {
                 if(this.floatList == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if(floatList != null && ArgSortList[argIndex].Value >= floatList.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1215,7 +1206,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非float类型 ");
+                ThrowError("参数类型错误 此为非float类型 ");
             }
 
             return this;
@@ -1227,11 +1218,11 @@ namespace KFrameWork
             {
                 if(this.doubleList == null)
                 {
-                    LogMgr.LogError("参数列表为空");
+                    ThrowError("参数列表为空");
                 }
                 else if(this.doubleList != null && ArgSortList[argIndex].Value >= this.doubleList.Count)
                 {
-                    LogMgr.LogError("参数索引错误");
+                    ThrowError("参数索引错误");
                 }
                 else
                 {
@@ -1240,7 +1231,7 @@ namespace KFrameWork
             }
             else
             {
-                LogMgr.LogError("参数类型错误 此为非UnityObject类型 ");
+                ThrowError("参数类型错误 此为非UnityObject类型 ");
             }
 
             return this;
@@ -1286,15 +1277,15 @@ namespace KFrameWork
         }
 
 
-        public override ParamType NextValue ()
+        public override int NextValue ()
         {
             if(_NextReadIndex >= ArgSortList.Count)
             {
-                return ParamType.NULL;
+                return 0;
             }
             else
             {
-                return (ParamType)ArgSortList[_NextReadIndex].Key;
+                return ArgSortList[_NextReadIndex].Key;
             }
         }
 
@@ -1303,53 +1294,59 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.INT)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.INT)
                 {
                     if(intList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
 
-                    return intList.Pop();
+                    return intList[kv.Value];
                 }
                 else
                 {
-                    LogMgr.LogError("参数类型不匹配");
+                    ThrowError("参数类型不匹配");
                 }
             }
 
-            LogMgr.LogError("参数数量不足");
+            ThrowError("参数数量不足");
             return 0;
         }
 
-
+        private void ThrowError(string info)
+        {
+           // LogMgr.LogError(info);
+            throw new ArgumentException(info);
+        }
 
         public override short ReadShort()
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.SHORT)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.SHORT)
                 {
                     if(shortlist == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return shortlist.Pop();
+                    return shortlist[kv.Value];
                 }
 
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return 0;
         }
@@ -1358,24 +1355,25 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.FLOAT)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.FLOAT)
                 {
                     if(floatList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return floatList.Pop();
+                    return floatList[kv.Value];
                 }
 
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return 0;
         }
@@ -1384,24 +1382,25 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.DOUBLE)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.DOUBLE)
                 {
                     if(doubleList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return doubleList.Pop();
+                    return doubleList[kv.Value];
                 }
 
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return 0;
         }
@@ -1410,24 +1409,25 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.BOOL)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.BOOL)
                 {
                     if(boollist == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return boollist.Pop();
+                    return boollist[kv.Value];
                 }
 
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return false;
         }
@@ -1436,23 +1436,24 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.STRING)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.STRING)
                 {
                     if(strlist == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return strlist.Pop();
+                    return strlist[kv.Value];
                 }
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return "";
         }
@@ -1461,23 +1462,24 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.LONG)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.LONG)
                 {
                     if(longList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return longList.Pop();
+                    return longList[kv.Value];
                 }
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return 0;
         }
@@ -1486,23 +1488,24 @@ namespace KFrameWork
         {
             if (_NextReadIndex < ArgSortList.Count)
             {
-                if (ArgSortList[_NextReadIndex].Key == (int)ParamType.VETOR3)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.VETOR3)
                 {
                     if (vector3List == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return vector3List.Pop();
+                    return vector3List[kv.Value];
                 }
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return Vector3.zero;
         }
@@ -1511,23 +1514,24 @@ namespace KFrameWork
         {
             if (_NextReadIndex < ArgSortList.Count)
             {
-                if (ArgSortList[_NextReadIndex].Key == (int)ParamType.Color)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.Color)
                 {
                     if (colorList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return colorList.Pop();
+                    return colorList[kv.Value];
                 }
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return Color.white;
         }
@@ -1536,23 +1540,24 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.OBJECT)
+                KeyValuePair<int, int> kv= ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.OBJECT)
                 {
                     if(objList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return objList.Pop();
+                    return objList[kv.Value];
                 }
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return null;
         }
@@ -1561,23 +1566,24 @@ namespace KFrameWork
         {
             if(_NextReadIndex < ArgSortList.Count)
             {
-                if(ArgSortList[_NextReadIndex].Key == (int)ParamType.UNITYOBJECT)
+                KeyValuePair<int, int> kv = ArgSortList[_NextReadIndex];
+                if (kv.Key == (int)ParamType.UNITYOBJECT)
                 {
                     if(UnityObjList == null)
                     {
-                        LogMgr.LogError("参数列表为空");
+                        ThrowError("参数列表为空");
                     }
                     else
                     {
                         this._IncreateIndex();
                     }
-                    return UnityObjList.Pop();
+                    return UnityObjList[kv.Value];
                 }
-                LogMgr.LogError("参数类型不匹配");
+                ThrowError("参数类型不匹配");
             }
             else
             {
-                LogMgr.LogError("参数数量不足");
+                ThrowError("参数数量不足");
             }
             return null;
         }
@@ -1645,6 +1651,14 @@ namespace KFrameWork
                 else if (kv.Key == (int)ParamType.UNITYOBJECT)
                 {
                     sb.AppendFormat("第{0}个参数为: {1} ", i + 1, this.UnityObjList[kv.Value]);
+                }
+                else if (kv.Key == (int)ParamType.Color)
+                {
+                    sb.AppendFormat("第{0}个参数为: {1} ", i + 1, this.colorList[kv.Value]);
+                }
+                else
+                {
+                    LogMgr.LogError("未增加的类型");
                 }
             }
 

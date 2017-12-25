@@ -12,7 +12,7 @@ namespace KFrameWork
 
         private RectTransform rect;
 
-        public RectTransform recttransform
+        public RectTransform rectTransform
         {
             get
             {
@@ -34,101 +34,101 @@ namespace KFrameWork
             }
         }
 
-        public override bool IsActive ()
-		{
-			return base.IsActive ();
-		}
+  //      public override bool IsActive ()
+		//{
+		//	return base.IsActive ();
+		//}
 
 
-		protected override void OnRectTransformDimensionsChange ()
-		{
-			base.OnRectTransformDimensionsChange ();
-		}
+		//protected override void OnRectTransformDimensionsChange ()
+		//{
+		//	base.OnRectTransformDimensionsChange ();
+		//}
 
-		protected override void OnBeforeTransformParentChanged ()
-		{
-			base.OnBeforeTransformParentChanged ();
-		}
+		//protected override void OnBeforeTransformParentChanged ()
+		//{
+		//	base.OnBeforeTransformParentChanged ();
+		//}
 
-		protected override void OnTransformParentChanged ()
-		{
-			base.OnTransformParentChanged ();
-		}
+		//protected override void OnTransformParentChanged ()
+		//{
+		//	base.OnTransformParentChanged ();
+		//}
 
-		protected override void OnDidApplyAnimationProperties ()
-		{
-			base.OnDidApplyAnimationProperties ();
-		}
+		//protected override void OnDidApplyAnimationProperties ()
+		//{
+		//	base.OnDidApplyAnimationProperties ();
+		//}
 
-		protected override void OnCanvasGroupChanged ()
-		{
-			base.OnCanvasGroupChanged ();
-		}
+		//protected override void OnCanvasGroupChanged ()
+		//{
+		//	base.OnCanvasGroupChanged ();
+		//}
 
-		protected override void OnCanvasHierarchyChanged ()
-		{
-			base.OnCanvasHierarchyChanged ();
-		}
+		//protected override void OnCanvasHierarchyChanged ()
+		//{
+		//	base.OnCanvasHierarchyChanged ();
+		//}
 
-		public override bool IsInteractable ()
-		{
-			return base.IsInteractable ();
-		}
+		//public override bool IsInteractable ()
+		//{
+		//	return base.IsInteractable ();
+		//}
 
-		public override Selectable FindSelectableOnLeft ()
-		{
-			return base.FindSelectableOnLeft ();
-		}
+		//public override Selectable FindSelectableOnLeft ()
+		//{
+		//	return base.FindSelectableOnLeft ();
+		//}
 
-		public override Selectable FindSelectableOnRight ()
-		{
-			return base.FindSelectableOnRight ();
-		}
+		//public override Selectable FindSelectableOnRight ()
+		//{
+		//	return base.FindSelectableOnRight ();
+		//}
 
-		public override Selectable FindSelectableOnUp ()
-		{
-			return base.FindSelectableOnUp ();
-		}
+		//public override Selectable FindSelectableOnUp ()
+		//{
+		//	return base.FindSelectableOnUp ();
+		//}
 
-		public override Selectable FindSelectableOnDown ()
-		{
-			return base.FindSelectableOnDown ();
-		}
+		//public override Selectable FindSelectableOnDown ()
+		//{
+		//	return base.FindSelectableOnDown ();
+		//}
 
-		public override void Select ()
-		{
-			base.Select ();
-		}
+		//public override void Select ()
+		//{
+		//	base.Select ();
+		//}
 
-		public override void Rebuild (CanvasUpdate executing)
-		{
-			base.Rebuild (executing);
-		}
+		//public override void Rebuild (CanvasUpdate executing)
+		//{
+		//	base.Rebuild (executing);
+		//}
 
-		public override void LayoutComplete ()
-		{
-			base.LayoutComplete ();
-		}
+		//public override void LayoutComplete ()
+		//{
+		//	base.LayoutComplete ();
+		//}
 
-		public override void GraphicUpdateComplete ()
-		{
-			base.GraphicUpdateComplete ();
-		}
+		//public override void GraphicUpdateComplete ()
+		//{
+		//	base.GraphicUpdateComplete ();
+		//}
 
-		public override void OnBeginDrag (PointerEventData eventData)
-		{
-			base.OnBeginDrag (eventData);
-		}
+		//public override void OnBeginDrag (PointerEventData eventData)
+		//{
+		//	base.OnBeginDrag (eventData);
+		//}
 
-		public override void OnDrag (PointerEventData eventData)
-		{
-			base.OnDrag (eventData);
-		}
+		//public override void OnDrag (PointerEventData eventData)
+		//{
+		//	base.OnDrag (eventData);
+		//}
 
-		public override void OnInitializePotentialDrag (PointerEventData eventData)
-		{
-			base.OnInitializePotentialDrag (eventData);
-		}
+		//public override void OnInitializePotentialDrag (PointerEventData eventData)
+		//{
+		//	base.OnInitializePotentialDrag (eventData);
+		//}
 			
 	}
 

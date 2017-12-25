@@ -9,30 +9,8 @@ namespace KFrameWork
     /// <summary>
     /// 资源引用，只负责由此bundle 加载出来的实例对象，tip:因为存在unload false，所以之前存在的对象将不收到此bundle管理，
     /// </summary>
-    public class BundleRef : IBundleRef, IPool, IDisposable
+    public class BundleRef : IBundleRef, IPool
     {
-        private class AsyncSetAssetTask : ITask
-        {
-            public AsyncOperation _currentAsync;
-            public bool KeepWaiting
-            {
-                get
-                {
-                    return !_currentAsync.isDone;
-                }
-            }
-
-            public AsyncSetAssetTask(AsyncOperation o)
-            {
-                this._currentAsync = o;
-            }
-        }
-
-        public UnityEngine.Object MainObject { get; private set; }
-
-        AsyncSetAssetTask task;
-
-        private string ABfilename;
 
         private SharedPtr<KAssetBundle> Res;
         /// <summary>
@@ -83,6 +61,10 @@ namespace KFrameWork
             }
         }
 
+        public string filename { get; private set; }
+
+        public UnityEngine.Object MainObject { get; private set; }
+
         private BundleRef()
         {
 
@@ -116,7 +98,7 @@ namespace KFrameWork
                 bundle.LoadName = BundlePathConvert.EditorName2AssetName(loadname);
 
             bundle.name = bundlename;
-            bundle.ABfilename = abname;
+            bundle.filename = abname;
             return bundle;
         }
 
@@ -186,22 +168,8 @@ namespace KFrameWork
             }
             else
             {
-                AssetBundleRequest req = Res.get().AsyncLoad(this.LoadName);
-                if (this.MainObject == null || task == null )
-                {
-                    task = new AsyncSetAssetTask(req);
-
-                    WaitTaskCommand cmd = WaitTaskCommand.Create(task, YieldSetMainAsset);
-                    cmd.Excute();
-                }
-
-                return req;
+                return Res.get().AsyncLoad(this.LoadName);
             }
-        }
-
-        private void YieldSetMainAsset(WaitTaskCommand cmd)
-        {
-            this.MainObject = (task._currentAsync as AssetBundleRequest).asset;
         }
 
         public bool LoadAsset(out UnityEngine.Object target )
@@ -283,7 +251,6 @@ namespace KFrameWork
                     return null;
                 }
             }
-
             this.MainObject = prefab;
             if (prefab is GameObject)
             {
@@ -339,9 +306,10 @@ namespace KFrameWork
                     if (FrameWorkConfig.Open_DEBUG)
                         LogMgr.LogFormat("{0} Asset Will {1} Desotry  ", this.LoadName, all);
 
+                    ResBundleMgr.mIns.Cache.Remove(this.filename);
                     this.Res.get().Unload(all);
-                    ResBundleMgr.mIns.Cache.Remove(this.ABfilename);
-                    this.Dispose();
+
+                    KObjectPool.mIns.Push(this);
                 }
 
             }
@@ -411,13 +379,7 @@ namespace KFrameWork
                 this.Res = null;
                 this.refs = null;
                 this.depends = null;
-                this.MainObject = null;
             }
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
         }
 
         public void RemoveToPool()

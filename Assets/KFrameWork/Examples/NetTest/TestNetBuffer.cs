@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#define EXAMPLE
+using UnityEngine;
 using System.Collections;
 using KFrameWork;
 using System;

@@ -6,18 +6,18 @@ using KUtils;
 
 namespace KFrameWork
 {
-    /// <summary>
-    /// 脚本执行顺序定义属性
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class)]
-    public class ScriptInitOrderAttribute : Attribute {
-        public int Order =0;
+    ///// <summary>
+    ///// 脚本执行顺序定义属性
+    ///// </summary>
+    //[AttributeUsage(AttributeTargets.Class)]
+    //public class ScriptInitOrderAttribute : Attribute {
+    //    public int Order =0;
 
-        public ScriptInitOrderAttribute(int order)
-        {
-            this.Order = order;
-        }
-    }
+    //    public ScriptInitOrderAttribute(int order)
+    //    {
+    //        this.Order = order;
+    //    }
+    //}
     /// <summary>
     /// time 定义属性
     /// </summary>
@@ -54,6 +54,21 @@ namespace KFrameWork
         public List<string>  layers;
 
         public LayerSetAttribute(params string[] ts)
+        {
+            this.layers = new List<string>();
+            this.layers.AddRange(ts);
+        }
+    }
+
+    /// <summary>
+    /// sortinglayer定义属性
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)][Obsolete("can use at the moment")]
+    public class SortingLayerSetAttribute : Attribute
+    {
+        public List<string> layers;
+
+        public SortingLayerSetAttribute(params string[] ts)
         {
             this.layers = new List<string>();
             this.layers.AddRange(ts);

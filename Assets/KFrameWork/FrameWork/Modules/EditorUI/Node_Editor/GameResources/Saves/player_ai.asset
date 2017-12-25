@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f6410e80bd6bbb44b592f2cacfa6fc2, type: 3}
+  m_Name: player_ai
+  m_EditorClassIdentifier: 
+  editorStates:
+  - {fileID: 114741954060174026}
+  saveName: player_ai
+  savePath: Assets/KFrameWork/FrameWork/Modules/EditorUI/Node_Editor/GameResources/Saves/player_ai.asset
+  livesInScene: 0
+  nodes:
+  - {fileID: 114212881984142682}
+  - {fileID: 114719163144621356}
+  groups: []
+--- !u!114 &114212881984142682
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99560c74e2563ac4695033ecd687135b, type: 3}
+  m_Name: Try Shoot State
+  m_EditorClassIdentifier: 
+  position: {x: -471, y: -201}
+  dynamicConnectionPorts: []
+  backgroundColor: {r: 1, g: 1, b: 1, a: 1}
+  Priority: 1
+  OutputValue: {fileID: 114304957145967626}
+  InputValue: {fileID: 114220815511894670}
+  tank: {fileID: 0}
+  waitframe: 1
+--- !u!114 &114220815511894670
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ddfde9fe49b4224f95d03350bc86ffc, type: 3}
+  m_Name: Input
+  m_EditorClassIdentifier: 
+  body: {fileID: 114212881984142682}
+  direction: 1
+  maxConnectionCount: 0
+  styleID: Float
+  _connections:
+  - {fileID: 114369356676975294}
+  side: 4
+  sidePosition: 0
+  sideOffset: 0
+--- !u!114 &114304957145967626
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a6ebc80205f48c49bb19c519dca25e1, type: 3}
+  m_Name: Output
+  m_EditorClassIdentifier: 
+  body: {fileID: 114212881984142682}
+  direction: 2
+  maxConnectionCount: 1
+  styleID: Float
+  _connections:
+  - {fileID: 114550078824012142}
+  side: 2
+  sidePosition: 0
+  sideOffset: 0
+--- !u!114 &114369356676975294
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a6ebc80205f48c49bb19c519dca25e1, type: 3}
+  m_Name: Output
+  m_EditorClassIdentifier: 
+  body: {fileID: 114719163144621356}
+  direction: 2
+  maxConnectionCount: 1
+  styleID: Float
+  _connections:
+  - {fileID: 114220815511894670}
+  side: 2
+  sidePosition: 0
+  sideOffset: 0
+--- !u!114 &114550078824012142
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ddfde9fe49b4224f95d03350bc86ffc, type: 3}
+  m_Name: Input
+  m_EditorClassIdentifier: 
+  body: {fileID: 114719163144621356}
+  direction: 1
+  maxConnectionCount: 0
+  styleID: Float
+  _connections:
+  - {fileID: 114304957145967626}
+  side: 4
+  sidePosition: 0
+  sideOffset: 0
+--- !u!114 &114719163144621356
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3b844169e8656047bfb7c52db534ed0, type: 3}
+  m_Name: Pause State
+  m_EditorClassIdentifier: 
+  position: {x: 37, y: -133}
+  dynamicConnectionPorts: []
+  backgroundColor: {r: 1, g: 1, b: 1, a: 1}
+  Priority: 0
+  OutputValue: {fileID: 114369356676975294}
+  InputValue: {fileID: 114550078824012142}
+--- !u!114 &114741954060174026
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6ab6487237ff124ea4c2aa5de9ce3fb, type: 3}
+  m_Name: MainEditorState
+  m_EditorClassIdentifier: 
+  canvas: {fileID: 11400000}
+  parentEditor: {fileID: 0}
+  selectedNode: {fileID: 0}
+  panOffset: {x: 0, y: 0}
+  zoom: 1

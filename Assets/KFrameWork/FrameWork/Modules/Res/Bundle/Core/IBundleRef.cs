@@ -10,6 +10,8 @@ namespace KFrameWork
     {
         string name { get; }
 
+        string filename { get; }
+
         string LoadName { get; }
 
         int DependCount { get; }

@@ -84,10 +84,8 @@ namespace KFrameWork
 		public static void CreateButton(MenuCommand commond)
 		{
 			GameObject go = CreateUIElementRoot("Button", commond, s_ThickGUIElementSize);
-            ImageExpand img= go.AddComponent<ImageExpand>();
-            ButtonExpand btn =go.AddComponent<ButtonExpand>();
-            ClearRays(img);
-            ClearRays(btn);
+            go.AddComponent<ImageExpand>();
+            go.AddComponent<ButtonExpand>();
 
             GameObject textGo = new GameObject("Label");
 			TextExpand text = textGo.AddComponent<TextExpand>();
@@ -153,7 +151,204 @@ namespace KFrameWork
 			Selection.activeObject = go;
 		}
 
-		[MenuItem(root+"Slider",false,5)]
+        public static GameObject CreateScrollbar()
+        {
+            // Create GOs Hierarchy
+            GameObject scrollbarRoot = CreateUIElementRoot("Scrollbar", s_ThickGUIElementSize);
+
+            GameObject sliderArea = CreateObj("Sliding Area", scrollbarRoot);
+            GameObject handle = CreateObj("Handle", sliderArea);
+
+            ImageExpand bgImage = scrollbarRoot.AddComponent<ImageExpand>();
+            bgImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kBackgroundSpriteResourcePath);
+            bgImage.type = Image.Type.Sliced;
+            bgImage.color = whiteColor;
+
+            ImageExpand handleImage = handle.AddComponent<ImageExpand>();
+            handleImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kStandardSpritePath);
+            handleImage.type = Image.Type.Sliced;
+            handleImage.color = whiteColor;
+
+            RectTransform sliderAreaRect = sliderArea.GetComponent<RectTransform>();
+            sliderAreaRect.sizeDelta = new Vector2(-20, -20);
+            sliderAreaRect.anchorMin = Vector2.zero;
+            sliderAreaRect.anchorMax = Vector2.one;
+
+            RectTransform handleRect = handle.GetComponent<RectTransform>();
+            handleRect.sizeDelta = new Vector2(20, 20);
+
+            ScrollbarExpand scrollbar = scrollbarRoot.AddComponent<ScrollbarExpand>();
+            scrollbar.handleRect = handleRect;
+            scrollbar.targetGraphic = handleImage;
+            ColorBlock colors = scrollbar.colors;
+            colors.highlightedColor = new Color(0.882f, 0.882f, 0.882f);
+            colors.pressedColor = new Color(0.698f, 0.698f, 0.698f);
+            colors.disabledColor = new Color(0.521f, 0.521f, 0.521f);
+
+            return scrollbarRoot;
+        }
+
+        [MenuItem(root + "DropDown", false, 5)]
+        public static void CreateDropdown(MenuCommand command)
+        {
+            GameObject root = CreateUIElementRoot("Dropdown",command, s_ThickGUIElementSize);
+
+            GameObject label = CreateObj("Label", root);
+            GameObject arrow = CreateObj("Arrow", root);
+            GameObject template = CreateObj("Template", root);
+            GameObject viewport = CreateObj("Viewport", template);
+            GameObject content = CreateObj("Content", viewport);
+            GameObject item = CreateObj("Item", content);
+            GameObject itemBackground = CreateObj("Item Background", item);
+            GameObject itemCheckmark = CreateObj("Item Checkmark", item);
+            GameObject itemLabel = CreateObj("Item Label", item);
+
+            // Sub controls.
+
+            GameObject scrollbar = CreateScrollbar();
+            scrollbar.name = "Scrollbar";
+            SetParentAndAlign(scrollbar, template);
+
+            ScrollbarExpand scrollbarScrollbar = scrollbar.GetComponent<ScrollbarExpand>();
+            scrollbarScrollbar.SetDirection(Scrollbar.Direction.BottomToTop, true);
+
+            RectTransform vScrollbarRT = scrollbar.GetComponent<RectTransform>();
+            vScrollbarRT.anchorMin = Vector2.right;
+            vScrollbarRT.anchorMax = Vector2.one;
+            vScrollbarRT.pivot = Vector2.one;
+            vScrollbarRT.sizeDelta = new Vector2(vScrollbarRT.sizeDelta.x, 0);
+
+            // Setup item UI components.
+
+            TextExpand itemLabelText = itemLabel.AddComponent<TextExpand>();
+            itemLabelText.alignment = TextAnchor.MiddleLeft;
+            itemLabelText.color = Color.black;
+
+            ImageExpand itemBackgroundImage = itemBackground.AddComponent<ImageExpand>();
+            itemBackgroundImage.color = new Color32(245, 245, 245, 255);
+
+            ImageExpand itemCheckmarkImage = itemCheckmark.AddComponent<ImageExpand>();
+            itemCheckmarkImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kCheckmarkPath);
+
+            ToggleExpand itemToggle = item.AddComponent<ToggleExpand>();
+            itemToggle.targetGraphic = itemBackgroundImage;
+            itemToggle.graphic = itemCheckmarkImage;
+            itemToggle.isOn = true;
+
+            // Setup template UI components.
+
+            ImageExpand templateImage = template.AddComponent<ImageExpand>();
+            templateImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kStandardSpritePath);
+            templateImage.type = Image.Type.Sliced;
+
+            ScrollRect templateScrollRect = template.AddComponent<ScrollRect>();
+            templateScrollRect.content = (RectTransform)content.transform;
+            templateScrollRect.viewport = (RectTransform)viewport.transform;
+            templateScrollRect.horizontal = false;
+            templateScrollRect.movementType = ScrollRect.MovementType.Clamped;
+            templateScrollRect.verticalScrollbar = scrollbarScrollbar;
+            templateScrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+            templateScrollRect.verticalScrollbarSpacing = -3;
+
+            Mask scrollRectMask = viewport.AddComponent<Mask>();
+            scrollRectMask.showMaskGraphic = false;
+
+            ImageExpand viewportImage = viewport.AddComponent<ImageExpand>();
+            viewportImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UIMask.psd");
+            viewportImage.type = Image.Type.Sliced;
+
+            // Setup dropdown UI components.
+
+            TextExpand labelText = label.AddComponent<TextExpand>();
+
+            labelText.text = "Option A";
+            labelText.alignment = TextAnchor.MiddleLeft;
+
+            ImageExpand arrowImage = arrow.AddComponent<ImageExpand>();
+            arrowImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/DropdownArrow.psd");//UI/Skin/DropdownArrow.psd
+
+            ImageExpand backgroundImage = root.AddComponent<ImageExpand>();
+            backgroundImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kStandardSpritePath);
+            backgroundImage.color = whiteColor;
+            backgroundImage.type = Image.Type.Sliced;
+
+            DropDownExpand dropdown = root.AddComponent<DropDownExpand>();
+            dropdown.targetGraphic = backgroundImage;
+
+            ColorBlock colors = dropdown.colors;
+            colors.highlightedColor = new Color(0.882f, 0.882f, 0.882f);
+            colors.pressedColor = new Color(0.698f, 0.698f, 0.698f);
+            colors.disabledColor = new Color(0.521f, 0.521f, 0.521f);
+
+            dropdown.template = template.GetComponent<RectTransform>();
+            dropdown.captionText = labelText;
+            dropdown.itemText = itemLabelText;
+
+            // Setting default Item list.
+            //itemLabelText.text = "Option A";
+
+            // Set up RectTransforms.
+
+            RectTransform labelRT = label.GetComponent<RectTransform>();
+            labelRT.anchorMin = Vector2.zero;
+            labelRT.anchorMax = Vector2.one;
+            labelRT.offsetMin = new Vector2(10, 6);
+            labelRT.offsetMax = new Vector2(-25, -7);
+
+            RectTransform arrowRT = arrow.GetComponent<RectTransform>();
+            arrowRT.anchorMin = new Vector2(1, 0.5f);
+            arrowRT.anchorMax = new Vector2(1, 0.5f);
+            arrowRT.sizeDelta = new Vector2(20, 20);
+            arrowRT.anchoredPosition = new Vector2(-15, 0);
+
+            RectTransform templateRT = template.GetComponent<RectTransform>();
+            templateRT.anchorMin = new Vector2(0, 0);
+            templateRT.anchorMax = new Vector2(1, 0);
+            templateRT.pivot = new Vector2(0.5f, 1);
+            templateRT.anchoredPosition = new Vector2(0, 2);
+            templateRT.sizeDelta = new Vector2(0, 150);
+
+            RectTransform viewportRT = viewport.GetComponent<RectTransform>();
+            viewportRT.anchorMin = new Vector2(0, 0);
+            viewportRT.anchorMax = new Vector2(1, 1);
+            viewportRT.sizeDelta = new Vector2(-18, 0);
+            viewportRT.pivot = new Vector2(0, 1);
+
+            RectTransform contentRT = content.GetComponent<RectTransform>();
+            contentRT.anchorMin = new Vector2(0f, 1);
+            contentRT.anchorMax = new Vector2(1f, 1);
+            contentRT.pivot = new Vector2(0.5f, 1);
+            contentRT.anchoredPosition = new Vector2(0, 0);
+            contentRT.sizeDelta = new Vector2(0, 28);
+
+            RectTransform itemRT = item.GetComponent<RectTransform>();
+            itemRT.anchorMin = new Vector2(0, 0.5f);
+            itemRT.anchorMax = new Vector2(1, 0.5f);
+            itemRT.sizeDelta = new Vector2(0, 20);
+
+            RectTransform itemBackgroundRT = itemBackground.GetComponent<RectTransform>();
+            itemBackgroundRT.anchorMin = Vector2.zero;
+            itemBackgroundRT.anchorMax = Vector2.one;
+            itemBackgroundRT.sizeDelta = Vector2.zero;
+
+            RectTransform itemCheckmarkRT = itemCheckmark.GetComponent<RectTransform>();
+            itemCheckmarkRT.anchorMin = new Vector2(0, 0.5f);
+            itemCheckmarkRT.anchorMax = new Vector2(0, 0.5f);
+            itemCheckmarkRT.sizeDelta = new Vector2(20, 20);
+            itemCheckmarkRT.anchoredPosition = new Vector2(10, 0);
+
+            RectTransform itemLabelRT = itemLabel.GetComponent<RectTransform>();
+            itemLabelRT.anchorMin = Vector2.zero;
+            itemLabelRT.anchorMax = Vector2.one;
+            itemLabelRT.offsetMin = new Vector2(20, 1);
+            itemLabelRT.offsetMax = new Vector2(-10, -2);
+
+            template.SetActive(false);
+
+            //ClearRays(dropdown);
+        }
+
+        [MenuItem(root+"Slider",false,5)]
 		public static void CreateSlider(MenuCommand command )
 		{
 			GameObject go = CreateUIElementRoot("Slider", command, s_ThinGUIElementSize);
@@ -165,9 +360,12 @@ namespace KFrameWork
 			GameObject handle = CreateObj("Handle", handleArea);
 			
 			// Background
-			AddImage(background,Color.white,kBackgroundSpriteResourcePath);
+            var backgroundimg = background.TryAddComponent<ImageExpand>();
+            backgroundimg.sprite =  AssetDatabase.GetBuiltinExtraResource<Sprite>(kBackgroundSpriteResourcePath);
+            backgroundimg.type = Image.Type.Sliced;
+            backgroundimg.color = Color.white;
 
-			RectTransform backgroundRect = background.GetComponent<RectTransform>();
+            RectTransform backgroundRect = background.GetComponent<RectTransform>();
 			backgroundRect.anchorMin = new Vector2(0, 0.25f);
 			backgroundRect.anchorMax = new Vector2(1, 0.75f);
 			backgroundRect.sizeDelta = new Vector2(0, 0);
@@ -178,11 +376,14 @@ namespace KFrameWork
 			fillAreaRect.anchorMax = new Vector2(1, 0.75f);
 			fillAreaRect.anchoredPosition = new Vector2(-5, 0);
 			fillAreaRect.sizeDelta = new Vector2(-20, 0);
-			
-			// Fill
-			AddImage(fill,Color.white,kStandardSpritePath);
-			
-			RectTransform fillRect = fill.GetComponent<RectTransform>();
+
+            // Fill
+            ImageExpand fillImage = fill.AddComponent<ImageExpand>();
+            fillImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kStandardSpritePath);
+            fillImage.type = Image.Type.Sliced;
+            fillImage.color = Color.white;
+
+            RectTransform fillRect = fill.GetComponent<RectTransform>();
 			fillRect.sizeDelta = new Vector2(10, 0);
 			
 			// Handle Area
@@ -190,9 +391,12 @@ namespace KFrameWork
 			handleAreaRect.sizeDelta = new Vector2(-20, 0);
 			handleAreaRect.anchorMin = new Vector2(0, 0);
 			handleAreaRect.anchorMax = new Vector2(1, 1);
-			
-			// Handle
-			ImageExpand handleImage = AddImage(handle,Color.white,kKnobPath);
+
+            // Handle
+            ImageExpand handleImage = handle.TryAddComponent<ImageExpand>();
+            fillImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kKnobPath);
+            fillImage.type = Image.Type.Sliced;
+            fillImage.color = Color.white;
             RectTransform handleRect = handle.GetComponent<RectTransform>();
 			handleRect.sizeDelta = new Vector2(20, 0);
 
@@ -208,9 +412,13 @@ namespace KFrameWork
 			colors.pressedColor     = new Color(0.698f, 0.698f, 0.698f);
 			colors.disabledColor    = new Color(0.521f, 0.521f, 0.521f);
 			slider.colors = colors;
-		}
 
-		[MenuItem(root+"Scrollbar",false,5)]
+            //handleImage
+
+            handleImage.raycastTarget = true;
+        }
+
+        [MenuItem(root+"Scrollbar",false,5)]
 		public static void CreateScrollbar(MenuCommand command)
 		{
 			GameObject go = CreateUIElementRoot("Scrollbar",command, s_ThinGUIElementSize);
@@ -261,10 +469,9 @@ namespace KFrameWork
 			image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(kInputFieldBackgroundPath);
 			image.type = Image.Type.Sliced;
 			image.color = Color.white;
-            ClearRays(image);
 
             InputExpand inputField = go.AddComponent<InputExpand>();
-            ClearRays(inputField);
+
             ColorBlock colors = inputField.colors;
 			colors.highlightedColor = new Color(0.882f, 0.882f, 0.882f);
 			colors.pressedColor     = new Color(0.698f, 0.698f, 0.698f);
@@ -275,12 +482,10 @@ namespace KFrameWork
 			text.text = "";
 			text.supportRichText = false;
 			text.color =new Color(50f / 255f, 50f / 255f, 50f / 255f, 1f);
-            ClearRays(text);
 
             TextExpand placeholder = childPlaceholder.AddComponent<TextExpand>();
 			placeholder.text = "Kubility";
 			placeholder.fontStyle = FontStyle.Italic;
-            ClearRays(placeholder);
 
             // Make placeholder color half as opaque as normal text color.
             Color placeholderColor = text.color;

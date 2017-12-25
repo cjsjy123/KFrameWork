@@ -10,31 +10,37 @@ using LuaInterface;
 namespace KFrameWork
 {
     #if TOLUA
-    [ScriptInitOrder(-8000)]
+    [DefaultExecutionOrder(-8000)]
     public class GameLuaClient : LuaClient
     {
+        public bool isDone = false;
+
+        public static GameLuaClient getInstance()
+        {
+            if (Instance is GameLuaClient)
+            {
+                return Instance as GameLuaClient;
+            }
+
+            return null;
+        }
+
         protected override void LoadLuaFiles()
         {
-            if (ResBundleMgr.mIns != null && ResBundleMgr.mIns.isDone && !HasDone)
-            {
-                base.LoadLuaFiles();
-            }
-            else
-                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate, this.SelfUpdate);
+            ResBundleMgr.YieldInited(ResDone);
         }
 
-        public override void Destroy()
+        void ResDone(WaitTaskCommand cmd)
         {
-            base.Destroy();
-            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.BeforeUpdate, this.SelfUpdate);
-        }
-
-
-        void SelfUpdate(int v)
-        {
-            if (ResBundleMgr.mIns != null && ResBundleMgr.mIns.isDone && !HasDone)
+            if (ResBundleMgr.mIns != null && ResBundleMgr.mIns.isDone)
             {
                 base.LoadLuaFiles();
+#if UNITY_EDITOR
+                if (GameConfig.Open_DEBUG || MainLoop.getLoop().OpenLuaLOG)
+                    this.luaState.LogGC = true;
+#endif
+
+                isDone = true;
             }
         }
     }

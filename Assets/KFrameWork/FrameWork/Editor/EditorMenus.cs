@@ -51,7 +51,7 @@ public class EditorMenus  {
         }
     }
 
-    public static void ChangeSprite(string prefabpath, List<Sprite> sprList)
+    public static void ChangeSprite(string prefabpath,params  List<Sprite>[] sprList)
     {
 
         if (prefabpath == null && EditorUtility.DisplayDialog("选择预设", "选择预设", "OK"))
@@ -67,26 +67,36 @@ public class EditorMenus  {
 
             foreach (Component c in comps)
             {
-                SerializedObject seriable = new SerializedObject(c);
-                var it = seriable.GetIterator();
+                SerializedObject Serialize = new SerializedObject(c);
+                var it = Serialize.GetIterator();
                 while (it.NextVisible(true))
                 {
                     if (it.propertyType == SerializedPropertyType.ObjectReference && it.objectReferenceValue != null && it.objectReferenceValue is Sprite)
                     {
                         Sprite old = it.objectReferenceValue as Sprite;
-                        Sprite newSpr = sprList.Find(p => p.name == old.name);
-                        if (newSpr != null)
+                        int count = 0;
+                        for (int j = 0; j < sprList.Length; ++j)
                         {
-                            it.objectReferenceValue = newSpr;
+                            Sprite newSpr = sprList[j].Find(p => p.name == old.name);
+                            if (newSpr != null)
+                            {
+                                it.objectReferenceValue = newSpr;
+                            }
+                            else
+                            {
+                                count++;
+                            }
                         }
-                        else
+
+                        if (count == sprList.Length)
                         {
-                            LogMgr.LogWarningFormat("{0} 没有找到 From :{1} in:{2}", old.name,c, prefabpath);
+                            LogMgr.LogWarningFormat("{0} 没有找到 From :{1} in:{2}", old.name, c, prefabpath);
                         }
+
                     }
                 }
 
-                seriable.ApplyModifiedProperties();
+                Serialize.ApplyModifiedProperties();
             }
 
 

@@ -12,19 +12,19 @@ namespace KFrameWork
         /// <summary>
         /// loader层检测 for async
         /// </summary>
-        private Dictionary<string, BaseBundleLoader> LoadingCaches;
+        private SimpleDictionary<string, BaseBundleLoader> LoadingCaches;
         /// <summary>
         /// loading 的bundle 层检测 for aysnc
         /// </summary>
-        private Dictionary<string,Action<string>> loadingBundleCaches;
+        private SimpleDictionary<string,Action<string>> loadingBundleCaches;
         /// <summary>
         /// ab 引用缓存
         /// </summary>
-        private Dictionary<string,SharedPtr<KAssetBundle>> ptrcaches ;
+        private SimpleDictionary<string,SharedPtr<KAssetBundle>> ptrcaches ;
         /// <summary>
         /// bundle(上层类) 引用缓存
         /// </summary>
-        private Dictionary<string, IBundleRef> RefCaches;
+        private SimpleDictionary<string, IBundleRef> RefCaches;
 
         /// <summary>
         /// bundle 引用数量
@@ -61,10 +61,34 @@ namespace KFrameWork
 
         public BundleCache()
         {
-            this.ptrcaches = new Dictionary<string, SharedPtr<KAssetBundle>>(16);
-            this.RefCaches = new Dictionary<string, IBundleRef>(16);
-            this.LoadingCaches = new Dictionary<string, BaseBundleLoader>(4);
-            this.loadingBundleCaches = new Dictionary<string, Action<string>>(4);
+            this.ptrcaches = new SimpleDictionary<string, SharedPtr<KAssetBundle>>(16,true);
+            this.RefCaches = new SimpleDictionary<string, IBundleRef>(16,true);
+            this.LoadingCaches = new SimpleDictionary<string, BaseBundleLoader>(4,true);
+            this.loadingBundleCaches = new SimpleDictionary<string, Action<string>>(4,true);
+        }
+
+        public void Reload()
+        {
+            //loaders
+            var loaderlist = this.LoadingCaches.Values;
+            for (int i = 0; i < loaderlist.Count; ++i)
+            {
+                loaderlist[i].Stop();
+            }
+
+            this.LoadingCaches.Clear();
+            this.loadingBundleCaches.Clear();
+
+            var reflist = this.RefCaches.Values;
+            for (int i = 0; i < reflist.Count; ++i)
+            {
+                reflist[i].UnLock();
+                reflist[i].UnLoad(false);
+            }
+
+            this.RefCaches.Clear();
+            this.ptrcaches.Clear();
+
         }
 
         public void LogDebugInfo()
@@ -79,7 +103,7 @@ namespace KFrameWork
                 string bundlename = bundle.name;
                 BundlePkgInfo info = ResBundleMgr.mIns.BundleInformation.SeekInfo(bundle.name);
                 if (info != null)
-                    bundlename = info.AbFileName;
+                    bundlename = info.BundleName;
 
                 LogMgr.LogFormat("<color=#00aa00ff>Root Bundle is {0}:{1} ,InsRefCount is {2} ,DependedCnt is {3} ,SelfRefCount:{4}</color>", bundle.name, bundlename, bundle.InstanceRefCount, bundle.DependCount, bundle.SelfRefCount);
                 bundle.LogDepends();
@@ -132,7 +156,9 @@ namespace KFrameWork
                     }
                     else if (ptr.isAlive && !ptr.get().Equals(ab))
                     {
-                        throw new FrameWorkException("assetbundle 资源引用异常");
+                        BundlePkgInfo pkginfo = ResBundleMgr.mIns.BundleInformation.SeekInfo(abname);
+
+                        throw new FrameWorkException(string.Format( "assetbundle :{0} 资源引用异常", pkginfo != null? pkginfo.BundleName:abname));
                     }
 
                     return ptr;
@@ -153,11 +179,32 @@ namespace KFrameWork
         /// <returns></returns>
         public bool Remove(string bundlename)
         {
-            bool ret= this.RefCaches.Remove(bundlename) ;
+            bool ret= this.RefCaches.RemoveKey(bundlename) ;
             if (FrameWorkConfig.Open_DEBUG)
             {
                 LogMgr.LogFormat("Bundle Will Remove From this Pool :{0} ,{1}",bundlename,ret?"True":"False");
             }
+
+            if (ret)
+                this.ptrcaches.RemoveKey(bundlename);
+
+            return ret;
+        }
+        /// <summary>
+        /// 移除引用的bundle
+        /// </summary>
+        /// <param name="bundlename"></param>
+        /// <returns></returns>
+        public bool Remove(IBundleRef bundle)
+        {
+            bool ret = this.RefCaches.RemoveValue(bundle);
+            if (FrameWorkConfig.Open_DEBUG)
+            {
+                LogMgr.LogFormat("Bundle Will Remove From this Pool :{0} ,{1}", bundle, ret ? "True" : "False");
+            }
+
+            if (ret)
+                this.ptrcaches.RemoveKey(bundle.filename);
             return ret;
         }
 
@@ -212,10 +259,21 @@ namespace KFrameWork
         /// </summary>
         /// <param name="assetname"></param>
         /// <returns></returns>
-        public IBundleRef TryGetValue(string assetname )
+        public IBundleRef TryGetValue(string assetname)
         {
             IBundleRef bundle;
-            this.RefCaches.TryGetValue(assetname, out bundle);
+            if (this.RefCaches.TryGetValue(assetname, out bundle))
+            {
+                return bundle;
+            }
+            //try again
+            BundlePkgInfo pkg= ResBundleMgr.mIns.BundleInformation.SeekInfo(assetname);
+            if (pkg == null)
+            {
+                return null;
+            }
+
+            this.RefCaches.TryGetValue(pkg.AbFileName, out bundle);
             return bundle;
         }
         /// <summary>
@@ -267,7 +325,7 @@ namespace KFrameWork
         /// <returns></returns>
         public bool RemoveLoading(string key)
         {
-            return this.LoadingCaches.Remove(key);
+            return this.LoadingCaches.RemoveKey(key);
         }
         /// <summary>
         /// 添加加载的bundle的记录
@@ -298,7 +356,7 @@ namespace KFrameWork
         /// <returns></returns>
         public bool RemoveLoadingBundle(string key)
         {
-            return this.loadingBundleCaches.Remove(key);
+            return this.loadingBundleCaches.RemoveKey(key);
         }
         /// <summary>
         /// 添加bundle
@@ -312,7 +370,7 @@ namespace KFrameWork
             if(!this.Contains(pkg.AbFileName))
             {
                 bundle = BundleRef.Create(this.TryGetPtr(pkg.AbFileName, ab),pkg.AbFileName, pkg.EditorPath, pkg.BundleName);
-                this.RefCaches.Add(pkg.AbFileName,bundle);
+                this[pkg.AbFileName] = bundle;
             }
             else
             {
@@ -321,13 +379,16 @@ namespace KFrameWork
             return bundle;
         }
 #if UNITY_EDITOR
+#if TOLUA
+        [LuaInterface.NoToLua]
+#endif
         public IBundleRef PushEditorAsset(BundlePkgInfo pkg, UnityEngine.Object ab)
         {
             IBundleRef bundle = null;
             if (!this.Contains(pkg.AbFileName))
             {
-                bundle = new EditorRef(ab,pkg.AbFileName,pkg.EditorPath);
-                this.RefCaches.Add(pkg.AbFileName, bundle);
+                bundle = new EditorRef(ab, pkg.BundleName, pkg.AbFileName,pkg.EditorPath);
+                this[pkg.AbFileName] = bundle;
             }
             else
             {

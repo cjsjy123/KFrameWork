@@ -21,27 +21,36 @@ namespace KFrameWork
         /// local x = class("xxxx")
         /// return x
         /// </summary>
-        private static Dictionary<string, LuaTable> classFuncDictionary = new Dictionary<string, LuaTable>();
+        private static Dictionary<string,WeakReference> classFuncDictionary = new Dictionary<string, WeakReference>();
 
         private LuaFunction luafunc;
 
+        private bool inited = false;
+
+        private Script_LuaLogicAttribute attribute;
+
         private LuaTable Luatable;
 #endif
+        private string luafilepath;
 
         public string methodname { get; private set; }
 
         static LuaScriptLoader()
         {
-            #if UNITY_EDITOR && TOLUA
+ #if UNITY_EDITOR && TOLUA
             LogMgr.LogFormat("<color=#00B500FF>ToLua Version : {0}</color>",LuaDLL.version);
-            #endif
+ #endif
         }
 #if TOLUA
-        public static LuaFunction TryGetClassLuaFunction(string filename, string methodname)
+        public static LuaTable TryGetClassLuaFunction(string filename)
         {
             if (classFuncDictionary.ContainsKey(filename))
             {
-                return classFuncDictionary[filename][methodname] as LuaFunction;
+                WeakReference weaktable = classFuncDictionary[filename];
+                if (weaktable != null && weaktable.IsAlive)
+                {
+                    return weaktable.Target as LuaTable;
+                }
             }
             return null;
         }
@@ -49,22 +58,34 @@ namespace KFrameWork
 
         public void Init (AbstractParams InitParams)
         {
-            Script_LuaLogicAttribute att = InitParams.ReadObject() as Script_LuaLogicAttribute;
-           
+ #if TOLUA
+            attribute = InitParams.ReadObject() as Script_LuaLogicAttribute;
+#endif
+        }
+
+        void TryInit(Script_LuaLogicAttribute att)
+        {
 #if TOLUA
+            if (inited)
+            {
+                return;
+            }
+
             if (att != null)
             {
+                this.luafilepath = att.luapath;
                 this.methodname = att.methodName;
-                if (classFuncDictionary.ContainsKey(att.luapath) == false)
+                this.Luatable = TryGetClassLuaFunction(att.luapath);
+                if (this.Luatable == null)
                 {
-                    object[] retObj = LuaClient.GetMainState().DoFile(att.luapath);
+                    object[] retObj = LuaClient.GetMainState().DoFile(att.luapath.ToLower());
 
-                    if (retObj !=null && retObj.Length > 0)
+                    if (retObj != null && retObj.Length > 0)
                     {
                         LuaTable table = retObj[0] as LuaTable;
                         if (table != null)
                         {
-                            classFuncDictionary[att.luapath] = table;
+                            classFuncDictionary[att.luapath] = new WeakReference(table);
                             this.Luatable = table;
                             this.luafunc = table[methodname] as LuaFunction;
                         }
@@ -80,23 +101,27 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.luafunc = classFuncDictionary[att.luapath][methodname] as LuaFunction;
+                    this.luafunc = this.Luatable.GetLuaFunction(att.methodName);
                 }
             }
+
+            inited = true;
 #endif
         }
 
         public AbstractParams Invoke (AbstractParams ScriptParms)
         {
-            #if TOLUA
+#if TOLUA
             if (LuaClient.Instance == null) {
                 LogMgr.Log ("未使用lua，但是程序集中包含了带有lua目标的函数的注册");
                 return null;
             }
 
+            TryInit(this.attribute);
+
             if (this.luafunc == null)
             {
-                this.luafunc = LuaClient.GetMainState().GetFunction(this.methodname.Split('.')[0]+"."+ this.methodname);
+                this.luafunc = LuaClient.GetMainState().GetFunction(luafilepath.Split('.')[0]+"."+ this.methodname);
                 if (this.luafunc == null)
                 {
                     //try get function from global
@@ -106,9 +131,16 @@ namespace KFrameWork
 
             if (this.luafunc != null) {
                 int oldTop = this.luafunc.BeginPCall ();
-
-                if (Luatable != null)
+                //retry
+                if (Luatable == null)
+                {
+                    this.Luatable = TryGetClassLuaFunction(this.luafilepath);
+                }
+                    
+                if(Luatable != null)
+                {
                     this.luafunc.Push(Luatable);
+                }
                 
                 this._LuaScriptParmsCall (ScriptParms);
                 this.luafunc.PCall ();
@@ -117,14 +149,14 @@ namespace KFrameWork
                 this.luafunc.EndPCall ();
                 return retparams;
             }
-            #else
+#else
             LogMgr.LogError("Lua Client Missing Cant Invoke Lua Function");
-            #endif
+#endif
 
             return null;
         }
 
-        #if TOLUA
+#if TOLUA
         private void _LuaScriptParmsCall (AbstractParams ScriptParms)
         {
             if (ScriptParms != null) {
@@ -261,18 +293,18 @@ namespace KFrameWork
 
             return retparams;
         }
-        #endif
+#endif
 
         public void Reset ()
         {
-            #if TOLUA
+#if TOLUA
             if (this.luafunc != null) {
                 this.luafunc.Dispose ();
                 this.luafunc = null;
                 Luatable.Dispose();
                 Luatable = null;
             }
-            #endif
+#endif
         }
     }
 }

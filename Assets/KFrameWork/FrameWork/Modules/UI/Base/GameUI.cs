@@ -17,27 +17,19 @@ using LuaInterface;
 namespace KFrameWork
 {
     [RequireComponent(typeof(RectTransform))]
-    public abstract class GameUI : MonoBehaviour
+    public abstract class GameUI : LuaMonoBehaviour
     {
+//#if UNITY_EDITOR
+//        private static bool ShowUIBounds = true;
+//#endif
+
         private static int uidCounter = 0;
         #region lua
 #if Advance
         [Inspect]
 #endif
-        public bool LuaMode = false;
-#if Advance
-        [Inspect]
-#endif
-        [SerializeField]
-        private string LuaFilePath;
-
+        
 #if TOLUA
-        public LuaTable table;
-
-        private LuaFunction awakeFunc;
-
-        private LuaFunction startFunc;
-
         private LuaFunction enterFunc;
 
         private LuaFunction refreshFunc;
@@ -46,12 +38,44 @@ namespace KFrameWork
 
         private LuaFunction releaseFunc;
 
-        private LuaFunction onDestroyFunc;
 #endif
-#endregion
+        #endregion
 
-        public RectTransform rectTransform;
+//#if Advance
+//        [Inspect]
+//        public bool ShowBounds
+//        {
+//            get
+//            {
+//                return ShowUIBounds;
+//            }
+//            set
+//            {
+//                ShowUIBounds = value;
+//            }
+//        }
+//#endif
 
+#if Advance
+        [Inspect, ReadOnly]
+#endif
+        [NonSerialized]
+        public Transform BindParent;
+#if Advance
+        [Inspect, ReadOnly]
+#endif
+        [NonSerialized]
+        private RectTransform _rect;
+        public RectTransform rectTransform
+        {
+            get
+            {
+                if (_rect == null)
+                    _rect = this.GetComponent<RectTransform>();
+                return _rect;
+            }
+        }
+        [NonSerialized]
         private int uidepth;
 #if Advance
         [Inspect, ReadOnly]
@@ -71,7 +95,7 @@ namespace KFrameWork
                 }
             }
         }
-
+        [NonSerialized]
         private int _UID;
         #if Advance
         [Inspect, ReadOnly]
@@ -85,24 +109,21 @@ namespace KFrameWork
                 return _UID;
             }
         }
-
-        private bool m_bvisible;
-        #if Advance
+#if Advance
         [Inspect, ReadOnly]
 #endif
         public bool Visiable
         {
             get
             {
-                return m_bvisible;
-            }
-            private set
-            {
-                m_bvisible = value;
+                return this.isActiveAndEnabled && this.transform.localScale != Vector3.zero; //this.rectTransform.IsVisibleFrom(this.m_canvas.worldCamera);
             }
         }
+        [NonSerialized]
         private bool enterBefore = false;
-
+#if Advance
+        [Inspect, ReadOnly]
+#endif
         public bool HasEnter
         {
             get
@@ -110,140 +131,219 @@ namespace KFrameWork
                 return enterBefore;
             }
         }
-
+        [NonSerialized]
         private AbstractParams enterParams;
+
 #if Advance
         [Inspect, ReadOnly]
 #endif
-        /// <summary>
-        /// 资源加载路径
-        /// </summary>
-        public string loadpath;
-        #if Advance
-        [Inspect, ReadOnly]
-#endif
+        [NonSerialized]
         /// <summary>
         /// 所归属的layout
         /// </summary>
         public AbstractLayout ParentLayout;
-
-        private bool needToZero = true;
-        private bool startBefore = false;
-
+        [NonSerialized]
         private Canvas _canvas;
+
         public Canvas m_canvas
         {
             get
             {
                 if (_canvas == null)
+                {
                     _canvas = this.GetComponentInParent<Canvas>();
+                }   
                 return _canvas;
             }
         }
 
-        /// <summary>
-        /// 如果自行加载非自动管理的资源，需手动管理引用
-        /// </summary>
-        private List<IBundleRef> managed;
-
-        protected virtual void Awake()
+        public void OpenUI(AbstractParams p = null)
         {
-            m_bvisible = this.gameObject.activeSelf;
-
-            GameUI[] uilist = this.GetComponentsInChildren<GameUI>(true);
-            for (int i = 0; i < uilist.Length; ++i)
+            if (this.ParentLayout != null)
             {
-                if(uilist[i] != this)
-                    uilist[i].needToZero = false;
+                this.ParentLayout.OpenUI(this, p);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}",this);
+            }
+        }
+
+        public GameUI OpenUI(string path, AbstractParams p = null)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUI(path, p);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUI(string respath, LayoutLoadMode mode)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUI(respath, mode);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUI(string respath, AbstractParams p, LayoutLoadMode mode)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUI(respath,p, mode);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUI(string respath, Transform Parent)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUI(respath, Parent);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUI(string respath, Transform Parent, AbstractParams p)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUI(respath, Parent,p);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUI(string respath, Transform Parent, AbstractParams p, LayoutLoadMode mode)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUI(respath, Parent, p, mode);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
             }
 
-#if !TOLUA
-            LuaMode =false;
-#endif
+            return null;
+        }
 
+
+        //
+        public GameUI OpenUIAsync(string path, AbstractParams p = null)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUIAsync(path, p);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUIAsync(string respath, LayoutLoadMode mode)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUIAsync(respath, mode);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUIAsync(string respath, AbstractParams p, LayoutLoadMode mode)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUIAsync(respath, p, mode);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUIAsync(string respath, Transform Parent)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUIAsync(respath, Parent);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUIAsync(string respath, Transform Parent, AbstractParams p)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUIAsync(respath, Parent, p);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+            return null;
+        }
+
+        public GameUI OpenUIAsync(string respath, Transform Parent, AbstractParams p, LayoutLoadMode mode)
+        {
+            if (this.ParentLayout != null)
+            {
+                return this.ParentLayout.OpenUIAsync(respath, Parent, p, mode);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Missing Layout {0}", this);
+            }
+
+            return null;
+        }
+
+        protected override void TryAwake()
+        {
+           // m_bvisible = this.gameObject.activeSelf;
             if (LuaMode)
             {
-#if TOLUA
-                if (string.IsNullOrEmpty(LuaFilePath)  )
-                {
-                    string newpath = this.GetType().Name + ".lua.bytes";
-                    BundlePkgInfo pkg = ResBundleMgr.mIns.BundleInformation.SeekInfo(newpath);
-                    if (pkg == null)
-                    {
-                        LogMgr.LogErrorFormat("LuaFilePath is Null :{0}", this);
-                        this.LuaMode = false;
-                    }
-                    else
-                        LuaFilePath = pkg.BundleName;
-                }
-                
-                if(LuaMode)
-                {
-                    object[] os = LuaClient.GetMainState().DoFile(this.LuaFilePath);
-                    if (os != null && os.Length > 0)
-                    {
-                        LuaTable luatable = os[0] as LuaTable;
-                        if (luatable != null)
-                            this.table = luatable;
-                        else
-                            LogMgr.LogErrorFormat("Missing Luatable named:{0}",this.LuaFilePath);
-                    }
-                }
-
-                if (table != null)
-                {
-                    this.awakeFunc = table.GetLuaFunction("Awake");
-                    if (this.awakeFunc != null)
-                    {
-                        this.awakeFunc.BeginPCall();
-                        this.awakeFunc.Push(table);
-                        this.awakeFunc.Push(this);
-                        this.awakeFunc.PCall();
-                        this.awakeFunc.EndPCall();
-                    }
-
-                    this.onDestroyFunc = table["OnDestroy"] as LuaFunction;
-                }
-#endif
+                base.TryAwake();
             }
         }
 
-        protected virtual void Start()
+        protected override void OnDestroy()
         {
-#if TOLUA
-            if (table != null)
-            {
-                this.startFunc = table["Start"] as LuaFunction;
-                if (this.startFunc != null)
-                {
-                    this.startFunc.BeginPCall();
-                    this.startFunc.Push(table);
-                    this.startFunc.Push(this);
-                    this.startFunc.PCall();
-                    this.startFunc.EndPCall();
-                }
-
-            }
-#endif
-        }
-
-        protected virtual void OnDestroy()
-        {
-            this.ParentLayout = null;
+            
             this.enterParams = null;
             this.enterBefore = false;
 #if TOLUA
-            if (this.awakeFunc != null)
-            {
-                this.awakeFunc.Dispose();
-                this.awakeFunc = null;
-            }
-
-            if (this.startFunc != null)
-            {
-                this.startFunc.Dispose();
-                this.startFunc = null;
-            }
 
             if (this.enterFunc != null)
             {
@@ -269,50 +369,29 @@ namespace KFrameWork
                 this.releaseFunc = null;
             }
 
-            if (this.onDestroyFunc != null)
-            {
-                this.onDestroyFunc.BeginPCall();
-                this.onDestroyFunc.PCall();
-                this.onDestroyFunc.EndPCall();
-
-                this.onDestroyFunc.Dispose();
-                this.onDestroyFunc = null;
-            }
-
-            if (this.table != null)
-            {
-                this.table.Dispose();
-                this.table = null;
-            }
 #endif
 
-            if (managed != null)
+            if (this.ParentLayout != null)
             {
-                for (int i = 0; i < managed.Count; ++i)
-                {
-                    managed[i].Release();
-                }
-
-                managed.Clear();
-                managed = null;
+                this.ParentLayout.CloseChildrenFromThis(this);
             }
+            this.ParentLayout = null;
+
+            base.OnDestroy();
         }
 
-        public void CallEnter(AbstractParams p)
+        private void CallEnter(AbstractParams p)
         {
             if (enterParams != null)
             {
-                LogMgr.LogFormat("{0} enter params will refresh :{1}",this,p);
+                LogMgr.LogFormat("{0} enter params will refresh :{1} => {2}",this,enterParams,p);
                 enterParams.Release();
             }
 
             enterParams = p;
             if(!HasEnter)
             {
-                if (!startBefore)
-                    FrameCommand.Create(NextFrame,2).Excute();
-                else
-                    NextFrame(null);
+                NextFrame(null);
             }
         }
 
@@ -327,7 +406,6 @@ namespace KFrameWork
                 return;
             }
 
-            this.rectTransform = this.GetComponent<RectTransform>();
             this.uidepth = this.rectTransform.GetSiblingIndex();
 
             if (!HasEnter)
@@ -335,8 +413,15 @@ namespace KFrameWork
                 if (this.ParentLayout != null)
                     this.gameObject.layer = this.ParentLayout.UILayer;
 
-                if (needToZero)
-                    this.transform.localPosition = Vector3.zero;
+                GameUI[] uiarray = this.GetComponentsInChildren<GameUI>(true);
+                for (int i = 0; i < uiarray.Length; ++i)
+                {
+                    GameUI ui = uiarray[i];
+                    if (ui != null && ui.ParentLayout == null)
+                    {
+                        ui.ParentLayout = this.ParentLayout;
+                    }
+                }
 
                 if (LuaMode)
                 {
@@ -344,7 +429,7 @@ namespace KFrameWork
                     if (table != null)
                     {
                         if (this.enterFunc == null)
-                            this.enterFunc = table["OnEnter"] as LuaFunction;
+                            this.enterFunc = table.GetLuaFunction("OnEnter");
 
                         if (this.enterFunc != null)
                         {
@@ -357,59 +442,47 @@ namespace KFrameWork
                         else
                         {
                             this.OnEnter(enterParams);
-
-                            if (enterParams != null && enterParams.ArgCount > 0)
-                            {
-                                InitParams(enterParams);
-                            }
                         }
 
                     }
+                    else {
+#if UNITY_EDITOR
+                        LogMgr.LogErrorFormat("找不到对应的{0} 的luatable path is :{1}", this, this.respath);
+#endif
+                    }
 #endif
 
-                    if (enterParams != null)
-                        enterParams.Release();
+                    //if (enterParams != null)
+                    //    enterParams.Release();
                 }
                 else
                 {
                     this.OnEnter(enterParams);
-
-                    if (enterParams != null && enterParams.ArgCount > 0)
-                    {
-                        InitParams(enterParams);
-                        enterParams.Release();
-                    }
                 }
 
                 enterParams = null;
                 enterBefore = true;
             }
-
-            startBefore = true;
         }
+
 
 #region events
 
-       
-
-        /// <summary>
-        /// only enterParams has value that will called by script
-        /// </summary>
-        /// <param name="uiParams"></param>
-        protected virtual void InitParams(AbstractParams uiParams)
+        public void CallRefresh(AbstractParams p)
         {
+            if (!HasEnter)
+            {
+                this.CallEnter(p);
+                return;
+            }
 
-        }
-
-        public virtual void CallRefresh(AbstractParams p)
-        {
             if (LuaMode)
             {
 #if TOLUA
                 if (table != null)
                 {
                     if (this.refreshFunc == null)
-                        this.refreshFunc = table["Refresh"] as LuaFunction;
+                        this.refreshFunc = table.GetLuaFunction("Refresh");
                     if (refreshFunc != null)
                     {
                         this.refreshFunc.BeginPCall();
@@ -431,10 +504,57 @@ namespace KFrameWork
             }
         }
 
-        public virtual void CallExit(AbstractParams p)
+        [Script_SharpLogic((int)BaseCmdDef.CallExit)]
+        private static void staticExit(AbstractParams p)
         {
-            this.enterBefore = false;
+            if (p != null)
+            {
+                GameUI ui = p.ReadObject() as GameUI;
+                ui.CallExit(p);
+            }
+            else
+            {
+                LogMgr.LogError("gameui staticExit params is Null ");
+            }
+        }
+
+        [Script_SharpLogic((int)BaseCmdDef.CallEnter)]
+        private static void staticEnter(AbstractParams p)
+        {
+            if (p != null)
+            {
+                System.Object o = p.ReadObject() ;
+                GameUI ui = o as GameUI;
+                if (ui == null)
+                {
+                    LogMgr.LogError("really??");
+                }
+                ui.CallEnter(p);
+            }
+            else
+            {
+                LogMgr.LogError("gameui staticEnter params is Null ");
+            }
+        }
+
+        [Script_SharpLogic((int)BaseCmdDef.CallRelease)]
+        private static void staticRelease(AbstractParams p)
+        {
+            if (p != null)
+            {
+                GameUI ui = p.ReadObject() as GameUI;
+                ui.CallRelease();
+            }
+            else
+            {
+                LogMgr.LogError("gameui staticRelease params is Null ");
+            }
+        }
+
+        private void CallExit(AbstractParams p)
+        {
             this._UID = 0;
+            this.enterBefore = false;
 
             if (LuaMode)
             {
@@ -442,7 +562,7 @@ namespace KFrameWork
                 if (table != null)
                 {
                     if (this.exitFunc == null)
-                        this.exitFunc = table["OnExit"] as LuaFunction;
+                        this.exitFunc = table.GetLuaFunction("OnExit");
                     if (exitFunc != null)
                     {
                         this.exitFunc.BeginPCall();
@@ -462,9 +582,12 @@ namespace KFrameWork
             {
                 this.OnExit(p);
             }
+
+            this.DoInVisiable();
+
         }
 
-        public virtual void CallRelease()
+        private void CallRelease()
         {
             if (LuaMode)
             {
@@ -472,7 +595,7 @@ namespace KFrameWork
                 if (table != null)
                 {
                     if(this.releaseFunc == null)
-                        this.releaseFunc = table["Release"] as LuaFunction;
+                        this.releaseFunc = table.GetLuaFunction("Release");
 
                     if (releaseFunc != null)
                     {
@@ -516,58 +639,19 @@ namespace KFrameWork
             this.rectTransform.anchoredPosition = this.rectTransform.anchoredPosition.UpdateY(this.rectTransform.sizeDelta.y / 2);
         }
 
-        //public ImageExpand CreatePanel(string imagename)
-        //{
-        //    GameObject bg = new GameObject("Background");
-        //    this.transform.parent.AddInstance(bg);
-        //    ImageExpand image = bg.AddComponent<ImageExpand>();
-        //    image.type = Image.Type.Sliced;
-        //    image.fillCenter = true;
-        //    image.color = Color.white;
-        //    image.raycastTarget = false;
-        //    SpriteAtlasMgr.mIns.ChangeSprite(image, imagename);
-
-        //    RectTransform imageRect = bg.TryAddComponent<RectTransform>();
-        //    imageRect.anchorMin = Vector2.zero;
-        //    imageRect.anchorMax = Vector2.one;
-        //    imageRect.anchoredPosition = Vector2.zero;
-        //    imageRect.sizeDelta = Vector2.zero;
-
-        //    int targetdepth = Mathf.Max(0, this.UIDepth - 1);
-        //    imageRect.SetSiblingIndex(targetdepth);
-
-        //    return image;
-        //}
-
-        //public TextExpand CreateCenterText(string textname, Vector2 size, int fontsize)
-        //{
-        //    GameObject textGameobject = new GameObject("CenterText");
-        //    this.transform.AddInstance(textGameobject);
-
-        //    TextExpand text = textGameobject.AddComponent<TextExpand>();
-
-        //    text.font = ResBundleMgr.mIns.LoadAsset(GameConfig.mIns.Font70) as Font;
-        //    text.text = textname;
-        //    text.fontSize = fontsize;
-        //    text.alignment = TextAnchor.MiddleCenter;
-
-        //    IBundleRef bundle = ResBundleMgr.mIns.Cache.TryGetValue(GameConfig.mIns.Font70);
-        //    if (bundle != null)
-        //    {
-        //        if (managed == null)
-        //            managed = new List<IBundleRef>();
-
-        //        bundle.Retain();
-        //        managed.Add(bundle);
-        //    }
-
-        //    RectTransform textRect = text.TryAddComponent<RectTransform>();
-        //    textRect.sizeDelta = size;
-        //    textRect.AutoAlign();
-
-        //    return text;
-        //}
-
+        public void CloseSelf()
+        {
+            if (this.ParentLayout != null)
+            {
+                this.ParentLayout.CloseUI(this);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("Havent layout :{0}",this);
+                this.CallExit(null);
+                Destroy(this.gameObject);
+            }
+        }
 
         public AbstractParams NotifyToLua(int luaCmd, AbstractParams p)
         {
@@ -579,47 +663,68 @@ namespace KFrameWork
             cmd.Release(false);
             return ret;
         }
+#if UNITY_EDITOR
+
+        protected virtual void OnDrawGizmos()
+        {
+            if (m_canvas != null && this.Visiable) //&& ShowUIBounds)
+            {
+                Gizmos.color = Color.yellow;
+                DrawWire(this.rectTransform);
+
+                UIBehaviour[] uis = this.GetComponentsInChildren<UIBehaviour>();
+                for (int i = 0; i < uis.Length; ++i)
+                {
+                    if (uis[i] != rectTransform)
+                    {
+                        DrawWire(uis[i].transform as RectTransform);
+                    }
+                }
+
+            }
+        }
+
+        void DrawWire(RectTransform uirecttansform)
+        {
+            Vector3[] objectCorners = new Vector3[4];
+            uirecttansform.GetWorldCorners(objectCorners);
+
+            Gizmos.DrawLine(objectCorners[0], objectCorners[1]);
+            Gizmos.DrawLine(objectCorners[1], objectCorners[2]);
+            Gizmos.DrawLine(objectCorners[2], objectCorners[3]);
+            Gizmos.DrawLine(objectCorners[3], objectCorners[0]);
+        }
+#endif
 
         /// <summary>
         /// 执行操作使得UI显示
         /// </summary>
         public void DoVisiable()
         {
-            if (!Visiable)
+            if (this.isActiveAndEnabled)
             {
-                //this.OnBecomeVisable();
-                Visiable = true;
-                if (this.isActiveAndEnabled)
-                {
-                    this.transform.localPosition = Vector3.zero;
-                }
-                else
-                {
-                    LogMgr.LogWarningFormat("{0} use Active Property", this);
-                    this.gameObject.SetActive(true);
-                }
+                rectTransform.localScale = Vector3.one;
+                rectTransform.anchoredPosition = Vector2.zero;
             }
-
+            else
+            {
+                LogMgr.LogWarningFormat("{0} use Active Property", this);
+                this.gameObject.SetActive(true);
+            }
         }
         /// <summary>
         /// 执行操作使得UI隐藏
         /// </summary>
         public void DoInVisiable()
         {
-            if (Visiable)
+            if (this.isActiveAndEnabled)
             {
-                //this.OnBecomeInVisable();
-                Visiable = false;
-                if (GameCameraCtr.mIns != null)
-                {
-                    Transform canvasTransform = m_canvas.worldCamera.transform;
-                    this.transform.position = canvasTransform.position - canvasTransform.forward *1000;
-                }
-                else
-                {
-                    LogMgr.LogWarningFormat("{0} use Active Property", this);
-                    this.gameObject.SetActive(false);
-                }
+                rectTransform.localScale = Vector3.zero;
+            }
+            else
+            {
+                LogMgr.LogWarningFormat("{0} use Active Property", this);
+                this.gameObject.SetActive(false);
             }
         }
 #endregion

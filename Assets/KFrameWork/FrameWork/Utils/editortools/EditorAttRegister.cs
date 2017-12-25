@@ -5,6 +5,8 @@ using System;
 using KUtils;
 using System.Reflection;
 #if UNITY_EDITOR
+using NodeEditorFramework;
+using NodeEditorFramework.Standard;
 using UnityEditor;
 using UnityEditorInternal;
 
@@ -34,12 +36,36 @@ namespace KFrameWork
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareSpeedTreeAttribute),_Register_PrepareSpeedTreeAttribute);
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareTextureAttribute),_Register_PrepareSpeedTreeAttribute);
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareAnimationAttribute),_Register_PrepareAnimationAttribute);
+            tools.RegisterHandler(RegisterType.MethodAtt, typeof(NoteEditorMenuAttribute), Register_NoteEditorMenuAtt);
 
             tools.RegisterHandler(RegisterType.ClassAttr, typeof(TimeSetAttribute), Register_Fixed);
             tools.RegisterHandler(RegisterType.ClassAttr, typeof(TagSetAttribute), Register_TagAdd);
             tools.RegisterHandler(RegisterType.ClassAttr, typeof(LayerSetAttribute), Register_LayerAdd);
+            tools.RegisterHandler(RegisterType.ClassAttr, typeof(SortingLayerSetAttribute), Register_SortingLayerAdd);
 
             tools.RegisterHandler(RegisterType.ClassAttr,typeof(ScriptMarcoDefineAttribute), Register_ScriptMarce);
+        }
+
+        static void Register_NoteEditorMenuAtt(object att, object target)
+        {
+            NoteEditorMenuAttribute attribute = att as NoteEditorMenuAttribute;
+            MethodInfo method = target as MethodInfo;
+
+            if (attribute != null)
+            {
+                //Action<float, float> callback = (Action<float, float>)Delegate.CreateDelegate(typeof(Action<float, float>), method);
+                //Action foldercbk = null;
+                //if (!string.IsNullOrEmpty(attribute.func))
+                //{
+                //    MethodInfo funcmethod = method.DeclaringType.GetMethod(attribute.func, BindingFlags.Public | BindingFlags.NonPublic);
+                //    if(funcmethod != null)
+                //    {
+                //        foldercbk = (Action)Delegate.CreateDelegate(typeof(Action), funcmethod);
+                //    }
+                //}
+
+                ActionMenuTools.GetInstance().AddMenuaction(attribute.menuname, attribute, method);
+            }
         }
 
         static void Register_ScriptMarce(object att, object target)
@@ -95,9 +121,51 @@ namespace KFrameWork
             }
         }
 
+        static void Register_SortingLayerAdd(object att, object target)
+        {
+            SortingLayerSetAttribute attribute = att as SortingLayerSetAttribute;
+            if (attribute != null)
+            {
+                SerializedObject result = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+                SerializedProperty it = result.GetIterator();
+                while (it.NextVisible(true))
+                {
+
+                    if (it.name.Equals("m_SortingLayers"))
+                    {
+                        //HashSet<string> keys = new HashSet<string>(attribute.layers);
+
+                        //for (int i =0; i < it.arraySize; i++)
+                        //{
+                        //    SerializedProperty dataPoint = it.GetArrayElementAtIndex(i);
+
+                        //    if (!string.IsNullOrEmpty(dataPoint.displayName))
+                        //    {
+                        //        keys.Add(dataPoint.displayName);
+                        //    }
+                        //}
+
+                        //it.arraySize = keys.Count ;
+
+                        //int j = 0;
+                        //foreach (var asset in keys)
+                        //{
+                        //    SerializedProperty dataPoint = it.GetArrayElementAtIndex(j);
+                        //    dataPoint.stringValue = asset;
+                        //    j++;
+                        //}
+
+
+                        //result.ApplyModifiedProperties();
+                        //return;
+                    }
+                }
+            }
+        }
 
         static void Register_LayerAdd(object att, object target)
         {
+
             LayerSetAttribute attribute = att as LayerSetAttribute;
             if (attribute != null)
             {
@@ -109,29 +177,42 @@ namespace KFrameWork
                     {
                         List<string> keys = new List<string>();
 
-                        for (int i = 8; i < it.arraySize; i++)
+                        for (int i =8; i < it.arraySize; i++)
                         {
                             SerializedProperty dataPoint = it.GetArrayElementAtIndex(i);
                             if (!string.IsNullOrEmpty(dataPoint.stringValue))
                             {
-                                keys.Add(dataPoint.stringValue);
+                                keys.TryAdd(dataPoint.stringValue);
                             }
                         }
 
+                        bool ret = false;
                         foreach (var subtag in attribute.layers)
                         {
-                            keys.TryAdd(subtag);
+                            if (keys.TryAdd(subtag))
+                            {
+                                ret = true;
+                            }
                         }
 
-                        if (keys.Count+8 > it.arraySize)
+                        if (!ret)
+                            return;
+
+
+                        if (keys.Count + 8 > it.arraySize)
                         {
                             int old = it.arraySize;
-                            //it.arraySize = attribute.tags.Count ;//预留
-                            for (int i = old; i < keys.Count; ++i)
+                            int newsize = keys.Count;
+                            while (newsize > 0)
                             {
-                                it.InsertArrayElementAtIndex(i);
+                                it.InsertArrayElementAtIndex(old++);
+                                newsize--;
                             }
-                            result.ApplyModifiedProperties();
+                            //result.ApplyModifiedProperties();
+                        }
+                        else if (keys.Count + 8 < it.arraySize)
+                        {
+                            it.arraySize = keys.Count + 8;
                         }
 
                         for (int i = 0; i < keys.Count; i++)
@@ -170,10 +251,17 @@ namespace KFrameWork
                             }
                         }
 
+                        bool ret = false;
                         foreach (var subtag in attribute.tags)
                         {
-                            keys.TryAdd(subtag);
+                            if (keys.TryAdd(subtag))
+                            {
+                                ret = true;
+                            }
                         }
+
+                        if (!ret)
+                            return;
 
                         if (keys.Count > it.arraySize)
                         {

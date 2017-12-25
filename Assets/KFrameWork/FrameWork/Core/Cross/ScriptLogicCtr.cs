@@ -18,6 +18,7 @@ namespace KFrameWork
     public sealed class ScriptLogicCtr  {
         private sealed class ScriptPkg:IDisposable,IPool
         {
+            public string Name;
 
             private IScriptLoader _script;
 
@@ -81,7 +82,7 @@ namespace KFrameWork
                 if (instance != null)
                 {
                     InitParams.WriteObject(instance);
-                    var passes = method.GetParameters();
+                    ParameterInfo[] passes = method.GetParameters();
                     if (passes != null && passes.Length ==1 && passes[0].ParameterType.IsSubclassOf(typeof(AbstractParams)))
                     {
                         throw new FrameWorkException("method mismatching ");
@@ -106,6 +107,7 @@ namespace KFrameWork
                 }
 
                 pkg.Loader.Init(InitParams);
+                pkg.Name = method.DeclaringType.Name;
 
                 return pkg;
             }
@@ -125,6 +127,7 @@ namespace KFrameWork
                     SimpleParams InitParams = SimpleParams.Create(1);
                     Script_LuaLogicAttribute luaAttribute = attvalue as Script_LuaLogicAttribute;
                     InitParams.WriteObject(luaAttribute);
+                    pkg.Name = luaAttribute.luapath;
                     pkg.Loader.Init(InitParams);
                 }
                 else
@@ -143,13 +146,13 @@ namespace KFrameWork
 
         private Queue<ScriptCommand> CommandQueue = new Queue<ScriptCommand>(64);
 
-        private Dictionary<int ,Dictionary<int,ScriptPkg>> ScriptDic = new Dictionary<int, Dictionary<int, ScriptPkg>>();
+        private SimpleDictionary<int , SimpleDictionary<int,ScriptPkg>> ScriptDic = new SimpleDictionary<int, SimpleDictionary<int, ScriptPkg>>();
 
         public void RegisterLogicFunc(MethodInfo method,int CMD,string MethodName,object attvalue,ScriptTarget target )
         {
             if (ScriptDic.ContainsKey(CMD))
             {
-                Dictionary<int,ScriptPkg> dic = this.ScriptDic[CMD];
+                SimpleDictionary<int,ScriptPkg> dic = this.ScriptDic[CMD];
                 if(dic.ContainsKey((int)target))
                 {
                     LogMgr.LogErrorFormat("重复注册逻辑函数 {0}",CMD);
@@ -172,7 +175,7 @@ namespace KFrameWork
             }
             else
             {
-                Dictionary<int,ScriptPkg> dic = new Dictionary<int, ScriptPkg>();
+                SimpleDictionary<int,ScriptPkg> dic = new SimpleDictionary<int, ScriptPkg>();
                 if (target == ScriptTarget.Sharp)
                 {
                     dic[(int)target] = ScriptPkg.CreateSharp(method, MethodName);
@@ -199,11 +202,11 @@ namespace KFrameWork
         {
             if(this.ScriptDic.ContainsKey(CMD))
             {
-                Dictionary<int,ScriptPkg> dic = this.ScriptDic[CMD];
+                SimpleDictionary<int,ScriptPkg> dic = this.ScriptDic[CMD];
                 if(dic.ContainsKey((int)target))
                 {
                     dic[(int)target].Dispose();
-                    dic.Remove((int)target);
+                    dic.RemoveKey((int)target);
                 }
             }
         }
@@ -224,13 +227,38 @@ namespace KFrameWork
 
         }
 
+        public IScriptLoader TryGetPkg(string name, int tp)
+        {
+            List<SimpleDictionary<int,ScriptPkg>> values = this.ScriptDic.Values;
+
+            IScriptLoader loader = null;
+            for (int i = 0; i < values.Count; ++i)
+            {
+                List<ScriptPkg> list = values[i].Values;
+                for (int j = 0; j < list.Count; ++j)
+                {
+                    if (list[j].Name == name)
+                    {
+                        loader = list[j].Loader;
+                        ListPool.TryDespawn(list);
+                        break;
+                    }
+                }
+                ListPool.TryDespawn(list);
+            }
+
+            ListPool.TryDespawn(values);
+
+            return loader;
+        }
+
         private void RegisterLua(ScriptCommand cmd, string path, string methodname)
         {
 #if TOLUA
             Script_LuaLogicAttribute att = new Script_LuaLogicAttribute(cmd.CMD, path, methodname);
             ScriptPkg pkg = ScriptPkg.CreateLua(att);
             //add
-            var dic = new Dictionary<int, ScriptPkg>();
+            var dic = new SimpleDictionary<int, ScriptPkg>();
             dic.Add((int)cmd.target, pkg);
             ScriptDic[cmd.CMD] = dic;
 #endif
@@ -238,10 +266,15 @@ namespace KFrameWork
 
         private void Registernew(ScriptCommand cmd)
         {
-            if ( cmd.InitParams.NextValue() == ParamType.STRING)
+            if (ScriptDic.ContainsKey(cmd.CMD) && ScriptDic[cmd.CMD].ContainsKey((int)cmd.target))
+            {
+                return;
+            }
+
+            if ( cmd.InitParams.NextValue() == (int)ParamType.STRING)
             {
                 string classname = cmd.InitParams.ReadString();
-                if (cmd.InitParams.NextValue() == ParamType.STRING)
+                if (cmd.InitParams.NextValue() == (int)ParamType.STRING)
                 {
                     string methodname = cmd.InitParams.ReadString();
                     //csharp
@@ -258,7 +291,7 @@ namespace KFrameWork
 
                                 if (!ScriptDic.ContainsKey(cmd.CMD))
                                 {
-                                    var dic = new Dictionary<int, ScriptPkg>();
+                                    var dic = new SimpleDictionary<int, ScriptPkg>();
                                     dic.Add((int)cmd.target, pkg);
                                     ScriptDic[cmd.CMD] = dic;
                                 }
@@ -291,21 +324,21 @@ namespace KFrameWork
             else
             {
                 object o = null;
-                if (cmd.InitParams.NextValue() == ParamType.UNITYOBJECT)
+                if (cmd.InitParams.NextValue() == (int)ParamType.UNITYOBJECT)
                 {
                     o = cmd.InitParams.ReadUnityObject();
                 }
-                else if (cmd.InitParams.NextValue() == ParamType.OBJECT)
+                else if (cmd.InitParams.NextValue() == (int)ParamType.OBJECT)
                 {
                     o = cmd.InitParams.ReadObject();
                 }
 
                 if (o != null)
                 {
-                    if (cmd.InitParams.NextValue() == ParamType.STRING)
+                    if (cmd.InitParams.NextValue() == (int)ParamType.STRING)
                     {
                         string classname = cmd.InitParams.ReadString();
-                        if (cmd.InitParams.NextValue() == ParamType.STRING)
+                        if (cmd.InitParams.NextValue() == (int)ParamType.STRING)
                         {
                             string methodname = cmd.InitParams.ReadString();
                             if (cmd.target == ScriptTarget.Sharp)
@@ -321,7 +354,7 @@ namespace KFrameWork
 
                                         if (!ScriptDic.ContainsKey(cmd.CMD))
                                         {
-                                            var dic = new Dictionary<int, ScriptPkg>();
+                                            var dic = new SimpleDictionary<int, ScriptPkg>();
                                             dic.Add((int)cmd.target, pkg);
                                             ScriptDic[cmd.CMD] = dic;
                                         }
@@ -381,7 +414,7 @@ namespace KFrameWork
 
                     if (this.ScriptDic.ContainsKey(cmd.CMD))
                     {
-                        Dictionary<int,ScriptPkg> dic = this.ScriptDic[cmd.CMD];
+                        SimpleDictionary<int,ScriptPkg> dic = this.ScriptDic[cmd.CMD];
                         int target= (int)cmd.target;
 
                         //double check
@@ -405,11 +438,49 @@ namespace KFrameWork
                                 cmd.Release(false);
                             }
                         }
+                        else
+                        {
+                            if (cmd.target == ScriptTarget.Unknown)
+                            {
+                                List<int> keys = dic.Keys;
+                                List<ScriptPkg> values = dic.Values;
+                                for (int i = 0; i < keys.Count; ++i)
+                                {
+                                    if (keys[i] != target)
+                                    {
+                                        //LogMgr.LogFormat("it will invoke {0} pkg  cmd:{1}", (ScriptTarget)keys[i],cmd.CMD);
+                                        if (cmd.HasCallParams)
+                                        {
+                                            cmd.ReturnParams = values[i].Invoke(cmd.CallParams);
+                                        }
+                                        else
+                                        {
+                                            cmd.ReturnParams = values[i].Invoke(null);
+                                        }
+
+                                        if (cmd.ReturnParams == null)
+                                        {
+                                            cmd.Release(true);
+                                        }
+                                        else
+                                        {
+                                            cmd.Release(false);
+                                        }
+
+                                        break;
+                                    }
+                                }
+
+                                ListPool.TryDespawn(keys);
+                                ListPool.TryDespawn(values);
+
+                            }
+                        }
 
                     }
                     else
                     {
-                        LogMgr.LogFormat("命令消息错误:{0}，未发现匹配的函数",cmd.CMD);
+                        LogMgr.LogErrorFormat("命令消息错误:{0}，未发现匹配的函数",cmd.CMD);
                     }
 
                 }

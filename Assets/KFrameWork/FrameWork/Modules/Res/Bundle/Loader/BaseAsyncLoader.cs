@@ -19,22 +19,20 @@ namespace KFrameWork
 
         protected class AsyncBundleTask : ITask
         {
-            private BundlePkgInfo pkg;
-            public BundlePkgInfo Info
+            private BundlePkgInfo _currentPkg;
+            public BundlePkgInfo CurrentLoadInfo
             {
                 get
                 {
-                    return this.pkg;
+                    return this._currentPkg;
                 }
             }
 
-            public BaseAsyncLoader Loader;
-
-            public string LoadingName { get; private set; }
+            private BaseAsyncLoader Loader;
 
             public AsyncBundleTp asyncType { get; private set; }
 
-            public AsyncOperation currentAsync { get; private set; }
+            public object currentAsync { get; private set; }
 
             public bool KeepWaiting
             {
@@ -46,45 +44,47 @@ namespace KFrameWork
                         return false;
                     }
 
-                    if (this.asyncType == AsyncBundleTp.SCENE_LOAD && !this.currentAsync.allowSceneActivation)
+                    if (this.asyncType == AsyncBundleTp.SCENE_LOAD )
                     {
-                        bool ret = currentAsync.progress < 0.9f && !currentAsync.isDone;
-                        int value = Mathf.FloorToInt(currentAsync.progress * 10);
-                        Loader._loadedCnt = Loader.LoadedCnt + value;
-                        if(ret)
-                            Loader.InvokeProgressHandler(Loader.LoadedCnt, Loader.NeedLoadedCnt);
+                        SceneOperation asyncop = currentAsync as SceneOperation;
+                        if (asyncop.HasLoad)
+                        {
+                            Loader.InvokeProgressHandler(10, 10);
+                            return false;
+                        }
+                        else
+                        {
+                            bool ret = asyncop.progress < 0.9f && !asyncop.isDone;
+                            int value = Mathf.FloorToInt(asyncop.progress * 10);
+                            if(ret)
+                                Loader.InvokeProgressHandler(value, 10);
+                            else
+                                Loader.InvokeProgressHandler(10, 10);
 
-                        return ret;
+                            return ret;
+                        }
                     }
-
-                    return !currentAsync.isDone;
+                    else
+                    {
+                        AsyncOperation asyncop = currentAsync as AsyncOperation;
+                        return !asyncop.isDone;
+                    } 
                 }
             }
 
-            private Queue<KeyValuePair<BundlePkgInfo,AsyncOperation>> waitQueue;
-
-            public AsyncBundleTask(BaseAsyncLoader loader)
+            public AsyncBundleTask(BaseAsyncLoader asyncLoader)
             {
-                this.Loader = loader;
-                this.waitQueue = new Queue<KeyValuePair<BundlePkgInfo, AsyncOperation>>();
+                this.Loader = asyncLoader;
             }
 
-            public void PushOperation(BundlePkgInfo Pkginfo, AsyncOperation o)
+            public void PushOperation(BundlePkgInfo Pkginfo, object o)
             {
-                if (this.currentAsync == null)
-                {
-                    this.pkg = Pkginfo;
-                    this.LoadingName = Pkginfo.AbFileName;
-                    this.currentAsync = o;
-                    this.asyncType = this.Swithtp(this.currentAsync);
-                }
-                else
-                {
-                    this.waitQueue.Enqueue(new KeyValuePair<BundlePkgInfo, AsyncOperation>(Pkginfo, o));
-                }
+                this._currentPkg = Pkginfo;
+                this.currentAsync = o;
+                this.asyncType = this.Swithtp(this.currentAsync);
             }
 
-            private AsyncBundleTp Swithtp(AsyncOperation o)
+            private AsyncBundleTp Swithtp(object o)
             {
                 if (o is AssetBundleCreateRequest)
                 {
@@ -94,70 +94,17 @@ namespace KFrameWork
                 {
                     return AsyncBundleTp.AB_LOAD;
                 }
-                else if (o is AsyncOperation)
+                else if (o is SceneOperation)
                 {
                     return AsyncBundleTp.SCENE_LOAD;
                 }
                 return AsyncBundleTp.NONE;
             }
-
-            public bool ChangeToNext()
-            {
-                if (waitQueue.Count > 0)
-                {
-                    if (KeepWaiting)
-                        LogMgr.LogError("current async task hadnt finished yet");
-
-                    KeyValuePair <BundlePkgInfo, AsyncOperation > p = this.waitQueue.Dequeue();
-                    this.pkg = p.Key;
-                    this.LoadingName = p.Key.AbFileName;
-                    this.currentAsync = p.Value;
-                    this.asyncType = this.Swithtp(this.currentAsync);
-
-                    return true;
-                }
-                else
-                {
-                    this.pkg = null;
-                    this.currentAsync = null;
-                    this.LoadingName = null;
-                    this.asyncType = AsyncBundleTp.NONE;
-                    return false;
-                }
-            }
         }
-
-        private int _loadedCnt;
-
-        public int LoadedCnt
-        {
-            get
-            {
-                return _loadedCnt;
-            }
-            set
-            {
-                int old = _loadedCnt;
-                _loadedCnt = value;
-
-                if (old < value)
-                {
-                    if (Task.ChangeToNext())
-                    {
-                        ExcuteCmd();
-
-                        //debug
-                        if (_loadedCnt >= this.NeedLoadedCnt)
-                            this.ThrowLogicError();
-                    }
-                    this.LoadAfterUpdateCnt();
-                }  
-            }
-        }
-
-        protected int NeedLoadedCnt = 0;
 
         protected Queue<BundlePkgInfo> LoadQueue = new Queue<BundlePkgInfo>();
+
+        protected Dictionary<string, IBundleRef> LoadedRefs = new Dictionary<string, IBundleRef>() ;
 
         private AsyncBundleTask m_task;
 
@@ -166,36 +113,37 @@ namespace KFrameWork
             get
             {
                 if (m_task == null)
+                {
                     m_task = new AsyncBundleTask(this);
+                } 
                 return m_task;
             }
         }
+
+        private int Needed = 0;
 
         public override void Load(string name)
         {
             base.Load(name);
 
+            LoadedRefs.Clear();
+
             this.loadingpkg = this._SeekPkgInfo(name);
             if (this.loadingpkg == null)
                 this.ThrowAssetMissing(name);
 
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("准备加载 :{0} :abname :{1}", this.loadingpkg.BundleName, this.loadingpkg.AbFileName);
+
             ResBundleMgr.mIns.Cache.PushLoading(loadingpkg.BundleName, this);
-            this.CreateLoadQueue(this.loadingpkg);
-            this.StartLoad();
-        }
 
-        private void EnqueueToLoadQueue(BundlePkgInfo pkg)
-        {
-            if (BundleConfig.Bundle_Log)
-            {
-                if (LoadQueue.Contains(pkg))
-                {
-                    LogMgr.LogFormat("{0} 已经包含此任务 ",pkg);
-                }
-            }
+            this.CreateLoadQueue(loadingpkg);
 
-            LoadQueue.Enqueue(pkg);
-           
+            this.Needed = this.LoadQueue.Count;
+
+            this.RefreshLoaded();
+
+            this.RunNextTask();
         }
 
         private void CreateLoadQueue(BundlePkgInfo pkginfo)
@@ -207,46 +155,52 @@ namespace KFrameWork
                     BundlePkgInfo pkg = this._SeekPkgInfo(pkginfo.Depends[i]);
                     this.CreateLoadQueue(pkg);
                 }
-                else if (BundleConfig.Bundle_Log)
-                    LogMgr.LogFormat("{0} asyncloader 状态不符", this.LoadResPath);
                 else
-                    break;
+                    LogMgr.LogFormat("{0} asyncloader 状态不符", this.LoadResPath);
             }
 
-            this.EnqueueToLoadQueue(pkginfo);
+            LoadQueue.Enqueue(pkginfo);
         }
 
-        protected virtual void InitProgress()
+        private void RefreshLoaded()
         {
-            this.NeedLoadedCnt = this.LoadQueue.Count;
-            this.LoadedCnt = 0;
-        }
+            if (this.Needed == this.LoadedRefs.Count)
+                return;
 
-        private void StartLoad()
-        {
-            InitProgress();
+            SetLoadRef(loadingpkg);
 
-            if (this.LoadQueue.Count > 0)
+            //self
+            IBundleRef selfBundle = ResBundleMgr.mIns.Cache.TryGetValue(this.loadingpkg);
+            if (selfBundle != null)
             {
-                _LoadBundle(this.LoadQueue.Dequeue());
+                LoadedRefs[loadingpkg.AbFileName] = selfBundle;
             }
-            else
+        }
+
+        private void SetLoadRef(BundlePkgInfo pkginfo)
+        {
+            for (int i = 0; i < pkginfo.Depends.Length; ++i)
             {
-                LogMgr.LogErrorFormat("加载队列异常 :{0}",this.LoadResPath);
-                this.LoadState = BundleLoadState.Error;
+                BundlePkgInfo pkg = this._SeekPkgInfo(pkginfo.Depends[i]);
+                IBundleRef refBundle = ResBundleMgr.mIns.Cache.TryGetValue(pkg);
+                if (refBundle != null)
+                {
+                    LoadedRefs[pkg.AbFileName] = refBundle;
+                }
+                //set child pkg
+                SetLoadRef(pkg);
             }
         }
 
         private void _LoadBundle(BundlePkgInfo pkginfo)
         {
-            if (ResBundleMgr.mIns.Cache.Contains(pkginfo))
+            if (LoadedRefs.ContainsKey(pkginfo.AbFileName))
             {
                 if (FrameWorkConfig.Open_DEBUG)
                 {
-                    LogMgr.LogFormat("加载了 :{0}",pkginfo.BundleName);
+                    LogMgr.LogFormat("缓存中存在直接加载 :{0} => {1}", pkginfo.BundleName, pkginfo.AbFileName);
                 }
-
-                this.LoadedCnt++;
+                this.RunNextTask();
             }
             else if (!isABMode && this.isRunning())
             {
@@ -268,15 +222,27 @@ namespace KFrameWork
         {
             if (FrameWorkConfig.Open_DEBUG)
             {
-                LogMgr.LogFormat("加载了 :{0}", bundlename);
+                BundlePkgInfo pkg = this._SeekPkgInfo(bundlename);
+                LogMgr.LogFormat(":::::其他地方加载了 :{0} => {1}", pkg.BundleName, pkg.AbFileName);
             }
-            this.LoadedCnt++;
+
+            this.RefreshLoaded();
+
+            this.RunNextTask();
         }
 
-        protected void _PushTaskAndExcute(BundlePkgInfo Pkginfo, AsyncOperation operation)
+        protected void _PushTaskAndExcute(BundlePkgInfo Pkginfo, object operation)
         {
+
             Task.PushOperation(Pkginfo, operation);
-            this.ExcuteCmd();
+
+            if (FrameWorkConfig.Open_DEBUG)
+            {
+                LogMgr.LogFormat("开始异步任务 :{0} => {1} =>", Pkginfo.BundleName, Pkginfo.AbFileName, Task.asyncType);
+            }
+
+            WaitTaskCommand cmd = WaitTaskCommand.Create(Task, AsyncLoadFinished);
+            cmd.Excute();
         }
 
         private void AutoCreateBundle()
@@ -289,27 +255,23 @@ namespace KFrameWork
             else if (Task.asyncType == AsyncBundleTp.AB_CREATE)
             {
                 AssetBundleCreateRequest abCreateReq = Task.currentAsync as AssetBundleCreateRequest;
-                if (BundleConfig.Bundle_Log)
-                    LogMgr.LogFormat(":::::::Aysnc load {0}", Task.Info.BundleName);
-
                 if (abCreateReq.assetBundle == null)
                     ThrowAssetMissing(this.LoadResPath);
 
-                IBundleRef bundle = ResBundleMgr.mIns.Cache.PushAsset(Task.Info, abCreateReq.assetBundle);
+                IBundleRef bundle = ResBundleMgr.mIns.Cache.PushAsset(Task.CurrentLoadInfo, abCreateReq.assetBundle);
 
                 BundlePkgInfo pkg = this._SeekPkgInfo( abCreateReq.assetBundle.name);
-                this.AppendDepends(pkg, bundle);
+                this.AddDepends(pkg, bundle);
 
                 ResBundleMgr.mIns.Cache.RemoveLoading(pkg.BundleName);
                 if (FrameWorkConfig.Open_DEBUG)
                 {
-                    LogMgr.LogFormat("加载了 :{0}", pkg.BundleName);
+                    LogMgr.LogFormat("成功加载了 :{0} => {1} => {2}",this.UID, pkg.BundleName,pkg.AbFileName);
                 }
-                this.LoadedCnt++;
+                this.RefreshLoaded();
             }
             else if (Task.asyncType == AsyncBundleTp.SCENE_LOAD)
             {
-                this._AsyncOpation = Task.currentAsync;
                 this.LoadSceneAssetFinish();
             }
             else
@@ -329,13 +291,15 @@ namespace KFrameWork
                 else
                 {
                     this._BundleRef = LoadFullAssetToMem(this.loadingpkg);
-                    this._Bundle = this._BundleRef.MainObject;
-                    this.AppendDepends(this.loadingpkg, this._BundleRef);
+                    this._BundleMainObject = this._BundleRef.MainObject;
+                    this.AddDepends(this.loadingpkg, this._BundleRef);
 
                     if (isSceneLoad)
                     {
-                        AsyncOperation asyncOp = GameSceneCtr.LoadSceneAsync(Path.GetFileNameWithoutExtension(this.LoadResPath));
-                        asyncOp.allowSceneActivation = false;
+                        SceneOperation asyncOp = GameSceneCtr.LoadSceneAsync(Path.GetFileNameWithoutExtension(this.LoadResPath));
+                        asyncOp.DisableScene();
+                        this._AsyncOpation = asyncOp;
+
                         this._PushTaskAndExcute(this.loadingpkg, asyncOp);
                     }
                     else
@@ -352,29 +316,37 @@ namespace KFrameWork
             {
                 if (isABMode)
                 {
-                    ResBundleMgr.mIns.Cache.InvokeBundleFinishEvent(Task.Info.BundleName);
-                    ResBundleMgr.mIns.Cache.RemoveLoadingBundle(Task.Info.BundleName);
+                    ResBundleMgr.mIns.Cache.InvokeBundleFinishEvent(Task.CurrentLoadInfo.BundleName);
+                    ResBundleMgr.mIns.Cache.RemoveLoadingBundle(Task.CurrentLoadInfo.BundleName);
                 }
-                this.AutoCreateBundle();
+
+                AutoCreateBundle();
+
+                if (this.isRunning())
+                {
+                    RunNextTask();
+                }
             }
         }
 
-        private void ExcuteCmd()
+        private void RunNextTask()
         {
-            WaitTaskCommand cmd = WaitTaskCommand.Create(Task, AsyncLoadFinished);
-            cmd.Excute();
-        }
+            if(!isSceneLoad)
+                InvokeProgressHandler(this.LoadedRefs.Count,Needed);
 
-        private void LoadAfterUpdateCnt()
-        {
-            InvokeProgressHandler(LoadedCnt, NeedLoadedCnt);
-            if ( this.LoadQueue.Count > 0)
-            {
-                _LoadBundle(this.LoadQueue.Dequeue());
-            }
-            else if (this.LoadQueue.Count == 0)
+            //may exception 
+            if (this.LoadedRefs.Count == Needed)
             {
                 this.CreateMain();
+            }
+            else if (this.LoadedRefs.Count > Needed)
+            {
+                LogMgr.LogError("加载异常");
+                this.LoadState = BundleLoadState.Error;
+            }
+            else if (this.LoadQueue.Count > 0)
+            {
+                _LoadBundle(this.LoadQueue.Dequeue());
             }
         }
 
@@ -392,8 +364,7 @@ namespace KFrameWork
             base.RemoveToPool();
             this.LoadQueue.Clear();
             this.m_task = null;
-            this.NeedLoadedCnt = 0;
-            this.LoadedCnt = 0;
+            this.LoadedRefs.Clear();
         }
 
         public override void RemovedFromPool()
@@ -402,8 +373,8 @@ namespace KFrameWork
             this.LoadQueue.Clear();
             this.LoadQueue =null;
             this.m_task = null;
-            this.NeedLoadedCnt = 0;
-            this.LoadedCnt = 0;
+            this.LoadedRefs.Clear();
+            this.LoadedRefs = null;
         }
         /// <summary>
         /// 创建bundleref

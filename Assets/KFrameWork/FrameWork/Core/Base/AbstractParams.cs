@@ -135,7 +135,7 @@ namespace KFrameWork
             }
         }
 
-        public abstract ParamType NextValue();
+        public abstract int NextValue();
         public abstract int GetArgIndexType(int index);
         public abstract void ResetReadIndex();
         public abstract void Release();

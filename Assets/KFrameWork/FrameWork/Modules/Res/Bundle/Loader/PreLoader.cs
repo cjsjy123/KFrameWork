@@ -54,14 +54,14 @@ namespace KFrameWork
         {
             this._BundleRef = ResBundleMgr.mIns.Cache.TryGetValue(this.loadingpkg);
             if (this._BundleRef == null)
-                this.ThrowLogicError();
+                this.ThrowLogicError(loadingpkg.BundleName);
 
             this._FinishAndRelease();
         }
 
         protected override void LoadMainAsyncRequest(AssetBundleRequest request)
         {
-            this._Bundle = request.asset;
+            this._BundleMainObject = request.asset;
         }
 
         protected override void LoadSceneAssetFinish()

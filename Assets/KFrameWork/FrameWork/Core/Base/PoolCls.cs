@@ -22,14 +22,23 @@ namespace KFrameWork
             return default(U);
         }
 
-        public static void TryDespawn<U>(U data) where U : class, T
+        protected static object TrySpawnWithType(Type tp) 
+        {
+            if (KObjectPool.mIns != null)
+            {
+                return KObjectPool.mIns.Pop(tp);
+            }
+
+            return null;
+        }
+
+        public static void TryDespawn(object data)
         {
             if (KObjectPool.mIns != null)
             {
                 KObjectPool.mIns.Push(data);
             }
         }
-
     }
 
 }

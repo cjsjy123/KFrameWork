@@ -21,12 +21,134 @@ namespace KFrameWork
         public const UIPluginType defaultType = UIPluginType.UGUI;
 
         #region ugui
-        private static Vector3 GetUIAlignPos(UIAlign align, Canvas canvas, Camera camera)
+
+        public static void SetGridLayoutPadding(this GridLayoutGroup grid, Vector4 padding)
+        {
+            grid.padding = new RectOffset((int)padding.x, (int)padding.y, (int)padding.z, (int)padding.w);
+        }
+
+        public static void SetGridLayout(this GridLayoutGroup grid, Vector2 size, Vector2 space, int constvalue,int csize)
+        {
+            grid.cellSize = size;
+            grid.spacing = space;
+            grid.constraint = (GridLayoutGroup.Constraint)constvalue;
+
+            if (grid.constraint != GridLayoutGroup.Constraint.Flexible)
+            {
+                grid.constraintCount = csize;
+            }
+
+        }
+
+        public static void RemoveAllListner(this Button btn)
+        {
+            btn.onClick.RemoveAllListeners();
+        }
+
+        public static UILisenter GetListener(this GameObject go)
+        {
+            //gc will be better (interface)
+            UILisenter listener = go.GetComponent<UILisenter>();
+            if (listener == null)
+                listener = go.AddComponent<UILisenter>();
+            return listener;
+        }
+
+        public static UILisenter GetListener(this Transform go)
+        {
+
+            //gc  will be better (interface)
+            UILisenter listener = go.gameObject.GetComponent<UILisenter>();
+            if (listener == null)
+                listener = go.gameObject.AddComponent<UILisenter>();
+            return listener;
+        }
+
+        public static UILisenter GetListener(this UIBehaviour go)
+        {
+            //gc  will be better (interface)
+            UILisenter listener = go.gameObject.GetComponent<UILisenter>();
+            if (listener == null)
+                listener = go.gameObject.AddComponent<UILisenter>();
+            return listener;
+        }
+
+        public static Vector2 GetposInParentCanvas(this RectTransform recttransform,Canvas canvas)
+        {
+            RectTransform canvastransform = (RectTransform)canvas.transform;
+            Vector3 screenpos = Vector3.zero;
+            if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+            {
+                screenpos = recttransform.position;
+            }
+            else
+                screenpos = canvas.worldCamera.WorldToScreenPoint(recttransform.position);
+
+            Vector2 localpos;
+            bool ret =RectTransformUtility.ScreenPointToLocalPointInRectangle(canvastransform, screenpos, canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, out localpos);
+            if (!ret)
+            {
+                LogMgr.LogErrorFormat("{0} not in Rect", recttransform);
+            }
+
+            if (!recttransform.pivot.x.FloatEqual(0.5f) || !recttransform.pivot.y.FloatEqual(0.5f))
+            {
+                float dx = recttransform.pivot.x - 0.5f;
+                float dy = recttransform.pivot.y - 0.5f;
+                Vector2 size = recttransform.rect.size;
+                localpos[0] -= dx * size.x;
+                localpos[1] -= dy * size.y;
+            }
+
+            return localpos;
+        }
+
+        public static void SetGameInsetAndSize(this RectTransform recttransform, float wid, float height)
+        {
+            Vector2 realsize = recttransform.GetUIRealSize();
+            recttransform.SetInsetAndSizeFromParentEdge( RectTransform.Edge.Left , wid, realsize.x);
+            recttransform.SetInsetAndSizeFromParentEdge( RectTransform.Edge.Bottom , height, realsize.y);
+        }
+
+        public static Vector2 GetUIRealSize(this RectTransform recttransform)
+        {
+
+            if (recttransform.anchorMax == recttransform.anchorMin)
+            {
+                return recttransform.sizeDelta;
+            }
+            if (recttransform.anchorMax.x == recttransform.anchorMin.x)
+            {
+                return new Vector2(recttransform.sizeDelta.x, Math.Abs(recttransform.sizeDelta.y));
+            }
+            else if (recttransform.anchorMax.y == recttransform.anchorMin.y)
+            {
+                return new Vector2(Math.Abs(recttransform.sizeDelta.x), recttransform.sizeDelta.y);
+            }
+            else {
+                return new Vector2(Math.Abs(recttransform.sizeDelta.x), Math.Abs(recttransform.sizeDelta.y));
+            }
+        }
+
+        public static Vector2 GetUIPixelSize(this RectTransform recttransform)
+        {
+            return recttransform.rect.size;
+        }
+
+        public static void SetFitScreen(this RectTransform recttransfrom)
+        {
+            recttransfrom.anchorMin = Vector2.zero;
+            recttransfrom.anchorMax = Vector2.one;
+            recttransfrom.offsetMin = Vector2.zero;
+            recttransfrom.offsetMax = Vector2.zero;
+        }
+
+        private static void SetUIAlignPos(RectTransform rect, UIAlign align, Canvas canvas, Camera camera)
         {
             bool isOverLay = canvas.renderMode == RenderMode.ScreenSpaceOverlay;
 
-            float ScreenHight = isOverLay ? canvas.pixelRect.height : Screen.height; //canvas.pixelRect.height;
-            float ScreenWidth = isOverLay ? canvas.pixelRect.width : Screen.width;// canvas.pixelRect.width;
+            float ScreenHight = canvas.pixelRect.height; //canvas.pixelRect.height;
+            float ScreenWidth = canvas.pixelRect.width;// canvas.pixelRect.width;
 
             //Vector3 WorldPos;
             Vector2 ScreenPos = Vector2.zero;
@@ -71,12 +193,17 @@ namespace KFrameWork
                         break;
                     }
             }
+            RectTransform canvasrect = canvas.GetComponent<RectTransform>();
 
             Vector3 worldpos;
-            RectTransform canvasrect = canvas.GetComponent<RectTransform>();
+
             RectTransformUtility.ScreenPointToWorldPointInRectangle(canvasrect, ScreenPos, isOverLay ? null : camera, out worldpos);
-            //WorldPos = camera.ScreenToWorldPoint(ScreenPos.AppendUIDepth(canvas));
-            return worldpos;
+            rect.position = worldpos;
+            //return worldpos;
+            //Vector2 pos;
+            //RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasrect, ScreenPos, isOverLay ? null : camera, out pos);
+
+            //rect.anchoredPosition = pos;
         }
 
         private static void UGUIAutoAlign(this GameObject target, UIAlign align = UIAlign.CENTER)
@@ -85,72 +212,150 @@ namespace KFrameWork
             Canvas canvas = target.GetComponentInParent<Canvas>();
             if (canvas == null)
             {
-                LogMgr.LogError("Cant found Canvas");
+                LogMgr.LogErrorFormat ("Cant found Canvas :{0}", target);
+#if UNITY_EDITOR
+                target.PauseGame();
+#endif
                 return;
             }
             else if (canvas.worldCamera == null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
             {
-                LogMgr.LogError("Camera is Null");
+                LogMgr.LogErrorFormat("Camera is Null:{0", target);
                 return;
             }
 
             RectTransform trans = target.GetComponent<RectTransform>();
             if (trans == null)
             {
-                LogMgr.LogError("missing recttransform");
+                LogMgr.LogErrorFormat("missing recttransform :{0}",target);
                 return;
             }
 
             camera = canvas.worldCamera;
-            //contentSize = new Vector2(contentSize.x * selfSX * canvas.transform.localScale.x, contentSize.y * selfSY * canvas.transform.localScale.y);
+
+            //bool islandscape = FrameWorkConfig.DisplayUIWidth > FrameWorkConfig.DisplayUIHiehgt;
+            //Vector2 size = trans.sizeDelta;
+            //Vector2 screensize = new Vector2(Screen.width,Screen.height);
+
             if (align == UIAlign.CENTER)
             {
-                trans.anchorMin = new Vector2(0.5f, 0.5f);
-                trans.anchorMax = new Vector2(0.5f, 0.5f);
-                trans.pivot = new Vector2(0.5f, 0.5f);
-                trans.position = GetUIAlignPos(align, canvas, camera);
+                //if (islandscape)
+                //{
+                //    trans.anchorMin = new Vector2(0,0.5f);
+                //    trans.anchorMax = new Vector2(1, 0.5f);
+                //    trans.offsetMin = new Vector2();
+                //}
+                //else
+                //{
+                //    trans.anchorMin = new Vector2(0.5f, 0f);
+                //    trans.anchorMax = new Vector2(0.5f, 1f);
+                //}
+                ////trans.anchorMin = new Vector2(0.5f, 0.5f);
+                ////trans.anchorMax = new Vector2(0.5f, 0.5f);
+                //trans.pivot = new Vector2(0.5f, 0.5f);
+                SetUIAlignPos(trans,align, canvas, camera);
             }
             else if (align == UIAlign.CENTER_TOP)
             {
-                trans.anchorMin = new Vector2(0.5f, 1f);
-                trans.anchorMax = new Vector2(0.5f, 1f);
-                trans.pivot = new Vector2(0.5f, 1f);
-                trans.position = GetUIAlignPos(align, canvas, camera);
+                //if (islandscape)
+                //{
+                //    trans.anchorMin = new Vector2(0, 0.5f);
+                //    trans.anchorMax = new Vector2(1, 0.5f);
+                //}
+                //else
+                //{
+                //    trans.anchorMin = new Vector2(0.5f, 0f);
+                //    trans.anchorMax = new Vector2(0.5f, 1f);
+                //}
+                ////trans.anchorMin = new Vector2(0.5f, 1f);
+                ////trans.anchorMax = new Vector2(0.5f, 1f);
+                //trans.pivot = new Vector2(0.5f, 1f);
+                SetUIAlignPos(trans, align, canvas, camera);
             }
             else if (align == UIAlign.CENTER_DOWN)
             {
-                trans.anchorMin = new Vector2(0.5f, 0f);
-                trans.anchorMax = new Vector2(0.5f, 0f);
-                trans.pivot = new Vector2(0.5f, 0f);
-                trans.position = GetUIAlignPos(align, canvas, camera);
+                //if (islandscape)
+                //{
+                //    trans.anchorMin = new Vector2(0, 0.5f);
+                //    trans.anchorMax = new Vector2(1, 0.5f);
+                //}
+                //else
+                //{
+                //    trans.anchorMin = new Vector2(0.5f, 0f);
+                //    trans.anchorMax = new Vector2(0.5f, 1f);
+                //}
+                ////trans.anchorMin = new Vector2(0.5f, 0f);
+                ////trans.anchorMax = new Vector2(0.5f, 0f);
+                //trans.pivot = new Vector2(0.5f, 0f);
+                SetUIAlignPos(trans, align, canvas, camera);
             }
             else if (align == UIAlign.LEFT_DOWN)
             {
-                trans.anchorMin = new Vector2(0f, 0f);
-                trans.anchorMax = new Vector2(0f, 0f);
-                trans.pivot = new Vector2(0f, 0f);
-                trans.position = GetUIAlignPos(align, canvas, camera);
+                //if (islandscape)
+                //{
+                //    trans.anchorMin = new Vector2(0, 0.5f);
+                //    trans.anchorMax = new Vector2(1, 0.5f);
+                //}
+                //else
+                //{
+                //    trans.anchorMin = new Vector2(0.5f, 0f);
+                //    trans.anchorMax = new Vector2(0.5f, 1f);
+                //}
+                ////trans.anchorMin = new Vector2(0f, 0f);
+                ////trans.anchorMax = new Vector2(0f, 0f);
+                //trans.pivot = new Vector2(0f, 0f);
+                SetUIAlignPos(trans, align, canvas, camera);
             }
             else if (align == UIAlign.LEFT_TOP)
             {
-                trans.anchorMin = new Vector2(0f, 1f);
-                trans.anchorMax = new Vector2(0f, 1f);
-                trans.pivot = new Vector2(0f, 1f);
-                trans.position = GetUIAlignPos(align, canvas, camera);
+                //if (islandscape)
+                //{
+                //    trans.anchorMin = new Vector2(0, 0.5f);
+                //    trans.anchorMax = new Vector2(1, 0.5f);
+                //}
+                //else
+                //{
+                //    trans.anchorMin = new Vector2(0.5f, 0f);
+                //    trans.anchorMax = new Vector2(0.5f, 1f);
+                //}
+                ////trans.anchorMin = new Vector2(0f, 1f);
+                ////trans.anchorMax = new Vector2(0f, 1f);
+                //trans.pivot = new Vector2(0f, 1f);
+                SetUIAlignPos(trans, align, canvas, camera);
             }
             else if (align == UIAlign.RIGHT_TOP)
             {
-                trans.anchorMin = new Vector2(1f, 1f);
-                trans.anchorMax = new Vector2(1f, 1f);
-                trans.pivot = new Vector2(1f, 1f);
-                trans.position = GetUIAlignPos(align, canvas, camera);
+                //if (islandscape)
+                //{
+                //    trans.anchorMin = new Vector2(0, 0.5f);
+                //    trans.anchorMax = new Vector2(1, 0.5f);
+                //}
+                //else
+                //{
+                //    trans.anchorMin = new Vector2(0.5f, 0f);
+                //    trans.anchorMax = new Vector2(0.5f, 1f);
+                //}
+                ////trans.anchorMin = new Vector2(1f, 1f);
+                ////trans.anchorMax = new Vector2(1f, 1f);
+                //trans.pivot = new Vector2(1f, 1f);
+                SetUIAlignPos(trans, align, canvas, camera);
             }
             else if (align == UIAlign.RIGHT_DOWN)
             {
-                trans.anchorMin = new Vector2(1f, 0f);
-                trans.anchorMax = new Vector2(1f, 0f);
-                trans.pivot = new Vector2(1f, 0f);
-                trans.position = GetUIAlignPos(align, canvas, camera);
+                //if (islandscape)
+                //{
+                //    trans.anchorMin = new Vector2(0, 0.5f);
+                //    trans.anchorMax = new Vector2(1, 0.5f);
+                //}
+                //else
+                //{
+                //    trans.anchorMin = new Vector2(0.5f, 0f);
+                //    trans.anchorMax = new Vector2(0.5f, 1f);
+                //}
+                ////trans.anchorMin = new Vector2(1f, 0f);
+                ////trans.anchorMax = new Vector2(1f, 0f);
+                //trans.pivot = new Vector2(1f, 0f);
+                SetUIAlignPos(trans, align, canvas, camera);
             }
         }
 
@@ -176,15 +381,23 @@ namespace KFrameWork
         public static void CalcalCanvasSceenSize(this Canvas canvas)
         {
             CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
-
-            if (canvas == null || !canvas.isRootCanvas)
-                return;
+            Vector2 designedResolution = Vector2.zero;
+            float matchWidthOrHeight = 1f;
+            if (scaler == null)
+            {
+                designedResolution = new Vector2(FrameWorkConfig.DisplayUIWidth,FrameWorkConfig.DisplayUIHiehgt);
+            }
+            else
+            {
+                matchWidthOrHeight = scaler.matchWidthOrHeight;
+                designedResolution = scaler.referenceResolution;
+            }
 
             Vector2 screenSize = new Vector2(Screen.width, Screen.height);
 
-            float logWidth = Mathf.Log(screenSize.x / scaler.referenceResolution.x, 2);
-            float logHeight = Mathf.Log(screenSize.y / scaler.referenceResolution.y, 2);
-            float logWeightedAverage = Mathf.Lerp(logWidth, logHeight, scaler.matchWidthOrHeight);
+            float logWidth = Mathf.Log(screenSize.x / designedResolution.x, 2);
+            float logHeight = Mathf.Log(screenSize.y / designedResolution.y, 2);
+            float logWeightedAverage = Mathf.Lerp(logWidth, logHeight, matchWidthOrHeight);
             float scaleFactor = Mathf.Pow(2, logWeightedAverage);
 
             float aspect = screenSize.x / screenSize.y;
@@ -197,9 +410,20 @@ namespace KFrameWork
 
             RectTransform recttransform = canvas.GetComponent<RectTransform>();
             recttransform.sizeDelta = new Vector2(canvasWidth, canvasHeight);
+            //canvas.transform.SetWorldScale(targetvalue.ToVector3());
+
             //canvas.scaleFactor = targetvalue;
-            canvas.transform.localScale = targetvalue.ToVector3();
+            Transform canvasParent = canvas.transform.parent;
+            if (canvasParent != null)
+            {
+                canvas.transform.localScale = canvasParent.worldToLocalMatrix * targetvalue.ToVector3();
+            }
+            else
+            {
+                canvas.transform.localScale = targetvalue.ToVector3();
+            }
         }
+
 
         public static List<GameObject> CreateVertGridScroll(this GameObject gameobject, string masksprite, out GameObject scrollObj, Vector2 viewSize, float delta, GameObject prefab, int cnt, UIAlign align = UIAlign.CENTER, int collimit = -1, int rowlimit = -1, UIPluginType uitype = defaultType)
         {

@@ -89,9 +89,19 @@ namespace KFrameWork
                 if (br.ReadChar() == 'A' && br.ReadChar() == 'B' && br.ReadChar() == 'D')
                 {
                     if (br.ReadChar() == 'T')
-                        this.Info = new BundleTextInfo();
+                    {
+                        if (this.Info == null)
+                        {
+                            this.Info = new BundleTextInfo();
+                        }
+                    }
                     else
-                        this.Info = new BundleBinaryInfo();
+                    {
+                        if (this.Info == null)
+                        {
+                            this.Info = new BundleBinaryInfo();
+                        }
+                    }
 
                     fs.Position = 0;
                     this.Info.LoadFromMemory(fs);
@@ -158,6 +168,13 @@ namespace KFrameWork
                 LogMgr.Log("bundle info Finish");
         }
 
+        public void Reload()
+        {
+            this.Cache.Reload();
+            isDone = false;
+            this.Start();
+        }
+
         public static void YieldInited(Action<WaitTaskCommand> DoneEvent)
         {
             if (mIns == null || !ResBundleMgr.mIns.isDone)
@@ -178,7 +195,11 @@ namespace KFrameWork
                 mIns.Cache.UnLoadUnUsed(force);
             }
         }
-
+        /// <summary>
+        /// 搜查并删除
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="force"></param>
         public static void SeekUnLoad(string name, bool force = false)
         {
             if (mIns != null)
@@ -207,13 +228,13 @@ namespace KFrameWork
         {
             if (!BundleConfig.SAFE_MODE)
             {
-                this._SimplePreLoad(pathname);
+                ABLoaderDispatcher.PreLoadForAssets(pathname);
             }
             else
             {
                 try
                 {
-                    this._SimplePreLoad(pathname);
+                    ABLoaderDispatcher.PreLoadForAssets(pathname);
                 }
                 catch (FrameWorkException ex)
                 {
@@ -231,13 +252,13 @@ namespace KFrameWork
         {
             if (!BundleConfig.SAFE_MODE)
             {
-                return this._LoadAsset(pathname);
+                return ABLoaderDispatcher.SyncLoadForAssets(pathname);
             }
             else
             {
                 try
                 {
-                    return this._LoadAsset(pathname);
+                    return ABLoaderDispatcher.SyncLoadForAssets(pathname);
                 }
                 catch (FrameWorkException ex)
                 {
@@ -261,26 +282,22 @@ namespace KFrameWork
         /// <returns></returns>
         public GameObject Load(string pathname, Component parent)
         {
-            return this.Load( pathname, parent.gameObject);
+            return this.Load( pathname, parent == null? null: parent.gameObject);
         }
 
         public GameObject Load(string pathname, Transform parent)
         {
-            return this.Load(pathname,  parent.gameObject);
+            return this.Load(pathname, parent == null ? null : parent.gameObject);
         }
 
         /// <summary>
-        /// 直接加载，并不检查实例对象
+        /// 直接加载，并不检查实例对象,并不建议这样使用
         /// </summary>
         /// <param name="pathname"></param>
         /// <returns></returns>
         public AssetBundleResult Load(string pathname)
         {
-            BaseBundleLoader loader= this._SimpleLoad(pathname, null);
-            AssetBundleResult result = loader.GetABResult();
-
-            loader.Dispose();
-            return result;
+            return ABLoaderDispatcher.SyncLoadForAssetsWithResult(pathname, null);
         }
 
 
@@ -289,13 +306,13 @@ namespace KFrameWork
             /// 通过异常阻断下面逻辑执行
             if (!BundleConfig.SAFE_MODE)
             {
-                return this._LoadGameobject(pathname, parent);
+                return ABLoaderDispatcher.SyncLoadForGameObjects(pathname, parent);
             }
             else
             {
                 try
                 {
-                    return this._LoadGameobject(pathname, parent);
+                    return ABLoaderDispatcher.SyncLoadForGameObjects(pathname, parent);
                 }
                 catch (FrameWorkException ex)
                 {
@@ -315,15 +332,13 @@ namespace KFrameWork
         {
             if (!BundleConfig.SAFE_MODE)
             {
-                BaseBundleLoader loader = this._SimpleLoad(pathname, callback);
-                loader.Dispose();
+                ABLoaderDispatcher.SyncLoad(pathname, callback);
             }
             else
             {
                 try
                 {
-                    BaseBundleLoader loader = this._SimpleLoad(pathname, callback);
-                    loader.Dispose();
+                    ABLoaderDispatcher.SyncLoad(pathname, callback);
                 }
                 catch (FrameWorkException ex)
                 {
@@ -355,30 +370,61 @@ namespace KFrameWork
 
         public void LoadSceneAsync(string pathname, Action<BaseBundleLoader, int, int> OnProgressHandler,Action<bool,AssetBundleResult> oncomplete)
         {
-            if (Cache.ContainsLoading(pathname))
+
+            if (!BundleConfig.SAFE_MODE)
             {
-                BaseBundleLoader loader = Cache.GetLoading(pathname);
-
-                if (oncomplete != null)
-                    loader.onComplete += oncomplete;
-
-                if (OnProgressHandler != null)
-                    loader.OnProgressHandler += OnProgressHandler;
+                ABLoaderDispatcher.LoadSceneAsync(pathname, OnProgressHandler, oncomplete);
             }
             else
             {
-                SceneAsyncLoader loader = BaseBundleLoader.CreateLoader<SceneAsyncLoader>();
-                if (loader == null)
-                    loader = new SceneAsyncLoader();
+                try
+                {
+                    ABLoaderDispatcher.LoadSceneAsync(pathname, OnProgressHandler, oncomplete);
+                }
+                catch (FrameWorkException ex)
+                {
+                    LogMgr.LogException(ex);
+                    ex.RaiseExcption();
 
-                if (oncomplete != null)
-                    loader.onComplete += oncomplete;
-
-                if (OnProgressHandler != null)
-                    loader.OnProgressHandler += OnProgressHandler;
-
-                loader.Load(pathname);
+                }
+                catch (Exception ex)
+                {
+                    LogMgr.LogException(ex);
+                }
             }
+
+        }
+
+        public void LoadScene(KEnum scene)
+        {
+            LoadScene((string)scene);
+        }
+
+        public void LoadScene(string pathname)
+        {
+
+            if (!BundleConfig.SAFE_MODE)
+            {
+                ABLoaderDispatcher.LoadScene(pathname);
+            }
+            else
+            {
+                try
+                {
+                    ABLoaderDispatcher.LoadScene(pathname);
+                }
+                catch (FrameWorkException ex)
+                {
+                    LogMgr.LogException(ex);
+                    ex.RaiseExcption();
+
+                }
+                catch (Exception ex)
+                {
+                    LogMgr.LogException(ex);
+                }
+            }
+
         }
 
         public void LoadAsync(string pathname, Component parent, Action<bool, AssetBundleResult> onCompelete = null)
@@ -386,22 +432,17 @@ namespace KFrameWork
             this.LoadAsync(pathname,parent !=null? parent.gameObject:null, onCompelete);
         }
 
-        //public void LoadAsync(string pathname, Transform parent, Action<bool, AssetBundleResult> onCompelete = null)
-        //{
-        //    this.LoadAsync(pathname, parent != null ? parent.gameObject : null, onCompelete);
-        //}
-
         public void LoadAsync(string pathname, GameObject parent, Action<bool, AssetBundleResult> onCompelete = null)
         {
             if (!BundleConfig.SAFE_MODE)
             {
-                this._LoadGameobjectAsync(pathname,parent, onCompelete);
+                ABLoaderDispatcher.AsyncLoadForGameObject(pathname,parent, onCompelete);
             }
             else
             {
                 try
                 {
-                    this._LoadGameobjectAsync(pathname, parent, onCompelete);
+                    ABLoaderDispatcher.AsyncLoadForGameObject(pathname, parent, onCompelete);
                 }
                 catch (FrameWorkException ex)
                 {
@@ -419,13 +460,13 @@ namespace KFrameWork
         {
             if (!BundleConfig.SAFE_MODE)
             {
-                this._SimpleAysncLoad(pathname, callback);
+                ABLoaderDispatcher.AsyncLoadForAssets(pathname, callback);
             }
             else
             {
                 try
                 {
-                    this._SimpleAysncLoad(pathname, callback);
+                    ABLoaderDispatcher.AsyncLoadForAssets(pathname, callback);
                 }
                 catch (FrameWorkException ex)
                 {
@@ -438,117 +479,6 @@ namespace KFrameWork
                 }
             }
         }
-
-#region private
-
-        private UnityEngine.Object _LoadAsset(string pathname)
-        {
-            SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
-
-            if (loader == null)
-                loader = new SyncLoader();
-
-            loader.Load(pathname);
-
-            AssetBundleResult result = loader.GetABResult();
-            loader.Dispose();
-
-            return result.LoadedObject;
-        }
-
-
-        private GameObject _LoadGameobject(string pathname, GameObject parent)
-        {
-            SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
-
-            if (loader == null)
-                loader = new SyncLoader();
-
-            loader.PreParedGameObject = parent;
-            loader.Load(pathname);
-
-            AssetBundleResult result = loader.GetABResult();
-            loader.Dispose();
-
-            GameObject target = result.InstancedObject;
-            if(target == null)
-                target = result.SimpleInstance();
-
-            return target;
-        }
-
-        private BaseBundleLoader _LoadGameobjectAsync(string pathname,GameObject parnet,Action<bool,AssetBundleResult> onCompelete =null)
-        {
-            if (Cache.ContainsLoading(pathname))
-            {
-                BaseBundleLoader baseLoader= Cache.GetLoading(pathname);
-
-                if (onCompelete != null)
-                    baseLoader.onComplete += onCompelete;
-                return baseLoader;
-            }
-
-            AsyncLoader loader = BaseBundleLoader.CreateLoader<AsyncLoader>();
-            if (loader == null)
-                loader = new AsyncLoader();
-
-            if(onCompelete != null)
-                loader.onComplete += onCompelete;
-            loader.PreParedGameObject = parnet;
-            loader.Load(pathname);
-            return loader;
-        }
-
-        private BaseBundleLoader _SimplePreLoad(string pathname)
-        {
-            if (Cache.ContainsLoading(pathname))
-            {
-                BaseBundleLoader baseLoader = Cache.GetLoading(pathname);
-                return baseLoader;
-            }
-
-            PreLoader loader = BaseBundleLoader.CreateLoader<PreLoader>();
-            if (loader == null)
-                loader = new PreLoader();
-
-            loader.Load(pathname);
-            return loader;
-        }
-
-        private BaseBundleLoader _SimpleLoad(string pathname, Action<bool, AssetBundleResult> callback)
-        {
-            SyncLoader loader = BaseBundleLoader.CreateLoader<SyncLoader>();
-            if (loader == null)
-                loader = new SyncLoader();
-            
-            if(callback != null)
-                loader.onComplete += callback;
-            loader.Load(pathname);
-            return loader;
-        }
-
-        private BaseBundleLoader _SimpleAysncLoad(string pathname, Action<bool, AssetBundleResult> callback)
-        {
-            if (Cache.ContainsLoading(pathname))
-            {
-                BaseBundleLoader baseLoader = Cache.GetLoading(pathname);
-
-                if (callback != null)
-                    baseLoader.onComplete += callback;
-                return baseLoader;
-            }
-
-            AsyncLoader loader = BaseBundleLoader.CreateLoader<AsyncLoader>();
-            if (loader == null)
-                loader = new AsyncLoader();
-            
-            if(callback != null)
-                loader.onComplete += callback;
-            loader.Load(pathname);
-            return loader;
-        }
-#endregion
-
     }
 }
 

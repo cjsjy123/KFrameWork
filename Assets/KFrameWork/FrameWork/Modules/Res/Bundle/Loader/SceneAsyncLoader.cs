@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System;
 using KFrameWork;
 using KUtils;
+using System.IO;
 
 namespace KFrameWork
 {
@@ -41,12 +42,12 @@ namespace KFrameWork
             if (BundleConfig.Bundle_Log)
                 LogMgr.LogFormat("SceneAsync Load Asset {0} Finished at {1}", this.LoadResPath, GameSyncCtr.mIns.RenderFrameCount);
             
-            this.InvokeProgressHandler(NeedLoadedCnt, NeedLoadedCnt);
             this.InvokeHandler(true);
 
             if (this.onComplete == null && this.OnProgressHandler == null)
             {
-                this._AsyncOpation.allowSceneActivation = true;
+                SceneOperation sceneop = this._AsyncOpation as SceneOperation;
+                sceneop.EnableScene();
             }
             this.Dispose();
         }
@@ -55,37 +56,36 @@ namespace KFrameWork
         {
             this._BundleRef = ResBundleMgr.mIns.Cache.TryGetValue(this.loadingpkg);
             if (this._BundleRef == null)
-                this.ThrowLogicError();
+                this.ThrowLogicError(loadingpkg.BundleName);
             else
                 this.LoadScene();
-        }
-
-        protected override void InitProgress()
-        {
-            this.NeedLoadedCnt = this.LoadQueue.Count +10;
-            this.LoadedCnt = 0;
         }
 
         private void LoadScene()
         {
             if (!this.isABMode)
             {
-                GameSceneCtr.LoadScene(this.loadingpkg.BundleName);
-                this._FinishAndRelease();
+                SceneOperation asyOp = GameSceneCtr.LoadSceneAsync(Path.GetFileNameWithoutExtension(this.loadingpkg.BundleName));
+                asyOp.DisableScene();
+                this._AsyncOpation = asyOp;
+
+                this._PushTaskAndExcute(this.loadingpkg, asyOp);
             }
             else
             {
                 ///需要异步预实例化
-                AsyncOperation asyOp = GameSceneCtr.LoadSceneAsync(this._BundleRef.LoadName);
-                asyOp.allowSceneActivation = false;
+                SceneOperation asyOp = GameSceneCtr.LoadSceneAsync(this._BundleRef.LoadName);
+                asyOp.DisableScene();
 
+                this._AsyncOpation = asyOp;
                 this._PushTaskAndExcute(this.loadingpkg, asyOp);
             }
+
         }
 
         protected override void LoadMainAsyncRequest(AssetBundleRequest request)
         {
-            this._Bundle = request.asset;
+            this._BundleMainObject = request.asset;
 
             if (!this.isABMode)
             {
@@ -103,12 +103,6 @@ namespace KFrameWork
         {
             this._FinishAndRelease();
         }
-
-        public override void DownLoad(string url)
-        {
-            base.DownLoad(url);
-        }
-
     }
 
 }

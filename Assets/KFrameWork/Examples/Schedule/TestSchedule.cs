@@ -16,11 +16,12 @@ public class TestSchedule : UnityMonoBehaviour {
     void ScheduleOnce(float time)
     {
         LogMgr.LogFormat("Once定时器启动时间: {0}",Time.realtimeSinceStartup);
-        Schedule.mIns.ScheduleInvoke(time,this.InvokeDone);
+        Schedule.mIns.ScheduleInvoke(time,null,InvokeDone);
     }
 
-    void InvokeDone()
+    void InvokeDone(object o,int left)
     {
+        LogMgr.LogError(left);
         float now = Time.realtimeSinceStartup;
         LogMgr.LogFormat("当前时间为 {0}",now);
     }
@@ -28,7 +29,7 @@ public class TestSchedule : UnityMonoBehaviour {
     void ScheduleMultiTimes(float delay,float delta,int times)
     {
         LogMgr.LogFormat("Multi定时器启动时间: {0}",Time.realtimeSinceStartup);
-        Schedule.mIns.ScheduleRepeatInvoke(delay,delta,times,this.InvokeDone);
+        Schedule.mIns.ScheduleRepeatInvoke(delay,delta,times,null,InvokeDone);
         
     }
 

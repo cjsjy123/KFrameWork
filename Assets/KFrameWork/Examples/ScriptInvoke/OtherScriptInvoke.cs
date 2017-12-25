@@ -78,7 +78,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("Now Frame {0} :{1}",GameSyncCtr.mIns.RenderFrameCount,Time.renderedFrameCount);
 
-            CurrentCmd = FrameCommand.Create(Done, waitcnt);
+            CurrentCmd = FrameCommand.Create(waitcnt,Done );
             CurrentCmd.Excute();
 
         }
@@ -109,10 +109,10 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
-            FrameCommand cmd = FrameCommand.Create(Done,50);
-            cmd+=FrameCommand.Create(Done,50);
-            cmd+=FrameCommand.Create(Done,50);
-            cmd+=FrameCommand.Create(Done,50);
+            FrameCommand cmd = FrameCommand.Create(50, Done);
+            cmd+=FrameCommand.Create(50, Done);
+            cmd+=FrameCommand.Create(50, Done);
+            cmd+=FrameCommand.Create(50, Done);
             cmd.Excute();
 
         }
@@ -148,8 +148,8 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
             cmd2.CallParams.WriteUnityObject(this);
             cmd2.CallParams.WriteFloat(23f);
 
-            BatchCommand batch1 = BatchCommand.Create(FrameCommand.Create(Done,50),cmd1);
-            BatchCommand batch2 = BatchCommand.Create(FrameCommand.Create(Done,50),cmd2);
+            BatchCommand batch1 = BatchCommand.Create(FrameCommand.Create(50,Done),cmd1);
+            BatchCommand batch2 = BatchCommand.Create(FrameCommand.Create(50,Done),cmd2);
             batch1+= batch2;
             batch1.Excute();
 
@@ -160,7 +160,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
         {
             LogMgr.LogFormat("BatchFrame Now Frame {0}",GameSyncCtr.mIns.RenderFrameCount);
 
-            CurrentCmd = BatchCommand.Create(FrameCommand.Create(Done,50),FrameCommand.Create(Done,50),FrameCommand.Create(Done,50),FrameCommand.Create(Done,50));
+            CurrentCmd = BatchCommand.Create(FrameCommand.Create(50,Done),FrameCommand.Create(50, Done),FrameCommand.Create(50, Done),FrameCommand.Create(50, Done));
             CurrentCmd.Excute();
 
         }
@@ -180,7 +180,7 @@ public class OtherScriptInvoke : UnityMonoBehaviour {
 
             StartCoroutine(YieldCall());
 
-            CurrentCmd = FrameCommand.Create(Done,50);
+            CurrentCmd = FrameCommand.Create(50,Done);
             CurrentCmd.Excute();
 
         }

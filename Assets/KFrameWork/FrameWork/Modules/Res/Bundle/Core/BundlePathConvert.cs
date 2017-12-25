@@ -56,29 +56,15 @@ namespace KFrameWork
 
         }
 
-        public static string getBundleDownloadPath(string urlpath)
+        public static string getBundleDownloadPath(string basename)
         {
-            if (BundleConfig.SAFE_MODE)
-            {
-                if (string.IsNullOrEmpty(urlpath))
-                    throw new FrameWorkException(string.Format("ulr error: {0}", urlpath));
-
-                //trim
-                urlpath = urlpath.Trim();
-
-                bool gend = urlpath.EndsWith("/");
-
-                if (gend)
-                    urlpath = urlpath.Remove(urlpath.Length - 1, 1);
-
-                if (BundleConfig.ABDownLoadPath.EndsWith("/"))
-                {
-                    return gstring.Format("{0}/{1}{2}", persistentDataPath, BundleConfig.ABDownLoadPath, urlpath);
-                }
-
-            }
-
-            return gstring.Format("{0}/{1}/{2}", persistentDataPath, BundleConfig.ABDownLoadPath, urlpath);
+#if UNITY_EDITOR 
+            return gstring.Format("{0}/Editor/{1}", persistentDataPath, basename);
+#elif UNITY_IOS || UNITY_IPHONE
+                return gstring.Format("{0}/IOS/{1}",persistentDataPath,basename);
+#elif UNITY_ANDROID
+                return gstring.Format("{0}/ANDROID/{1}", persistentDataPath, basename);;
+#endif
         }
 
         public static string getBundleStreamPath(string basename)

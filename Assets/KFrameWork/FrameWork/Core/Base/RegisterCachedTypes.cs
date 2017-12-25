@@ -77,12 +77,12 @@ namespace KFrameWork
 
             for (int i = 0; i < methodnames.Count; ++i)
             {
-                typewrapper.seekTargetList.Add(methodnames[i].Name);
+                typewrapper.seekTargetList.TryAdd(methodnames[i].Name);
             }
             int register = (int)registertype;
             if (types.ContainsKey(register))
             {
-                types[register].TypeList.Add(typewrapper);
+                types[register].TypeList.TryAdd(typewrapper);
             }
             else
             {
@@ -92,13 +92,13 @@ namespace KFrameWork
             }
         }
 
-        public void Analyze(int tp, TypeListWrapper wrapper, Type attname, BaseAttributeRegister.GameAttriHandler handler)
+        public void Analyze(BaseAttributeRegister register, int tp, TypeListWrapper wrapper, Type attname, BaseAttributeRegister.GameAttriHandler handler)
         {
             //if (!attname.FullName.Equals(wrapper.attributename))
             //    return;
 
             RegisterType registerType =(RegisterType)tp;
-            if(registerType == RegisterType.ClassAttr)
+            if (registerType == RegisterType.ClassAttr)
             {
                 Type clstype = Type.GetType(wrapper.name);
                 if (clstype == null)
@@ -108,14 +108,19 @@ namespace KFrameWork
                 else
                 {
                     object[] atts = clstype.GetCustomAttributes(attname, true);
-                    handler(atts[0], clstype);
+                    if (atts.Length > 0)
+                        handler(atts[0], clstype);
+                    else
+                    {
+                        LogMgr.LogErrorFormat("missing attribute :{0} from {1}", clstype, attname);
+                    }
                 }
             }
-            else if(registerType == RegisterType.MethodAtt)
+            else if (registerType == RegisterType.MethodAtt || registerType == RegisterType.Register)
             {
                 if (wrapper.seekTargetList.Count == 0)
                 {
-                    LogMgr.LogErrorFormat("没有匹配的函数 :{0} From :{1}", attname,wrapper.name);
+                    LogMgr.LogErrorFormat("没有匹配的函数 :{0} From :{1}", attname, wrapper.name);
                 }
                 else
                 {
@@ -126,29 +131,41 @@ namespace KFrameWork
                     }
                     else
                     {
+
                         for (int i = 0; i < wrapper.seekTargetList.Count; ++i)
                         {
                             string target = wrapper.seekTargetList[i];
-                            MethodInfo methods = clstype.GetMethod(target, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                            MethodInfo targetMethod = clstype.GetMethod(target, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-                            if (methods == null)
+                            if (targetMethod == null)
                             {
                                 LogMgr.LogErrorFormat("没有匹配的函数 :{0} From :{1}  named :{2}", attname, wrapper.name, target);
                                 continue;
                             }
 
-                            object[] atts = methods.GetCustomAttributes(attname, true);
+                            object[] atts = targetMethod.GetCustomAttributes(attname, true);
                             if (atts.Length == 0)
                             {
-                                LogMgr.LogErrorFormat("method {0} in {1} missing attribute:{2}", methods.Name, wrapper.name, attname.Name);
+                                LogMgr.LogErrorFormat("method {0} in {1} missing attribute:{2}", targetMethod.Name, wrapper.name, attname.Name);
                             }
                             else
                             {
-                                handler(atts[0], methods);
+                                if (registerType == RegisterType.Register)
+                                {
+                                    handler(atts[0],new  KeyValuePair<BaseAttributeRegister, MethodInfo> (register,targetMethod));
+                                }
+                                else
+                                {
+                                    handler(atts[0], targetMethod);
+                                }
                             }
                         }
                     }
                 }
+            }
+            else
+            {
+                LogMgr.LogError("error");
             }
         }
 

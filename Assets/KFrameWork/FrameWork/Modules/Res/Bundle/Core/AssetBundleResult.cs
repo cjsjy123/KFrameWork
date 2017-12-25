@@ -11,8 +11,10 @@ namespace KFrameWork
         public readonly string LoadPath;
 
         public readonly GameObject ParentPath;
-
-        public AsyncOperation SceneAsyncResult;
+        /// <summary>
+        /// just for scene
+        /// </summary>
+        public SceneOperation SceneAsyncResult;
 
         private UnityEngine.Object m_LoadedObject;
 

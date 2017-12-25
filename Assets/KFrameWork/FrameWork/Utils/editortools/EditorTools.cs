@@ -8,7 +8,7 @@ using System.Linq;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
-
+using System.Text.RegularExpressions;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -24,31 +24,6 @@ namespace KFrameWork
         public EditorTools()
         {
             mIns =this;
-            //MapHeightHalfSearch sss = new MapHeightHalfSearch();
-            //const int count = 1000000;
-            //Stopwatch w = new Stopwatch();
-            //w.Start();
-            //for (int i = 0; i < count; ++i)
-            //{
-            //    sss.Add((0.01f *i).ToVector3());
-            //}
-            //w.Stop();
-            //LogMgr.LogError("add cost "+w.Elapsed.TotalSeconds);
-
-            //w.Reset();
-            //w.Start();
-            //for (int i = 0; i < count; ++i)
-            //{
-            //    float y;
-            //    bool b1 = sss.Search((0.01f * i).ToVector2(), out y);
-            //    if (!b1)
-            //    {
-            //        LogMgr.LogError("not b1  " + y);
-            //    }
-            //}
-
-            //w.Stop();
-            //LogMgr.LogError("search cost " + w.Elapsed.TotalSeconds);
             if (!EditorApplication.isPlaying)
                 this.Init();
         }
@@ -62,6 +37,7 @@ namespace KFrameWork
         {
             try
             {
+                //string s = "{0!b},{ex:ArmorDef,CharaDef,EventDef,GameConstDef,GunsDef,MapDef,OrderDef,ShellDef,SkillAndPerkDef,TankDef}";
                 //Dbg.enabled = false;
                 //属性检查编辑器类
                 EditorAttRegister.Register(this);
@@ -82,6 +58,7 @@ namespace KFrameWork
             }
 
         }
+
 
         public static string GetRelativeAssetPath(string _fullPath)
         {
@@ -113,7 +90,16 @@ namespace KFrameWork
         public static FileInfo[] GetAllFilesInSelectDir(string path,string pattern)
         {
             string fullpath = Path.GetFullPath(path);
-            DirectoryInfo dir = new DirectoryInfo(Path.GetDirectoryName(fullpath));
+            DirectoryInfo dir = null;
+            if (File.Exists(fullpath))
+            {
+                dir = new DirectoryInfo(Path.GetDirectoryName(fullpath));
+            }
+            else
+            {
+                dir = new DirectoryInfo(fullpath);
+            }
+            
 
             return dir.GetFiles(pattern, SearchOption.AllDirectories);
         }
@@ -186,6 +172,12 @@ namespace KFrameWork
             {
                 return ScriptableObject.CreateInstance<T>();
             }
+        }
+
+        public static T LoadGUIDAsset<T>(string guid) where T : UnityEngine.Object
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            return AssetDatabase.LoadAssetAtPath<T>(path);
         }
 
         public static void CreateAsset<T>(string path,T o) where T:UnityEngine.Object
@@ -276,12 +268,78 @@ namespace KFrameWork
                 file.Delete();
             }
 
-
             foreach (DirectoryInfo subdir in dirs)
             {
                 DirectoryDelete(subdir.FullName);
             }
+        }
 
+        public static void DirectoryDeleteFull(string sourceDirName)
+        {
+            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
+            DirectoryInfo[] dirs = dir.GetDirectories();
+            if (!dir.Exists)
+            {
+                throw new DirectoryNotFoundException(
+                    "Source directory does not exist or could not be found: "
+                    + sourceDirName);
+            }
+
+            FileInfo[] files = dir.GetFiles();
+
+            foreach (FileInfo file in files)
+            {
+                file.Delete();
+            }
+
+            foreach (DirectoryInfo subdir in dirs)
+            {
+                subdir.Delete(true);
+            }
+
+        }
+
+        public static void DirectoryCopyEndWith(string sourceDirName, string destDirName,string endwith, bool copySubDirs)
+        {
+            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            if (!dir.Exists)
+            {
+                throw new DirectoryNotFoundException(
+                    "Source directory does not exist or could not be found: "
+                    + sourceDirName);
+            }
+
+            if (!Directory.Exists(destDirName))
+            {
+                Directory.CreateDirectory(destDirName);
+            }
+            FileInfo[] files = dir.GetFiles();
+
+            foreach (FileInfo file in files)
+            {
+                string temppath = Path.Combine(destDirName, file.Name);
+                if (!string.IsNullOrEmpty(endwith) && temppath.EndsWith(endwith, StringComparison.Ordinal))
+                {
+                    file.CopyTo(temppath, true);
+                }
+                else if (string.IsNullOrEmpty(endwith))
+                {
+                    file.CopyTo(temppath, true);
+                }
+            }
+
+            if (copySubDirs)
+            {
+
+                foreach (DirectoryInfo subdir in dirs)
+                {
+                    string temppath = Path.Combine(destDirName, subdir.Name);
+
+                    DirectoryCopyEndWith(subdir.FullName, temppath, endwith, copySubDirs);
+                }
+            }
         }
 
         public static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)

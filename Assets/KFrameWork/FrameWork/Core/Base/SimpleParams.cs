@@ -10,7 +10,14 @@ namespace KFrameWork
 //    [StructLayout(LayoutKind.Sequential)]
     public class SimpleParams:AbstractParams,IPool
     {
+        /// <summary>
+        /// 
+        /// </summary>
         private long bitIndex =0;
+
+        /// <summary>
+        /// 4位一个类型，64/4=16
+        /// </summary>
         private long bitDataSort =0;
      
         private long? m_l1;
@@ -56,6 +63,8 @@ namespace KFrameWork
         private UnityEngine.Object m_uo1;
         private UnityEngine.Object m_uo2;
         private UnityEngine.Object m_uo3;
+
+        //private bool released = false;
 
         [FrameWorkStart]
         private static void Preload(int v)
@@ -108,8 +117,11 @@ namespace KFrameWork
 
         public override void Release ()
         {
-            if(KObjectPool.mIns != null)
+            if (KObjectPool.mIns != null )
+            {
                 KObjectPool.mIns.Push(this);
+            }
+                
         }
 
         public override void RemoveToPool ()
@@ -230,11 +242,18 @@ namespace KFrameWork
    
         private long _ReadNextTp(out int index)
         {
+            if (_NextReadIndex >= ArgCount)
+            {
+                _NextReadIndex = ArgCount - 1;
+                index = -1;
+                return 0L;
+            }
+
             long tp = this._ReadIndex(this._NextReadIndex,out index);
 
             if(ArgCount != 0)
             {
-                _NextReadIndex= (++_NextReadIndex)%ArgCount;
+                _NextReadIndex++;
             }
 
             return tp;
@@ -244,13 +263,13 @@ namespace KFrameWork
         {
             if( index >4 || index <0 )
             {
-                LogMgr.LogError("参数索引错误");
+                ThrowError("参数索引错误");
                 return;
             }
 
             if(this.ArgCount+1 > this._LimitMax)
             {
-                LogMgr.LogError("参数过多");
+                ThrowError("参数过多");
                 return ;
             }
 
@@ -276,14 +295,18 @@ namespace KFrameWork
             }
         }
 
-        private long _insertBit(long orig,long powcnt, int index,int tpval)
+        private long _insertBit(long orig,int databit, int index,int tpval)
         {
-            long powval =_MyPow(powcnt,index)-1;
+            if (index == 0)
+            {
+                return orig * _MyPow(2, databit) + tpval;
+            }
 
-            long right = orig & powval;
-            long left = orig | powval;
+            long value = _MyPow(2, databit * index)-1;
+            long right = orig & value;
+            long left = orig & (~value);
 
-            return  left *powcnt + right + tpval<<index;
+            return  (left+ tpval) * (value+1) + right ;
         }
 
         /// <summary>
@@ -296,7 +319,7 @@ namespace KFrameWork
             if(this._OriginArgCount >0)
                 this._OriginArgCount++;
             short count =0;
-            for(int i =0; i < this._virtualArg;++i)
+            for(int i =0; i < this.ArgCount;++i)
             {
                 int tp = this.GetArgIndexType(i);
                 if(tp == (int)ParamType.INT)
@@ -305,24 +328,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.INT); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.INT); 
 
             if(count == 0)
             {
                 this.m_i1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_i2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_i3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -347,24 +370,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.SHORT); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.SHORT); 
 
             if(count == 0)
             {
                 this.m_st1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_st2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_st3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -388,24 +411,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.STRING); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.STRING); 
 
             if(count == 0)
             {
                 this.m_string1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_string2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_string3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -430,24 +453,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.BOOL); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.BOOL); 
 
             if(count == 0)
             {
                 this.m_b1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_b2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_b3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -472,24 +495,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.FLOAT); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.FLOAT); 
 
             if(count == 0)
             {
                 this.m_f1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_f2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_f3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -513,24 +536,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.DOUBLE); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.DOUBLE); 
 
             if(count == 0)
             {
                 this.m_d1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_d2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_d3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -554,24 +577,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.LONG); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.LONG); 
 
             if(count == 0)
             {
                 this.m_l1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_l2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_l3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -595,24 +618,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort = this._insertBit(this.bitDataSort, 16, index, (int)ParamType.VETOR3);
+            this.bitDataSort = this._insertBit(this.bitDataSort, 4, index, (int)ParamType.VETOR3);
 
             if (count == 0)
             {
                 this.m_v1 = v;
-                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 0);
+                this.bitIndex = this._insertBit(this.bitIndex, 2, index, 0);
                 this._ArgCount++;
             }
             else if (count == 1)
             {
                 this.m_v2 = v;
-                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 1);
+                this.bitIndex = this._insertBit(this.bitIndex, 2, index, 1);
                 this._ArgCount++;
             }
             else if (count == 2)
             {
                 this.m_v3 = v;
-                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 2);
+                this.bitIndex = this._insertBit(this.bitIndex, 2, index, 2);
                 this._ArgCount++;
             }
             else
@@ -636,24 +659,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort = this._insertBit(this.bitDataSort, 16, index, (int)ParamType.Color);
+            this.bitDataSort = this._insertBit(this.bitDataSort, 4, index, (int)ParamType.Color);
 
             if (count == 0)
             {
                 this.m_c1 = v;
-                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 0);
+                this.bitIndex = this._insertBit(this.bitIndex, 2, index, 0);
                 this._ArgCount++;
             }
             else if (count == 1)
             {
                 this.m_c2 = v;
-                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 1);
+                this.bitIndex = this._insertBit(this.bitIndex, 2, index, 1);
                 this._ArgCount++;
             }
             else if (count == 2)
             {
                 this.m_c3 = v;
-                this.bitIndex = this._insertBit(this.bitIndex, 4, index, 2);
+                this.bitIndex = this._insertBit(this.bitIndex, 2, index, 2);
                 this._ArgCount++;
             }
             else
@@ -677,24 +700,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.OBJECT); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.OBJECT); 
 
             if(count == 0)
             {
                 this.m_o1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_o2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_o3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -718,24 +741,24 @@ namespace KFrameWork
                 }
             }
 
-            this.bitDataSort= this._insertBit(this.bitDataSort,16,index,(int)ParamType.UNITYOBJECT); 
+            this.bitDataSort= this._insertBit(this.bitDataSort,4,index,(int)ParamType.UNITYOBJECT); 
 
             if(count == 0)
             {
                 this.m_uo1 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,0); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,0); 
                 this._ArgCount++;
             }
             else if(count == 1)
             {
                 this.m_uo2 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,1); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,1); 
                 this._ArgCount++;
             }
             else if(count == 2)
             {
                 this.m_uo3 = v;
-                this.bitIndex= this._insertBit(this.bitIndex,4,index,2); 
+                this.bitIndex= this._insertBit(this.bitIndex,2,index,2); 
                 this._ArgCount++;
             }
             else
@@ -745,13 +768,19 @@ namespace KFrameWork
             return this;
         }
 
-        public override ParamType NextValue ()
+        public override int NextValue ()
         {
             int index;
             int old = _NextReadIndex;
             long tp = this._ReadNextTp(out index);
             _NextReadIndex = old;
-            return (ParamType)tp;
+            return (int)tp;
+        }
+
+        private void ThrowError(string info)
+        {
+           // LogMgr.LogError(info);
+            throw new ArgumentException(info);
         }
 
         public override int ReadInt ()
@@ -770,7 +799,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index == 1)
@@ -782,7 +811,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index== 2)
@@ -794,19 +823,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp,old));
             }
             return 0;
         }
@@ -827,7 +856,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index == 1)
@@ -839,7 +868,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index== 2)
@@ -851,19 +880,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return false;
         }
@@ -884,7 +913,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index == 1)
@@ -897,7 +926,7 @@ namespace KFrameWork
                     {
                         
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index== 2)
@@ -909,19 +938,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return 0;
         }
@@ -942,7 +971,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index == 1)
@@ -954,7 +983,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index== 2)
@@ -966,19 +995,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return "";
         }
@@ -999,7 +1028,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index == 1)
@@ -1011,7 +1040,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index== 2)
@@ -1023,19 +1052,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return 0;
         }
@@ -1056,7 +1085,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index == 1)
@@ -1068,7 +1097,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index== 2)
@@ -1080,19 +1109,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return 0;
         }
@@ -1113,7 +1142,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index == 1)
@@ -1125,7 +1154,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if(index== 2)
@@ -1137,19 +1166,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return 0;
         }
@@ -1170,7 +1199,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if (index == 1)
@@ -1182,7 +1211,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if (index == 2)
@@ -1194,19 +1223,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return Vector3.zero;
         }
@@ -1227,7 +1256,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if (index == 1)
@@ -1239,7 +1268,7 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else if (index == 2)
@@ -1251,19 +1280,19 @@ namespace KFrameWork
                     else
                     {
                         _NextReadIndex = old;
-                        LogMgr.LogError("参数异常，未赋值");
+                        ThrowError("参数异常，未赋值");
                     }
                 }
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return Color.white;
         }
@@ -1290,13 +1319,13 @@ namespace KFrameWork
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return null;
         }
@@ -1323,13 +1352,13 @@ namespace KFrameWork
                 else
                 {
                     _NextReadIndex = old;
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
                 _NextReadIndex = old;
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format("下一个类型为:{0} 参数异常 当前索引为 :{1}", (ParamType)tp, old));
             }
             return null;
         }
@@ -2038,12 +2067,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2069,16 +2098,16 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
             return this;
         }
-
+        
         public override AbstractParams SetString(int argindex,string v)
         {
             int index;
@@ -2099,12 +2128,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
             return this;
         }
@@ -2129,12 +2158,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2160,12 +2189,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2191,12 +2220,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2222,12 +2251,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2253,12 +2282,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2284,12 +2313,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2315,12 +2344,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
 
             return this;
@@ -2346,12 +2375,12 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogError("参数索引异常");
+                    ThrowError("参数索引异常");
                 }
             }
             else
             {
-                LogMgr.LogError("参数异常");
+                ThrowError(string.Format( "下一个类型为:{0} 参数异常 当前索引为 :{1}",(ParamType)tp, argindex));
             }
             return this;
         }
@@ -2423,6 +2452,14 @@ namespace KFrameWork
                 else if (tp == (int)ParamType.UNITYOBJECT)
                 {
                     sb.AppendFormat("第{0}个参数为: {1} ", i + 1, this.ReadUnityObject());
+                }
+                else if (tp == (int)ParamType.Color)
+                {
+                    sb.AppendFormat("第{0}个参数为: {1} ", i + 1, this.ReadColor());
+                }
+                else
+                {
+                    LogMgr.LogError("未增加的类型");
                 }
             }
 

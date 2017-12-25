@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using KUtils;
 #if USE_TANGAB
-using Tangzx.ABSystem;
 
 namespace KFrameWork
 {
@@ -18,6 +17,7 @@ namespace KFrameWork
 
         public void LoadFromMemory(Stream depStream)
         {
+            caches.Clear();
             StreamReader sr = new StreamReader(depStream);
             char[] fileHeadChars = new char[6];
             sr.Read(fileHeadChars, 0, fileHeadChars.Length);
@@ -48,7 +48,7 @@ namespace KFrameWork
                     deps[i] = sr.ReadLine();
                 }
 
-                BundlePkgInfo pkg = new BundlePkgInfo(hash, name, shortFileName, assetpath, null, deps);
+                BundlePkgInfo pkg = new BundlePkgInfo(hash, name, shortFileName, assetpath, BundlePkgInfo.ChooseType(assetpath), deps);
                 this.caches[shortFileName] = pkg;
                 this.caches[name] = pkg;
                 this.caches[assetpath] = pkg;

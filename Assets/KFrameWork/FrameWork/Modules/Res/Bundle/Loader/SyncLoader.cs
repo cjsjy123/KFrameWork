@@ -59,9 +59,9 @@ namespace KFrameWork
             if (this.isRunning())
             {
                 this._BundleRef = this._LoadBundle(loadingpkg);
-                this.AppendDepends(this.loadingpkg, _BundleRef);
+                this.AddDepends(this.loadingpkg, _BundleRef);
 
-                this.CreateFromAsset(this._BundleRef,out this._Bundle );
+                this.CreateFromAsset(this._BundleRef,out this._BundleMainObject );
                 this.InvokeProgressHandler(total, total);
 
                 if (this.isRunning()) //double check
@@ -136,7 +136,7 @@ namespace KFrameWork
         private IBundleRef _LoadBundle(BundlePkgInfo pkginfo)
         {
             IBundleRef bundle = this.LoadFullAssetToMem(pkginfo);
-            this.AppendDepends(pkginfo, bundle);
+            this.AddDepends(pkginfo, bundle);
             return bundle;
         }
 

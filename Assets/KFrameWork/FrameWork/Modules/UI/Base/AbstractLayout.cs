@@ -6,6 +6,7 @@ using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
+using System.Text;
 
 #if TOLUA
 using LuaInterface;
@@ -17,33 +18,54 @@ namespace KFrameWork
     {
         None,
         /// <summary>
-        /// 单个ui,如果有就刷新UI
+        /// 刷新检查
         /// </summary>
-        SingleUI,
+        ContainCheck = 1,
+        /// <summary>
+        /// 缓存检查
+        /// </summary>
+        CacheCheck = 2,
         /// <summary>
         /// 忽视缓存，允许多个实例
         /// </summary>
-        IgnoreCache,
+        LoadDirect = 4,
         /// <summary>
-        /// 一旦缓存允许则从缓存加载新的,也会检查是否已经load了一个
+        /// 单个ui,如果有就刷新UI
         /// </summary>
-        LoadFromCacheIfNew,
+        SingleUI  = ContainCheck | LoadDirect,
+
+        /// <summary>
+        /// 一旦缓存允许则从缓存加载新的,也会检查是否已经load了一个,然后进行刷新
+        /// </summary>
+        FullLoad = ContainCheck | CacheCheck  | LoadDirect,
         /// <summary>
         /// 一旦缓存允许则从缓存加载新的,无视contain
         /// </summary>
-        LoadFromCache,
+        LoadNewIfCache = CacheCheck | LoadDirect,
     }
 
     public abstract class AbstractLayout
     {
+
+
+        public Camera UIcamera;
+
         /// <summary>
         /// opened ui container
         /// </summary>
         protected List<GameUI> uicontainer;
 
-        private GameObject layoutObject;
+        protected GameObject gameuiRoot;
 
-        private GameObject gameuiRoot;
+        public virtual int Size
+        {
+            get
+            {
+                if (this.uicontainer != null)
+                    return this.uicontainer.Count;
+                return 0;
+            }
+        }
 
         public virtual string LayoutName
         {
@@ -60,6 +82,37 @@ namespace KFrameWork
             get
             {
                 return LayoutLoadMode.SingleUI;
+            }
+        }
+
+        protected string _sotringLayer;
+        public virtual string sortingLayer
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_sotringLayer))
+                {
+                    bool exist = false;
+                    for (int i = 0; i < SortingLayer.layers.Length; ++i)
+                    {
+                        if (SortingLayer.layers[i].name.Equals("GameUI"))
+                        {
+                            exist = true;
+                            break;
+                        }
+                    }
+
+                    if (exist)
+                    {
+                        this._sotringLayer = "GameUI";
+                    }
+                    else
+                    {
+                        this._sotringLayer = "Default";
+                    }
+                }
+
+                return _sotringLayer;
             }
         }
 
@@ -89,26 +142,52 @@ namespace KFrameWork
             }
         }
 
-        private bool _canDestroy;
 
-        public bool CanDestory
+        private List<Tuple<string, Transform, AbstractParams>> loaderQueue;
+
+        private List<GameUI> removeList;
+
+        private bool _enable3D = false;
+
+        public bool enable3D
         {
             get
             {
-                return _canDestroy;
+                return _enable3D;
             }
             set
             {
-                _canDestroy = value;
+                if (_enable3D != value)
+                {
+                    _enable3D = value;
+                    this.UpdateForPropertys();
+                }
             }
         }
 
-        private List<Tuple<string, Transform, AbstractParams,int>> loaderQueue;
+        private bool _enable2D = false;
+
+        public bool enable2D
+        {
+            get
+            {
+                return _enable2D;
+            }
+            set
+            {
+                if (_enable2D != value)
+                {
+                    _enable2D = value;
+                    this.UpdateForPropertys();
+                }
+            }
+        }
 
         public AbstractLayout()
         {
             this.uicontainer = new List<GameUI>();
-            this.loaderQueue = new List<Tuple<string,Transform, AbstractParams, int>>();
+            this.loaderQueue = new List<Tuple<string, Transform, AbstractParams>>();
+            this.removeList = new List<GameUI>();
 
             this._UILayer = LayerMask.NameToLayer("UI");
         }
@@ -117,15 +196,23 @@ namespace KFrameWork
 
         public abstract void HideUILayout();
 
+        public abstract bool isShow();
+
+        public abstract void AskCanvas();
+
         protected abstract GameUI BindToCanvas(GameObject instance, Transform Parent, AbstractParams p);
 
         protected abstract bool CanLoadFromCache(string respath);
+
+        protected abstract void DestroyUI(GameUI ui);
 
         protected abstract GameUI LoadFromCache(string respath);
 
         protected abstract void ChangeOrder(int old, int value);
 
-        public virtual Canvas CreateCanvas(string name)
+        protected abstract void UpdateForPropertys();
+
+        protected virtual Canvas CreateCanvas(string name)
         {
             if (gameuiRoot == null)
             {
@@ -138,21 +225,25 @@ namespace KFrameWork
                 gameuiRoot.layer = LayerMask.NameToLayer("UI");
             }
 
+            //set gameobject
             GameObject canvasObject = new GameObject(name);
-            canvasObject.layer = LayerMask.NameToLayer("UI");
+            canvasObject.layer = UILayer;
+            //set canvas
             Canvas uicanvas = canvasObject.AddComponent<Canvas>();
             uicanvas.renderMode = RenderMode.ScreenSpaceCamera;
-            uicanvas.worldCamera = GameCameraCtr.mIns.cameraUI;
+            uicanvas.worldCamera = UIcamera ? UIcamera:Camera.main;
             uicanvas.planeDistance = 100;
             uicanvas.overrideSorting = true;
+            uicanvas.sortingLayerName = this.sortingLayer;
 
+            //set scaler
             CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 1;
             scaler.referencePixelsPerUnit = 100;
             scaler.referenceResolution = new Vector2(FrameWorkConfig.DisplayUIWidth, FrameWorkConfig.DisplayUIHiehgt);
-
+            //set raycaster
             GraphicRaycaster raycaster = canvasObject.AddComponent<GraphicRaycaster>();
             raycaster.ignoreReversedGraphics = true;
 
@@ -161,45 +252,50 @@ namespace KFrameWork
             return uicanvas;
         }
 
-        private bool RemoveLoading(string name, out AbstractParams p,out Transform tr,out int mode)
+        private bool RemoveLoading(string name, out AbstractParams p, out Transform tr)
         {
             for (int i = 0; i < loaderQueue.Count; ++i)
             {
-                Tuple<string, Transform, AbstractParams, int> kv = this.loaderQueue[i];
+                Tuple<string, Transform, AbstractParams> kv = this.loaderQueue[i];
                 if (kv.k1 == name)
                 {
                     tr = kv.k2;
                     p = kv.k3;
-                    mode = kv.k4;
                     this.loaderQueue.RemoveAt(i);
                     return true;
                 }
             }
             p = null;
             tr = null;
-            mode = -1;
             return false;
         }
 
-        private void CallUI(GameUI ui,AbstractParams p)
+        private void CallUI(GameUI ui, AbstractParams p)
         {
-            if (ui.HasEnter )
+            if (ui.HasEnter)
             {
-                if (!ui.Visiable)
-                    ui.DoVisiable();
-
                 ui.CallRefresh(p);
-
-                if (p != null)
-                {
-                    p.Release();
-                    p = null;
-                }
             }
             else
             {
-                ui.CallEnter(p);
+                ScriptCommand cmd = ScriptCommand.Create((int)BaseCmdDef.CallEnter);
+                if (p != null)
+                    cmd.CallParams = p;
+                cmd.CallParams.InsertObject(0, ui);
+                cmd.target = ScriptTarget.Sharp;
+                cmd.Excute();
             }
+        }
+
+        private bool HasMode(LayoutLoadMode mode,LayoutLoadMode comparemode)
+        {
+            int left = (int)mode;
+            int right = (int)comparemode;
+            if ((left & right) == right)
+            {
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -207,9 +303,11 @@ namespace KFrameWork
         /// </summary>
         /// <param name="respath"></param>
         /// <param name="p"></param>
-        private List<GameUI> RefreshUI(string respath,Transform trans, AbstractParams p)
+        private List<GameUI> RefreshUI(string respath, Transform trans, AbstractParams p)
         {
-            List<GameUI> uilist = TryGetUIByPathParent(respath,trans);
+            this.ComparedValue = respath;
+            this.ComparedTrans = trans;
+            List<GameUI> uilist = GetUI(PathTransCompareUI);
 
             for (int i = 0; i < uilist.Count; ++i)
             {
@@ -219,22 +317,7 @@ namespace KFrameWork
 
             return uilist;
         }
-        /// <summary>
-        /// 根据UID 刷新
-        /// </summary>
-        /// <param name="UID"></param>
-        /// <param name="p"></param>
-        /// <returns></returns>
-        private GameUI RefreshUI(int UID, AbstractParams p )
-        {
-            GameUI gameui = TryGetUIByUID(UID);
-            if (gameui != null)
-            {
-                CallUI(gameui, p);
-            }
 
-            return gameui;
-        }
         /// <summary>
         /// 从缓存中加载
         /// </summary>
@@ -242,14 +325,16 @@ namespace KFrameWork
         /// <param name="Parent"></param>
         /// <param name="p"></param>
         /// <returns></returns>
-        private GameUI CallCacheUI(string respath, Transform Parent , AbstractParams p )
+        private GameUI CallCacheUI(string respath, Transform Parent, AbstractParams p)
         {
             GameUI ui = LoadFromCache(respath);
             if (ui != null)
             {
                 BindToCanvas(ui.gameObject, Parent, p);
-                CallUI(ui, p);
                 AddtoContioner(ui, Parent);
+
+                ui.DoVisiable();
+                CallUI(ui, p);
             }
             return ui;
         }
@@ -260,7 +345,7 @@ namespace KFrameWork
         /// <param name="Parent"></param>
         /// <param name="p"></param>
         /// <returns></returns>
-        private GameUI SyncLoadUI(string respath, Transform Parent , AbstractParams p )
+        private GameUI SyncLoadUI(string respath, Transform Parent, AbstractParams p)
         {
             GameObject instance = ResBundleMgr.mIns.Load(respath).SimpleInstance();
             if (instance == null)
@@ -268,9 +353,9 @@ namespace KFrameWork
 
             GameUI ui = BindToCanvas(instance, Parent, p);
             if (ui != null)
-                ui.loadpath = respath;
-            ui.CallEnter(p);
+                ui.InitLua(respath);
             AddtoContioner(ui, Parent);
+            CallUI(ui, p);
             return ui;
         }
         /// <summary>
@@ -279,35 +364,51 @@ namespace KFrameWork
         /// <param name="respath"></param>
         /// <param name="Parent"></param>
         /// <param name="p"></param>
-        private void AsyncLoadUI(string respath, Transform Parent, LayoutLoadMode mode , AbstractParams p )
+        private void AsyncLoadUI(string respath, Transform Parent,  AbstractParams p)
         {
-            this.loaderQueue.Add(new Tuple<string, Transform, AbstractParams, int>(respath,Parent,p,(int)mode));
+            this.loaderQueue.Add(new Tuple<string, Transform, AbstractParams>(respath, Parent, p));
             if (!ResBundleMgr.mIns.Cache.ContainsLoading(respath))
             {
                 ResBundleMgr.mIns.LoadAsync(respath, AsyncDone);
             }
         }
 
-        public GameUI OpenUI(string respath, LayoutLoadMode mode)
+        public virtual GameUI OpenUI(string respath)
         {
-            return OpenUI(respath, null, mode,null);
+            return OpenUI(respath, null, null, this.DefaultMode);
         }
 
-        public GameUI OpenUI(string respath, AbstractParams p)
+        public virtual GameUI OpenUI(string respath, LayoutLoadMode mode)
         {
-            return OpenUI(respath, null, this.DefaultMode, p);
+            return OpenUI(respath, null, null, mode);
         }
 
-        public GameUI OpenUI(string respath, AbstractParams p, LayoutLoadMode mode)
+        public virtual GameUI OpenUI(string respath, AbstractParams p)
         {
-            return OpenUI(respath, null, mode, p);
+            return OpenUI(respath, null, p, this.DefaultMode);
         }
 
-        public GameUI OpenUI(string respath, Transform Parent, AbstractParams p)
+        public virtual GameUI OpenUI(string respath, AbstractParams p, LayoutLoadMode mode)
         {
-            return OpenUI(respath, Parent, this.DefaultMode, p);
+            return OpenUI(respath, null, p, mode);
         }
 
+        public virtual GameUI OpenUI(string respath, Transform Parent)
+        {
+            return OpenUI(respath, Parent, null, this.DefaultMode);
+        }
+
+        public virtual GameUI OpenUI(string respath, Transform Parent, AbstractParams p)
+        {
+            return OpenUI(respath, Parent, p, this.DefaultMode);
+        }
+
+        public virtual GameUI OpenUI(GameUI ui, AbstractParams p = null)
+        {
+            ui.InitLua(ui.TypeName);
+            CallUI(ui, p);
+            return ui;
+        }
         /// <summary>
         /// 同步打开UI
         /// </summary>
@@ -316,86 +417,63 @@ namespace KFrameWork
         /// <param name="mode"></param>
         /// <param name="p"></param>
         /// <returns></returns>
-        public GameUI OpenUI(string respath,Transform Parent =null,LayoutLoadMode mode = LayoutLoadMode.None, AbstractParams p = null)
+        public virtual GameUI OpenUI(string respath, Transform Parent, AbstractParams p, LayoutLoadMode mode)
         {
             if (mode == LayoutLoadMode.None)
             {
                 mode = this.DefaultMode;
             }
-
-            bool contains = this.ContainsUIByParent(respath, Parent);
-            if (mode == LayoutLoadMode.SingleUI)
+            GameUI ui = null;
+            if (this.HasMode(mode, LayoutLoadMode.ContainCheck) && this.ContainsLoad(respath,Parent,p,out ui))
             {
-                if (contains)
-                {
-                    List<GameUI> uilist = RefreshUI(respath, Parent, p);
-                    GameUI ui = uilist[0];
-                    ListPool.TryDespawn(uilist);
-
-                    return ui;
-                }
-                else
-                {
-                    return SyncLoadUI(respath, Parent, p);
-                }
-            }
-            else if (mode == LayoutLoadMode.IgnoreCache)
-            {
-                return SyncLoadUI(respath, Parent, p);
-            }
-            else if (mode == LayoutLoadMode.LoadFromCache)
-            {
-                if (this.CanLoadFromCache(respath))
-                {
-                    return this.CallCacheUI(respath, Parent, p);
-                }
-                else
-                {
-                    return SyncLoadUI(respath, Parent, p);
-                }
-            }
-            else if (mode == LayoutLoadMode.LoadFromCacheIfNew)
-            {
-                if (contains)
-                {
-                    List<GameUI> uilist = RefreshUI(respath, Parent, p);
-                    GameUI ui = uilist[0];
-                    ListPool.TryDespawn(uilist);
-
-                    return ui;
-                }
-                else if (this.CanLoadFromCache(respath))
-                {
-                    return this.CallCacheUI(respath, Parent, p);
-                }
-                else
-                {
-                    return SyncLoadUI(respath, Parent, p);
-                }
+                return ui;
             }
 
-            throw new FrameWorkException("加载模式异常");
+            if (this.HasMode(mode, LayoutLoadMode.CacheCheck) && this.CanLoadFromCache(respath))
+            {
+                ui = CallCacheUI(respath,Parent,p);
+                return ui;
+            }
+
+            if (this.HasMode(mode, LayoutLoadMode.LoadDirect))
+            {
+                return SyncLoadUI(respath,Parent,p);
+            }
+
+            LogMgr.LogErrorFormat("{0} mode error",respath);
+            return null;
         }
 
-        public GameUI OpenUIAsync(string respath, AbstractParams p, LayoutLoadMode mode)
+        public virtual GameUI OpenUIAsync(string respath)
         {
-            return OpenUIAsync(respath, null, mode, p);
+            return OpenUIAsync(respath, null, null, DefaultMode);
         }
 
-        public GameUI OpenUIAsync(string respath, LayoutLoadMode mode)
+        public virtual GameUI OpenUIAsync(string respath, Transform Parent, AbstractParams p)
         {
-            return OpenUIAsync(respath, null, mode,null);
+            return OpenUIAsync(respath, Parent, p, DefaultMode);
         }
 
-        public GameUI OpenUIAsync(string respath, AbstractParams p )
+        public virtual GameUI OpenUIAsync(string respath, AbstractParams p, LayoutLoadMode mode)
         {
-            return OpenUIAsync(respath,null,this.DefaultMode,p);
+            return OpenUIAsync(respath, null, p, mode);
         }
 
-        public GameUI OpenUIAsync(string respath,Transform Parent, AbstractParams p)
+        public virtual GameUI OpenUIAsync(string respath, LayoutLoadMode mode)
         {
-            return OpenUIAsync(respath, Parent, this.DefaultMode, p);
+            return OpenUIAsync(respath, null, null, mode);
         }
+
+        public virtual GameUI OpenUIAsync(string respath, AbstractParams p)
+        {
+            return OpenUIAsync(respath, null, p, this.DefaultMode);
+        }
+
+        public virtual GameUI OpenUIAsync(string respath, Transform Parent)
+        {
+            return OpenUIAsync(respath, Parent, null, this.DefaultMode);
+        }
+
 
         /// <summary>
         /// 异步打开UI 但是返回值并不一定有值
@@ -405,90 +483,70 @@ namespace KFrameWork
         /// <param name="mode"></param>
         /// <param name="p"></param>
         /// <returns></returns>
-        public GameUI OpenUIAsync(string respath, Transform Parent = null, LayoutLoadMode mode = LayoutLoadMode.None, AbstractParams p = null)
+        public virtual GameUI OpenUIAsync(string respath, Transform Parent, AbstractParams p, LayoutLoadMode mode)
         {
             if (mode == LayoutLoadMode.None)
             {
                 mode = this.DefaultMode;
             }
-            bool contains = this.ContainsUIByParent(respath,Parent);
-            if (mode == LayoutLoadMode.SingleUI)
-            {
-                if (contains)
-                {
-                    List<GameUI> uilist = RefreshUI(respath, Parent, p);
-                    GameUI ui = uilist[0];
-                    ListPool.TryDespawn(uilist);
 
-                    return ui;
-                }
-                else
-                {
-                    this.AsyncLoadUI(respath, Parent, mode, p);
-                    return null;
-                }
-            }
-            else if (mode == LayoutLoadMode.IgnoreCache)
+            GameUI ui = null;
+            if (this.HasMode(mode, LayoutLoadMode.ContainCheck) && this.ContainsLoad(respath, Parent, p, out ui))
             {
-                this.AsyncLoadUI(respath, Parent, mode, p);
+                return ui;
+            }
+
+            if (this.HasMode(mode, LayoutLoadMode.CacheCheck) && this.CanLoadFromCache(respath))
+            {
+                ui = CallCacheUI(respath, Parent, p);
+                return ui;
+            }
+
+            if (this.HasMode(mode, LayoutLoadMode.LoadDirect))
+            {
+                AsyncLoadUI(respath, Parent, p);
                 return null;
             }
-            else if (mode == LayoutLoadMode.LoadFromCache)
-            {
-                if (this.CanLoadFromCache(respath))
-                {
-                    return this.CallCacheUI(respath, Parent, p);
-                }
-                else
-                {
-                    return SyncLoadUI(respath, Parent, p);
-                }
-            }
-            else if (mode == LayoutLoadMode.LoadFromCacheIfNew)
-            {
-                if (contains)
-                {
-                    List<GameUI> uilist = RefreshUI(respath, Parent, p);
-                    GameUI ui = uilist[0];
-                    ListPool.TryDespawn(uilist);
-
-                    return ui;
-                }
-                else if (this.CanLoadFromCache(respath))
-                {
-                    return this.CallCacheUI(respath, Parent, p);
-                }
-                else
-                {
-                    this.AsyncLoadUI(respath, Parent, mode, p);
-                    return null;
-                }
-            }
-            throw new FrameWorkException("加载模式异常");
+            LogMgr.LogErrorFormat("{0} mode error", respath);
+            return null;
         }
 
+        private bool ContainsLoad(string respath, Transform Parent, AbstractParams p,out GameUI gameui)
+        {
+            List<GameUI> uilist = RefreshUI(respath, Parent, p);
+            if (uilist.Count > 0)
+            {
+                if (uilist.Count > 1)
+                {
+                    LogMgr.LogWarningFormat("{0} contains multi ui elements at the {1}", respath, Parent);
+                }
+
+                gameui = uilist[0];
+                ListPool.TryDespawn(uilist);
+
+                return true;
+            }
+            gameui = null;
+            return false;
+        }
+
+        
         private void AsyncDone(bool ret, AssetBundleResult result)
         {
             if (ret)
             {
                 AbstractParams p = null;
                 Transform Parent = null;
-                int Mode;
-                while (this.RemoveLoading(result.LoadPath, out p,out Parent,out Mode))
+                while (this.RemoveLoading(result.LoadPath, out p,out Parent))
                 {
-                    if ((LayoutLoadMode)Mode != LayoutLoadMode.IgnoreCache && this.ContainsUIByParent(result.LoadPath, Parent))
-                    {
-                        ListPool.TryDespawn( RefreshUI(result.LoadPath, Parent, p));
-                    }
-                    else
-                    {
-                        GameObject instance = result.SimpleInstance();
-                        GameUI ui = BindToCanvas(instance, Parent, p);
-                        if (ui != null)
-                            ui.loadpath = result.LoadPath;
-                        ui.CallEnter(p);
-                        AddtoContioner(ui, Parent);
-                    }
+                    GameObject instance = result.SimpleInstance();
+                    GameUI ui = BindToCanvas(instance, Parent, p);
+
+                    if (ui != null)
+                        ui.InitLua(result.LoadPath);
+
+                    AddtoContioner(ui, Parent);
+                    CallUI(ui, p);
                 }
             }
         }
@@ -503,30 +561,88 @@ namespace KFrameWork
                 GameUI parentUi = Parent.GetComponent<GameUI>();
                 if (parentUi != null && parentUi.ParentLayout != null)
                 {
-                    parentUi.ParentLayout.uicontainer.TryAdd(ui);
+                    parentUi.ParentLayout.uicontainer.Add(ui);
+                }
+                else
+                {
+                    this.uicontainer.Add(ui);
                 }
                 //else ignore
             }
         }
 
+        public void CloseChildrenFromThis(GameUI ui)
+        {
+            for (int i = this.uicontainer.Count - 1; i >= 0; i--)
+            {
+                GameUI gameui = this.uicontainer[i];
+
+                if (gameui != null && gameui.BindParent != null && gameui.BindParent == ui)
+                {
+                    CloseAtIndex(gameui, i);
+                }
+            }
+
+            RealRemove();
+        }
+
+        /// <summary>
+        /// 删除第一个符合条件的
+        /// </summary>
+        /// <param name="respath"></param>
+        /// <param name="p"></param>
+        public virtual void CloseUI(string respath,Transform Parent,  AbstractParams p = null)
+        {
+            for (int i = this.uicontainer.Count - 1; i >= 0; i--)
+            {
+                GameUI gameui = this.uicontainer[i];
+                ///可能会出现都在最外面，parent is null，只是删除了第一个对象，所以最好持有对象然后删除
+                if (CompareUI(gameui, respath, Parent))
+                {
+                    CloseAtIndex(gameui, i, p);
+                    break;
+                }
+            }
+
+            RealRemove();
+        }
+        /// <summary>
+        /// 删除第一个符合条件的
+        /// </summary>
+        /// <param name="respath"></param>
+        /// <param name="p"></param>
         public virtual void CloseUI(string respath, AbstractParams p = null)
         {
             for (int i = this.uicontainer.Count-1; i >= 0; i--)
             {
                 GameUI gameui = this.uicontainer[i];
-                if (gameui.loadpath.Equals(respath))
+                if (CompareUI(gameui,respath))
                 {
-                    this.uicontainer.RemoveAt(i);
-                    gameui.CallExit(p);
-
-                    if (p != null)
-                        p.Release();
-
-                    CacheCommand.CanCelAllBy(gameui);
-                    GameObject.Destroy(gameui);
-                    return;
+                    CloseAtIndex(gameui, i, p);
+                    break;
                 }
             }
+            RealRemove();
+        }
+
+        public void CloseUI(GameObject ui, AbstractParams p = null)
+        {
+            GameUI gameui = ui.GetComponent<GameUI>();
+            if (gameui != null)
+            {
+                CloseUI(gameui,p);
+            }
+            RealRemove();
+        }
+
+        public void CloseUI(Transform ui, AbstractParams p = null)
+        {
+            GameUI gameui = ui.GetComponent<GameUI>();
+            if (gameui != null)
+            {
+                CloseUI(gameui, p);
+            }
+            RealRemove();
         }
 
         public virtual void CloseUI(GameUI ui, AbstractParams p = null)
@@ -536,17 +652,11 @@ namespace KFrameWork
                 GameUI gameui = this.uicontainer[i];
                 if (gameui == ui)
                 {
-                    this.uicontainer.RemoveAt(i);
+                    CloseAtIndex(gameui, i, p);
                     break;
                 }
             }
-
-            ui.CallExit(p);
-
-            if (p != null)
-                p.Release();
-            CacheCommand.CanCelAllBy(ui);
-            GameObject.Destroy(ui);
+            RealRemove();
         }
 
         public virtual void Release()
@@ -554,66 +664,44 @@ namespace KFrameWork
             for (int i = this.uicontainer.Count - 1; i >= 0; i--)
             {
                 GameUI gameui = this.uicontainer[i];
-                gameui.CallRelease();
+                ScriptCommand cmd= ScriptCommand.Create((int)BaseCmdDef.CallRelease,1);
+                cmd.target = ScriptTarget.Sharp;
+                cmd.CallParams.WriteObject(gameui);
+                cmd.Excute();
             }
         }
 
-        public virtual void Clear()
+        public virtual void Clear(bool all)
         {
-            //also stop loading
-
-            if (this.CanDestory == false)
-                return;
-
             for (int i = this.uicontainer.Count - 1; i >= 0; i--)
             {
                 GameUI ui = this.uicontainer[i];
                 if (ui != null)
                 {
-                    CacheCommand.CanCelAllBy(ui);
-                    GameObject.Destroy(ui);
+                    if (!all)
+                    {
+                        CacheCommand.CanCelAllBy(ui);
+                    }
+                    else
+                    {
+                        this.CloseAtIndex(ui, i);
+                    }
                 }
             }
 
+            this.removeList.Clear();
             this.uicontainer.Clear();
         }
 
 
-        public GameUI GetUIByPathWithFirst(string path)
-        {
-            List<GameUI> list = TryGetUIByPath(path);
-
-            GameUI ui = null;
-            if (list.Count > 0)
-                ui = list[0];
-
-            ListPool.TryDespawn(list);
-            return ui;
-        }
-
-        public GameUI TryGetUIByUID(int uid)
-        {
-            for (int i = 0; i < this.uicontainer.Count; ++i)
-            {
-                GameUI ui = this.uicontainer[i];
-                if (ui.Uid.Equals(uid))
-                {
-                    return ui;
-                }
-            }
-
-            return null;
-        }
-
-        public List<GameUI> TryGetUIByPathParent(string path,Transform transform)
+        public virtual List<GameUI> GetUI(Func<GameUI,bool> func)
         {
             List<GameUI> list = ListPool.TrySpawn<List<GameUI>>();
 
             for (int i = 0; i < this.uicontainer.Count; ++i)
             {
                 GameUI ui = this.uicontainer[i];
-                bool parentenable = (transform != null && ui.transform.parent == transform) || transform == null;
-                if (ui.loadpath.Equals(path) && parentenable)
+                if (func(ui))
                 {
                     list.Add(ui);
                 }
@@ -621,41 +709,21 @@ namespace KFrameWork
             return list;
         }
 
-        public List<GameUI> TryGetUIByPath(string path)
+        protected virtual bool ContainsUIByParent(string respath, Transform tr)
         {
-            List<GameUI> list = ListPool.TrySpawn<List<GameUI>>();
-
-            for (int i = 0; i < this.uicontainer.Count; ++i)
+            for (int i = this.uicontainer.Count -1; i >= 0; --i)
             {
-                GameUI ui = this.uicontainer[i];
-                if (ui.loadpath.Equals(path))
+                if (uicontainer[i] == null)
                 {
-                    list.Add(ui);
+                    uicontainer.RemoveAt(i);
+                    continue;
                 }
-            }
-            return list;
-        }
 
-        public bool ContainsUI(int uid)
-        {
-            for (int i = 0; i < this.uicontainer.Count; ++i)
-            {
-                if (this.uicontainer[i].Uid == uid)
+                bool pathenable = UIByParentEnable(uicontainer[i], respath, tr);
+                if (pathenable)
+                {
                     return true;
-            }
-
-            return false;
-        }
-
-        private bool ContainsUIByParent(string respath,Transform tr)
-        {
-            for (int i = 0; i < this.uicontainer.Count; ++i)
-            {
-                bool pathenable = this.uicontainer[i].loadpath.Equals(respath);
-                if (pathenable && tr == null)
-                    return true;
-                else if (pathenable && tr != null && this.uicontainer[i].transform.parent.Equals(tr))
-                    return true;
+                }
             }
 
             return false;
@@ -669,14 +737,17 @@ namespace KFrameWork
         {
             for (int i = 0; i < this.uicontainer.Count; ++i)
             {
-                if (this.uicontainer[i].loadpath.Equals(respath))
+                bool pathenable = UIByParentEnable(uicontainer[i], respath, null);
+                if (pathenable)
+                {
                     return true;
+                }
             }
 
             return false;
         }
 
-        public bool ContainsUI(GameUI ui)
+        public virtual bool ContainsUI(GameUI ui)
         {
             for (int i = 0; i < this.uicontainer.Count; ++i)
             {
@@ -688,10 +759,152 @@ namespace KFrameWork
             return false;
         }
 
-        public virtual Vector3 ConvertV3Screen(Vector2 pos)
+        #region utility
+
+
+        /// <summary>
+        /// for compare
+        /// </summary>
+        private string ComparedValue;
+
+        private Transform ComparedTrans;
+
+        private bool PathCompareUI(GameUI gameui)
         {
-            return new Vector3(pos.x,pos.y,100f);
+            return gameui != null && !string.IsNullOrEmpty(ComparedValue) && gameui.respath != null && gameui.respath.Equals(ComparedValue);
         }
+
+        private bool PathTransCompareUI(GameUI gameui)
+        {
+            return gameui != null && gameui.respath != null && gameui.respath.Equals(ComparedValue)  && (gameui.BindParent == null || (gameui.BindParent != null && gameui.BindParent == ComparedTrans));
+        }
+
+        public GameUI GetUIByPathWithFirst(string respath)
+        {
+            ComparedValue = respath;
+            List<GameUI> result=GetUI(PathCompareUI);
+            if (result.Count > 0)
+            {
+                GameUI ui = result[0];
+                ListPool.TryDespawn(result);
+                return ui;
+            }
+            ListPool.TryDespawn(result);
+            return null;
+        }
+
+        public List<GameUI> GetUI(string respath)
+        {
+            ComparedValue = respath;
+            return GetUI(PathCompareUI);
+        }
+
+        protected bool CompareUI(GameUI ui, string respath)
+        {
+            return ui != null && ui.respath != null  && ui.respath.Equals(respath);
+        }
+
+        protected bool CompareUI(GameUI ui, string respath, Transform trans)
+        {
+            return ui != null && ui.respath != null && ui.respath.Equals(respath) && (ui.BindParent == null || trans == null || (ui.BindParent != null && ui.BindParent == trans));
+        }
+
+        protected bool UIByParentEnable(GameUI ui, string respath, Transform tr)
+        {
+            bool pathenable = ui.respath.Equals(respath);
+            if (pathenable && tr == null)
+                return true;
+            else if (pathenable && tr != null && ui.BindParent.Equals(tr))
+                return true;
+
+            return false;
+        }
+
+        protected void CloseAtIndex(GameUI gameui, int index, AbstractParams p = null)
+        {
+            if (!removeList.Contains(gameui))
+            {
+                //check children
+                GameUI[] childrenUI = gameui.GetComponentsInChildren<GameUI>();
+                for (int i = 0; i < childrenUI.Length; ++i)
+                {
+                    if (childrenUI[i] != gameui)
+                    {
+                        for (int j = 0; j < uicontainer.Count; ++j)
+                        {
+                            if (uicontainer[j] == childrenUI[i])
+                            {
+                                CloseAtIndex(uicontainer[j], j);
+                            }
+                        }
+                    }
+                }
+
+                ScriptCommand cmd = ScriptCommand.Create((int)BaseCmdDef.CallExit);
+                if (p != null)
+                    cmd.CallParams = p;
+                cmd.target = ScriptTarget.Sharp;
+                cmd.CallParams.InsertObject(0, gameui);
+                cmd.Excute();
+
+                if (p != null)
+                    p.Release();
+
+                CacheCommand.CanCelAllBy(gameui);
+
+                DestroyUI(gameui);
+
+                removeList.Add(gameui);
+            }
+        }
+
+        protected void RealRemove()
+        {
+            //int cnt = 0;
+            for (int i = 0; i < this.removeList.Count; ++i)
+            {
+                GameUI ui = removeList[i];
+                for (int j = uicontainer.Count - 1; j >= 0; j--)
+                {
+                    GameUI gameui = uicontainer[j];
+                    if (ui == gameui)
+                    {
+                        uicontainer.RemoveAt(j);
+                    }
+                }
+            }
+
+            removeList.Clear();
+        }
+
+        public virtual void Dump()
+        {
+            if (this.uicontainer.Count > 0)
+            {
+                var stringbuilder = new StringBuilder(256);
+                stringbuilder.AppendFormat("------------------- {0} Start -------------------\n", this.LayoutName);
+                
+                for (int i = this.uicontainer.Count -1; i >= 0; --i)
+                {
+                    GameUI gameui = this.uicontainer[i];
+                    if (gameui != null)
+                    {
+                        stringbuilder.AppendFormat("Gameui Name:[{0}] UID:[{1}] Visiable:[{2}] Layout:[{3}] BindParent:[{4}] LuaPath:[{5}]\n\n", gameui, gameui.Uid, gameui.Visiable, gameui.ParentLayout, gameui.BindParent, gameui.respath);
+                    }
+                    else
+                    {
+                        uicontainer.RemoveAt(i);
+                    }
+                }
+
+                stringbuilder.AppendFormat("---------------------- UIContainer Cnt:{0} --------------------\n\n", this.uicontainer.Count);
+                stringbuilder.AppendFormat("------------------- {0} End -------------------\n", this.LayoutName);
+                LogMgr.Log(stringbuilder.ToString());
+            }
+
+        }
+
+        #endregion
     }
 }
 

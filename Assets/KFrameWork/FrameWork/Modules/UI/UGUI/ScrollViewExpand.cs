@@ -13,7 +13,7 @@ namespace KFrameWork
 
         private RectTransform rect;
 
-        public RectTransform recttransform
+        public RectTransform rectTransform
         {
             get
             {

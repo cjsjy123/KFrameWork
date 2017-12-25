@@ -36,7 +36,7 @@ namespace KFrameWork
                 }
                 else
                 {
-                    this.AtlasName = subspr.name.ToLower()+".png";
+                    this.AtlasName = subspr.name.ToLower() + ".png";
                 }
             }
         }
@@ -113,25 +113,60 @@ namespace KFrameWork
             return false;
         }
 
+        public Sprite GetSprite(string sprname)
+        {
+            bool ret = ContainsSprite(sprname);
+            if (!ret)
+                return null;
+
+            Sprite spr;
+            if (this.spritelist.TryGetValue(sprname, out spr))
+            {
+                return spr;
+            }
+
+            Loadspite(sprname);
+            return spritelist[sprname];
+        }
+
+        private void Loadspite(string imageSpr)
+        {
+            if (this.bundle == null)
+            {
+                ResBundleMgr.mIns.LoadAsset(this.AtlasName);
+                this.bundle = ResBundleMgr.mIns.Cache.TryGetValue(this.AtlasName);
+            }
+
+            if (!spritelist.ContainsKey(imageSpr))
+            {
+                UnityEngine.Object[] objs;
+                if (this.bundle.LoadAllAssets(out objs))
+                {
+                    for (int i = 0; i < objs.Length; i++)
+                    {
+                        Sprite spr = objs[i] as Sprite;
+                        if (spr != null)
+                            spritelist[spr.name] = spr;
+                        //else
+                        //    LogMgr.LogErrorFormat("类型不一致 ：{0}", objs[i]);
+                    }
+                }
+
+                bool inserted = spritelist.ContainsKey(imageSpr);
+                if (!inserted)
+                {
+                    LogMgr.LogErrorFormat("不存在这个图片 :{0}", imageSpr);
+                    return;
+                }
+            }
+        }
+
         private void AfterDone(Image image, string imageSpr)
         {
             Sprite old = image.sprite;
             SpriteAtlas oldAtlas = SpriteAtlasMgr.mIns.TryGetAtlas(old);
 
-            if (!spritelist.ContainsKey(imageSpr))
-            {
-                UnityEngine.Object[] objs ;
-                if (this.bundle.LoadAllAssets( out objs))
-                {
-                    for (int i = 0; i < objs.Length; i++)
-                    {
-                        Sprite spr = objs[i] as Sprite;
-                        if(spr != null)
-                            spritelist[spr.name] = spr;
-                    }
-                }
-            }
-
+            Loadspite(imageSpr);
             Sprite newSpr = spritelist[imageSpr];
 
             if (oldAtlas != null && oldAtlas.bundle != null)
@@ -144,6 +179,8 @@ namespace KFrameWork
 
             this.bundle.Retain();
 
+            if (FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("切换sprite from {0} to {1}", image, newSpr);
             image.sprite = newSpr;
         }
 

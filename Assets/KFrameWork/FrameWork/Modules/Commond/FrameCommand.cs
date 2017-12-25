@@ -43,7 +43,7 @@ namespace KFrameWork
             }
         }
 
-        public static FrameCommand Create(Action<FrameCommand> cbk, int delayFrame=1)
+        public static FrameCommand Create(int delayFrame,Action<FrameCommand> cbk)
         {
             FrameCommand Command = null;
             if(KObjectPool.mIns != null)
@@ -132,8 +132,8 @@ namespace KFrameWork
 
         private void End()
         {
-            if (FrameWorkConfig.Open_DEBUG)
-                LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
+            //if (FrameWorkConfig.Open_DEBUG)
+            //    LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
 
             this.TryBatch();
             this.SetFinished();
@@ -156,12 +156,18 @@ namespace KFrameWork
         {
             base.Cancel();
 
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
+            if (!MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this))
+            {
+                LogMgr.LogError("删除失败");
+            }
         }
 
         protected override void SetFinished()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+            if (!MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this))
+            {
+                LogMgr.LogError("删除失败");
+            }
             if (this.Callback != null)
             {
                 this.Callback (this);

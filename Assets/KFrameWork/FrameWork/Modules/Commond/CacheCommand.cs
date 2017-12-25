@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System;
 using KFrameWork;
 using KUtils;
+using System.Text;
 
 public enum CommandState
 {
@@ -17,6 +18,7 @@ public enum CommandState
 
 public abstract class CacheCommand
 {
+    
     protected static List<CacheCommand> RunningList = new List<CacheCommand>();
 
     public const bool AutoPoolManger = true;
@@ -24,6 +26,8 @@ public abstract class CacheCommand
     public abstract void Release (bool force);
 
     private static int Counter = 0;
+
+    private int repeattimes = 1;
 
     protected CommandState _state;
 
@@ -84,6 +88,20 @@ public abstract class CacheCommand
         this.m_UID = Counter++;
     }
 
+    public static void LogInfo()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.AppendFormat("Running Cmd is : {0}\n", RunningList.Count);
+        for (int i = 0; i < RunningList.Count; ++i)
+        {
+            CacheCommand cmd = RunningList[i];
+            sb.AppendFormat("Each is :{0} State :{1} ID:{2}\n",cmd,cmd.RunningState,cmd.UID);
+        }
+
+        sb.Append("=-----Over----=");
+        LogMgr.Log(sb.ToString());
+    }
+
     public static void CanCelAll()
     {
         for (int i = RunningList.Count - 1; i >= 0; --i)
@@ -126,6 +144,12 @@ public abstract class CacheCommand
         }
     }
 
+    public void RepeatExcute(int times)
+    {
+        repeattimes = times;
+        Excute();
+    }
+
     public virtual void Excute()
     {
         if (this._state != CommandState.Running && this._state != CommandState.Paused)
@@ -145,13 +169,23 @@ public abstract class CacheCommand
 
     protected virtual void SetFinished()
     {
-        if (this._state == CommandState.Running)
+        if (this._state == CommandState.Running )
         {
-            this._state = CommandState.Finished;
+            if (this.repeattimes == 1)
+            {
+                this._state = CommandState.Finished;
 
-            RunningList.Remove(this);
-            if (AutoPoolManger)
-                this.Release(true);
+                RunningList.Remove(this);
+                if (AutoPoolManger)
+                    this.Release(true);
+            }
+            else
+            {
+                this.repeattimes--;
+                this._state = CommandState.PrePared;
+                this.Excute();
+            }
+
         }
     }
 

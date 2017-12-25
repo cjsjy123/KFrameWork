@@ -6,7 +6,7 @@ using Vexe.Runtime.Extensions;
 using Vexe.Runtime.Types;
 #endif
 
-#if UNITY_5_5 || UNITY_5_4 
+#if UNITY_5_5 || UNITY_5_4 || UNITY_5_6 
 using UnityEngine.SceneManagement;
 #endif
 
@@ -85,7 +85,7 @@ namespace KFrameWork
 
         protected void DestroySelf ()
         {
-#if UNITY_5_5 || UNITY_5_4
+#if UNITY_5_5 || UNITY_5_4 || UNITY_5_6
             SceneManager.sceneLoaded -= this.OnSceneLoad;
 #endif
 #if UNITY_EDITOR
@@ -110,7 +110,7 @@ namespace KFrameWork
                 }
             }
 
-#if UNITY_5_5 || UNITY_5_4
+#if UNITY_5_5 || UNITY_5_4 || UNITY_5_6
             SceneManager.sceneLoaded += this.OnSceneLoad;
 #endif
 
@@ -126,7 +126,7 @@ namespace KFrameWork
 
         }
 
-#if UNITY_5_5 || UNITY_5_4
+#if UNITY_5_5 || UNITY_5_4 || UNITY_5_6
         private void OnSceneLoad( Scene scene,LoadSceneMode mode)
         {
             if (!m_isFrameWorkInited && FrameWorkConfig.Open_DEBUG)

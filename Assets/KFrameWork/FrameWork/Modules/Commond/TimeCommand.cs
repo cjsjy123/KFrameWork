@@ -142,8 +142,8 @@ namespace KFrameWork
 
         private void End()
         {
-            if (FrameWorkConfig.Open_DEBUG)
-                LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
+            //if (FrameWorkConfig.Open_DEBUG)
+            //    LogMgr.LogFormat("********* Cmd Finished  :{0}", this);
 
             this.TryBatch();
             this.SetFinished();

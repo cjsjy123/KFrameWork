@@ -6,17 +6,6 @@ namespace KFrameWork
 {
 	public class TextExpand :Text 
 	{
-        private RectTransform rect;
-
-        public RectTransform recttransform
-        {
-            get
-            {
-                if (rect == null)
-                    rect = GetComponent<RectTransform>();
-                return rect;
-            }
-        }
 
         private CanvasRenderer _canvasrender;
 
@@ -30,71 +19,71 @@ namespace KFrameWork
             }
         }
 
-        public override bool IsActive ()
-		{
-			return base.IsActive ();
-		}
+  //      public override bool IsActive ()
+		//{
+		//	return base.IsActive ();
+		//}
 
-        protected override void OnCanvasGroupChanged ()
-		{
-			base.OnCanvasGroupChanged ();
-		}
+  //      protected override void OnCanvasGroupChanged ()
+		//{
+		//	base.OnCanvasGroupChanged ();
+		//}
 		
-		protected override void OnCanvasHierarchyChanged ()
-		{
-			base.OnCanvasHierarchyChanged ();
-		}
+		//protected override void OnCanvasHierarchyChanged ()
+		//{
+		//	base.OnCanvasHierarchyChanged ();
+		//}
 		
-		public override void SetAllDirty ()
-		{
-			base.SetAllDirty ();
-		}
+		//public override void SetAllDirty ()
+		//{
+		//	base.SetAllDirty ();
+		//}
 		
-		public override void SetLayoutDirty ()
-		{
-			base.SetLayoutDirty ();
-		}
+		//public override void SetLayoutDirty ()
+		//{
+		//	base.SetLayoutDirty ();
+		//}
 		
-		public override void SetVerticesDirty ()
-		{
-			base.SetVerticesDirty ();
-		}
+		//public override void SetVerticesDirty ()
+		//{
+		//	base.SetVerticesDirty ();
+		//}
 		
-		public override void SetMaterialDirty ()
-		{
-			base.SetMaterialDirty ();
-		}
+		//public override void SetMaterialDirty ()
+		//{
+		//	base.SetMaterialDirty ();
+		//}
 		
-		public override bool Raycast (Vector2 sp, Camera eventCamera)
-		{
-			return base.Raycast (sp, eventCamera);
-		}
+		//public override bool Raycast (Vector2 sp, Camera eventCamera)
+		//{
+		//	return base.Raycast (sp, eventCamera);
+		//}
 
 		
-		public override Material GetModifiedMaterial (Material baseMaterial)
-		{
-			return base.GetModifiedMaterial (baseMaterial);
-		}
+		//public override Material GetModifiedMaterial (Material baseMaterial)
+		//{
+		//	return base.GetModifiedMaterial (baseMaterial);
+		//}
 		
-		public override void Cull (Rect clipRect, bool validRect)
-		{
-			base.Cull (clipRect, validRect);
-		}
+		//public override void Cull (Rect clipRect, bool validRect)
+		//{
+		//	base.Cull (clipRect, validRect);
+		//}
 		
-		public override void SetClipRect (Rect clipRect, bool validRect)
-		{
-			base.SetClipRect (clipRect, validRect);
-		}
+		//public override void SetClipRect (Rect clipRect, bool validRect)
+		//{
+		//	base.SetClipRect (clipRect, validRect);
+		//}
 		
-		public override void RecalculateClipping ()
-		{
-			base.RecalculateClipping ();
-		}
+		//public override void RecalculateClipping ()
+		//{
+		//	base.RecalculateClipping ();
+		//}
 		
-		public override void RecalculateMasking ()
-		{
-			base.RecalculateMasking ();
-		}
+		//public override void RecalculateMasking ()
+		//{
+		//	base.RecalculateMasking ();
+		//}
 		
 	}
 }

@@ -10,9 +10,9 @@ namespace KFrameWork
     public class SceneEnterAttribute :Attribute
     {
         public int Priority = 0;
-        public SceneEnterAttribute(int p)
+        public SceneEnterAttribute(int priority)
         {
-            this.Priority = p;
+            this.Priority = priority;
         }
 
         public SceneEnterAttribute()
@@ -27,9 +27,9 @@ namespace KFrameWork
     public class SceneLeaveAttribute :Attribute
     {
         public int Priority = 0;
-        public SceneLeaveAttribute(int p)
+        public SceneLeaveAttribute(int priority)
         {
-            this.Priority = p;
+            this.Priority = priority;
         }
 
         public SceneLeaveAttribute()

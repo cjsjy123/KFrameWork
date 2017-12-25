@@ -8,8 +8,6 @@ namespace KFrameWork
 {
     public static class BundleConfig
     {
-        public const string ABDownLoadPath = "AssetBundles";
-
         public const string ABSavePath = "AssetBundles";
 
         public const string ABVersionPath = "dep.all";
@@ -22,10 +20,7 @@ namespace KFrameWork
         public static bool SAFE_MODE = true;
 
         public static bool Bundle_Log = false;
-        /// <summary>
-        /// bundle偏移值
-        /// </summary>
-        public static int BundleBitValue = 1;
+
     }
 }
 

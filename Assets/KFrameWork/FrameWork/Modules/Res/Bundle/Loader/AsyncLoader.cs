@@ -46,10 +46,11 @@ namespace KFrameWork
 
         protected override void CreateMain()
         {
+            //LogMgr.LogError(loadingpkg.BundleName);
             this._BundleRef = ResBundleMgr.mIns.Cache.TryGetValue(this.loadingpkg);
 
             if (this._BundleRef == null)
-                this.ThrowLogicError();
+                this.ThrowLogicError(loadingpkg.BundleName);
 
             if (this._BundleRef.MainObject == null)
             {
@@ -57,7 +58,7 @@ namespace KFrameWork
             }
             else
             {
-                this._Bundle = this._BundleRef.MainObject;
+                this._BundleMainObject = this._BundleRef.MainObject;
                 this._FinishAndRelease();
             }
         }
@@ -67,13 +68,13 @@ namespace KFrameWork
             if (!this._BundleRef.SupportAsync && this._BundleRef.MainObject == null)
             {
                 this._BundleRef = LoadFullAssetToMem(this.loadingpkg);
-                this._BundleRef.LoadAsset(out _Bundle);
+                this._BundleRef.LoadAsset(out _BundleMainObject);
                 this._FinishAndRelease();
             }
             else if(this._BundleRef.MainObject != null)
             {
                 this._BundleRef = LoadFullAssetToMem(this.loadingpkg);
-                this._Bundle = this._BundleRef.MainObject;
+                this._BundleMainObject = this._BundleRef.MainObject;
                 this._FinishAndRelease();
             }
             else
@@ -85,7 +86,7 @@ namespace KFrameWork
 
         protected override void LoadMainAsyncRequest(AssetBundleRequest request)
         {
-            this._Bundle = request.asset;
+            this._BundleMainObject = request.asset;
             this._FinishAndRelease();
         }
 

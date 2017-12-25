@@ -57,7 +57,7 @@ namespace KFrameWork
                 {
                     // If the tag is associated with another bundle name, show an error
                     if (dict[ti.spritePackingTag] != ti.assetBundleName)
-                        Debug.LogWarning("Sprite : " + ti.assetPath + " should be packed in " + dict[ti.spritePackingTag]);
+                        LogMgr.LogWarning("Sprite : " + ti.assetPath + " should be packed in " + dict[ti.spritePackingTag]);
                 }
 
             }

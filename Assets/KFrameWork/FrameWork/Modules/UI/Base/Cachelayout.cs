@@ -8,6 +8,153 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 namespace KFrameWork
 {
+    public abstract class DontDestoryLayout : BaseLayout
+    {
+        protected Canvas canvas;
+
+        protected override void ChangeOrder(int old, int value)
+        {
+            if (canvas != null)
+            {
+                canvas.overrideSorting = true;
+                canvas.sortingOrder = value;
+            }
+        }
+
+        public override bool isShow()
+        {
+            if (canvas == null)
+                return false;
+            return canvas.isActiveAndEnabled;
+        }
+
+        public override void AskCanvas()
+        {
+            if (canvas == null)
+            {
+                canvas = CreateCanvas(LayoutName);
+                CanvasCreated(canvas);
+
+                canvas.overrideSorting = true;
+                canvas.sortingOrder = this.Order;
+                canvas.pixelPerfect = true;
+            }
+        }
+
+        protected override Canvas CreateCanvas(string name)
+        {
+            if (gameuiRoot == null)
+            {
+                gameuiRoot = GameObject.Find("GlobalUIROOT");
+            }
+
+            if (gameuiRoot == null)
+            {
+                gameuiRoot = new GameObject("GlobalUIROOT");
+                gameuiRoot.layer = LayerMask.NameToLayer("UI");
+                GameObject.DontDestroyOnLoad(gameuiRoot);
+            }
+            //set gameobject
+            GameObject canvasObject = new GameObject(name);
+            canvasObject.layer = LayerMask.NameToLayer("UI");
+            //set canvas
+            Canvas uicanvas = canvasObject.AddComponent<Canvas>();
+            uicanvas.renderMode = RenderMode.ScreenSpaceCamera;
+            uicanvas.worldCamera = UIcamera ? UIcamera: Camera.main;
+            uicanvas.planeDistance = 100;
+            uicanvas.overrideSorting = true;
+            uicanvas.sortingLayerName = this.sortingLayer;
+            //set scaler
+            CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1;
+            scaler.referencePixelsPerUnit = 100;
+            scaler.referenceResolution = new Vector2(FrameWorkConfig.DisplayUIWidth, FrameWorkConfig.DisplayUIHiehgt);
+            //set raycaster
+            GraphicRaycaster raycaster = canvasObject.AddComponent<GraphicRaycaster>();
+            raycaster.ignoreReversedGraphics = true;
+
+            gameuiRoot.AddInstance(canvasObject);
+
+            return uicanvas;
+        }
+
+        protected override GameUI BindToCanvas(GameObject instance, Transform Parent, AbstractParams p)
+        {
+            AskCanvas();
+
+            if (instance != null)
+            {
+                if (!this.isShow())
+                {
+                    this.ShowUILayout();
+                }
+
+                if (Parent == null)
+                {
+                    this.canvas.AddInstance(instance, false);
+                }
+                else
+                    Parent.AddInstance(instance);
+                //set ui
+                GameUI ui = instance.GetComponentInChildren<GameUI>();
+                if (ui == null)
+                    LogMgr.LogErrorFormat("{0} is Null ", instance);
+                else
+                {
+                    ui.ParentLayout = this;
+                    ui.BindParent = Parent;
+                }
+                return ui;
+            }
+
+            return null;
+        }
+
+        protected abstract void CanvasCreated(Canvas canvas);
+
+        public override void ShowUILayout()
+        {
+            canvas.gameObject.SetActive(true);
+        }
+
+        public override void HideUILayout()
+        {
+            canvas.gameObject.SetActive(false);
+        }
+
+        protected override bool CanLoadFromCache(string respath)
+        {
+            return false;
+        }
+
+        protected override GameUI LoadFromCache(string respath)
+        {
+            return null;
+        }
+
+        protected override void UpdateForPropertys()
+        {
+            GraphicRaycaster.BlockingObjects blocking = GraphicRaycaster.BlockingObjects.None;
+            if (this.enable2D && this.enable3D)
+            {
+                blocking = GraphicRaycaster.BlockingObjects.All;
+            }
+            else if (this.enable3D && !this.enable2D)
+            {
+                blocking = GraphicRaycaster.BlockingObjects.ThreeD;
+            }
+            else if (this.enable2D && !this.enable3D)
+            {
+                blocking = GraphicRaycaster.BlockingObjects.TwoD;
+            }
+
+            GraphicRaycaster raycaster = canvas.GetComponent<GraphicRaycaster>();
+            raycaster.blockingObjects = blocking;
+        }
+    }
+
     /// <summary>
     /// 集中在一个canvas下面
     /// </summary>
@@ -17,7 +164,7 @@ namespace KFrameWork
         {
             get
             {
-                return LayoutLoadMode.LoadFromCacheIfNew;
+                return LayoutLoadMode.FullLoad;
             }
         }
 
@@ -32,27 +179,79 @@ namespace KFrameWork
             }
         }
 
-        protected override GameUI BindToCanvas(GameObject instance, Transform Parent, AbstractParams p)
+        public override bool isShow()
+        {
+            if (canvas == null)
+                return false;
+
+            return canvas.isActiveAndEnabled;
+        }
+
+        public override void AskCanvas()
         {
             if (canvas == null)
             {
                 canvas = CreateCanvas(LayoutName);
+                CanvasCreated(canvas);
+
                 canvas.overrideSorting = true;
                 canvas.sortingOrder = this.Order;
-                //if (FrameWorkConfig.Open_DEBUG)
-                //    canvas.TryAddComponent<UIDump>();
-                CanvasCreated(canvas);
+                canvas.pixelPerfect = true;
+
+                UpdateForPropertys();
+            }
+        }
+
+        protected override void UpdateForPropertys()
+        {
+            GraphicRaycaster.BlockingObjects blocking = GraphicRaycaster.BlockingObjects.None;
+            if (this.enable2D && this.enable3D)
+            {
+                blocking = GraphicRaycaster.BlockingObjects.All;
+            }
+            else if (this.enable3D && !this.enable2D)
+            {
+                blocking = GraphicRaycaster.BlockingObjects.ThreeD;
+            }
+            else if (this.enable2D && !this.enable3D)
+            {
+                blocking = GraphicRaycaster.BlockingObjects.TwoD;
             }
 
-            if (Parent == null)
-                this.canvas.AddInstance(instance);
-            else
-                instance.SetTheParent(Parent);
+            GraphicRaycaster raycaster = canvas.GetComponent<GraphicRaycaster>();
+            raycaster.blockingObjects = blocking;
+        }
 
-            instance.transform.position = new Vector3(0, 0, -999999);
-            GameUI ui = instance.GetComponent<GameUI>();
-            ui.ParentLayout = this;
-            return ui;
+        protected override GameUI BindToCanvas(GameObject instance, Transform Parent, AbstractParams p)
+        {
+            AskCanvas();
+
+            if (instance != null)
+            {
+                if (!this.isShow())
+                {
+                    this.ShowUILayout();
+                }
+
+                if (Parent == null)
+                {
+                    this.canvas.AddInstance(instance, false);
+                }
+                else
+                    Parent.AddInstance(instance);
+                //set ui
+                GameUI ui = instance.GetComponentInChildren<GameUI>();
+                if (ui == null)
+                    LogMgr.LogErrorFormat("{0} is Null ", instance);
+                else
+                {
+                    ui.ParentLayout = this;
+                    ui.BindParent = Parent;
+                }
+                return ui;
+            }
+
+            return null;
         }
 
         protected abstract void CanvasCreated(Canvas canvas);
@@ -71,7 +270,7 @@ namespace KFrameWork
     /// <summary>
     /// 集中在一个canvas下面
     /// </summary>
-    public abstract class Cachelayout : AbstractLayout
+    public abstract class Cachelayout : BaseLayout
     {
         public override LayoutLoadMode DefaultMode
         {
@@ -85,6 +284,11 @@ namespace KFrameWork
 
         protected List<WeakReference> uicaches = new List<WeakReference>();
 
+        protected override void DestroyUI(GameUI ui)
+        {
+            TryAddToCache(ui);
+        }
+
         protected override bool CanLoadFromCache(string respath)
         {
             for (int i = uicaches.Count -1; i>=0; --i)
@@ -93,7 +297,7 @@ namespace KFrameWork
                 if (weak != null && weak.IsAlive)
                 {
                     GameUI weakui = weak.Target as GameUI;
-                    if (weakui.loadpath.Equals(respath))
+                    if (weakui.respath != null && weakui.respath.Equals(respath))
                         return true;
                 }
                 else
@@ -113,9 +317,10 @@ namespace KFrameWork
                 if (weak != null && weak.IsAlive)
                 {
                     GameUI weakui = weak.Target as GameUI;
-                    if (weakui.loadpath.Equals(respath))
+                    if (weakui.respath != null &&  weakui.respath.Equals(respath))
                     {
-                        weakui.DoVisiable();
+                        if (FrameWorkConfig.Open_DEBUG)
+                            LogMgr.LogFormat("{0} pop from uipool", weakui);
                         uicaches.RemoveAt(i);
                         return weakui;
                     }
@@ -128,7 +333,7 @@ namespace KFrameWork
             return null;
         }
 
-        private void TryAddToCache(GameUI gameui)
+        protected void TryAddToCache(GameUI gameui)
         {
             for (int i = uicaches.Count - 1; i >= 0; --i)
             {
@@ -143,58 +348,26 @@ namespace KFrameWork
                 }
             }
 
+            if (CachePool == null)
+            {
+                CachePool = new GameObject("UIPool");
+            }
+            if(FrameWorkConfig.Open_DEBUG)
+                LogMgr.LogFormat("{0} insert to uipool",gameui);
+            gameui.transform.SetTheParent(CachePool);
             this.uicaches.Add(new WeakReference(gameui));
         }
 
-        public override void CloseUI(string respath, AbstractParams p = null)
+        public override void Clear(bool all)
         {
-            for (int i = this.uicontainer.Count - 1; i >= 0; i--)
-            {
-                GameUI gameui = this.uicontainer[i];
-                if (gameui.loadpath.Equals(respath))
-                {
-                    this.uicontainer.RemoveAt(i);
-                    gameui.CallExit(p);
-
-                    if (p != null)
-                        p.Release();
-
-                    gameui.DoInVisiable();
-                    TryAddToCache(gameui);
-                    break;
-                }
-            }
-        }
-
-        public override void CloseUI(GameUI ui, AbstractParams p)
-        {
-            for (int i = this.uicontainer.Count - 1; i >= 0; i--)
-            {
-                GameUI gameui = this.uicontainer[i];
-                if (gameui == ui)
-                {
-                    this.uicontainer.RemoveAt(i);
-                    break;
-                }
-            }
-
-            ui.CallExit(p);
-            ui.DoInVisiable();
-            if (p != null)
-                p.Release();
-            TryAddToCache(ui);
-        }
-
-        public override void Clear()
-        {
-            base.Clear();
+            base.Clear(all);
             for (int i = 0; i < uicaches.Count; ++i)
             {
                 WeakReference weak = uicaches[i];
                 if (weak != null && weak.IsAlive )
                 {
                     GameUI gameui = weak.Target as GameUI;
-                    GameObject.Destroy(gameui);
+                    gameui.DestorySelf();
                 }
             }
 
@@ -202,7 +375,7 @@ namespace KFrameWork
 
             if (CachePool != null)
             {
-                GameObject.Destroy(CachePool);
+                CachePool.DestorySelf();
                 CachePool = null;
             }
         }

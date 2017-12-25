@@ -6,13 +6,14 @@ using System;
 using KUtils;
 using System.Runtime.CompilerServices;
 
-public class GameAttrRegister  {
+[ModelRegisterClass]
+public class GameAttrRegister
+{
 
-    public static void Register(FrameworkAttRegister frameWork)
+    [ModelRegister]
+    public static void Register(BaseAttributeRegister frameWork)
     {
 
-        //please write this
     }
-
 
 }

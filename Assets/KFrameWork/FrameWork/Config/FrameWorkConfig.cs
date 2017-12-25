@@ -1,4 +1,4 @@
-﻿#define GAME_DEBUG
+﻿
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,12 +11,7 @@ using UnityEditor;
 #endif
 
 [TagSet("CameraUITag", "Camera3DTag")]
-//[ScriptMarcoDefine("TOLUA", "Advance"
-//    //,"AB_DEBUG"
-//    //,"USE_TANGAB"
-//    //,"DOTTWEEN"
-//    //,"EXAMPLE"
-//    )]
+//[ScriptMarcoDefine("TOLUA", "Advance", "USE_TANGAB"]//,"UNITY_NAVMESH"
 public static class FrameWorkConfig  {
 
     public static int FPS_Value = 30;
@@ -52,8 +47,12 @@ public static class FrameWorkConfig  {
             GameUIControl.mIns.Destroy();
         }
 
-        if(KObjectPool.mIns != null)
-            KObjectPool.mIns.Destroy();
+
+        //if (KObjectPool.mIns != null)
+        //    KObjectPool.mIns.Destroy();
+
+        if(GameSyncCtr.mIns != null)
+            GameSyncCtr.mIns.EndSync();
 
         FrameCommand.Destroy();
         WaitTaskCommand.Destroy();
@@ -66,14 +65,15 @@ public static class FrameWorkConfig  {
         FrameworkAttRegister.DestroyAttEvent(MainLoopEvent.Start, typeof(GenericParams), "Preload");
         FrameworkAttRegister.DestroyAttEvent(MainLoopEvent.Start, typeof(SimpleParams), "Preload");
         FrameworkAttRegister.DestroyAttEvent(MainLoopEvent.OnDestroy, typeof(FrameWorkConfig), "DestroyFrameWorkEvent");
-        
     }
 
     public static void LoadConfig(MainLoop loop)
     {
         try
         {
-            if (loop.OpenLua )
+            GameApplication.Start();
+
+            if (MainLoop.OpenLua)
             {
 #if TOLUA
                 new LuaResLoader();
@@ -82,7 +82,6 @@ public static class FrameWorkConfig  {
             }
 #if UNITY_EDITOR
             //maxNumberOfSamplesPerFrame
-            Profiler.maxNumberOfSamplesPerFrame = 1000000;
             PlayerSettings.aotOptions = "nrgctx-trampolines=8096,nimt-trampolines=8096,ntrampolines=4048";
 #endif
             Application.targetFrameRate = FPS_Value;
