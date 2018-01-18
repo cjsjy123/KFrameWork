@@ -16,6 +16,7 @@ using UnityEditor.SceneManagement;
 
 namespace KFrameWork
 {
+
     public struct GameSceneInfo : IEquatable<GameSceneInfo>
     {
         public int buildIndex;
@@ -83,7 +84,7 @@ namespace KFrameWork
         public GameSceneInfo CurScene {get {return this._curScene;}private set{this._curScene = value;}}
         public GameSceneInfo nextScene { get { return this._nextScene; } private set { this._nextScene = value; } }
 
-        private bool Inited = false;
+        private SceneAliveListener listener;
 
         public GameSceneInfo this[int sceneIdx]
         {
@@ -97,25 +98,132 @@ namespace KFrameWork
 
         private GameSceneCtr()
         {
-            if (MainLoop.getLoop() != null)
+            if (MainLoop.getInstance() != null)
             {
-                if (MainLoop.getLoop().HasInit)
+                if (MainLoop.getInstance().HasInit)
                 {
                     this.Init();
                 }
                 else
                 {
-                    MainLoop.getLoop().FrameWorkEvent += Init;
+                    MainLoop.getInstance().FrameWorkDoneEvent += Init;
                 }
             }
         }
 
+
+        [SceneEnter(-10)]
+        private static void EnterScene(int level)
+        {
+            try
+            {
+                if (mIns.SceneList == null)
+                    mIns.Init();
+
+                GameSceneCtr.mIns.isLoadingLevel = false;
+                GameSceneCtr.mIns.LastScene = GameSceneCtr.mIns.CurScene;
+                if (GameSceneCtr.mIns.nextScene.IsValid() == false)
+                {
+                    GameSceneCtr.mIns.CurScene = GameSceneCtr.mIns.DefaultScene;
+                }
+                else
+                {
+                    GameSceneCtr.mIns.CurScene = GameSceneCtr.mIns.nextScene;
+                }
+
+                LogMgr.LogFormat("场景进入 {0}", GameSceneCtr.mIns.CurScene.name);
+                
+                if (mIns.listener == null)
+                {
+                    GameObject Listener = new GameObject("Listener");
+                    Listener.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector;
+                    mIns.listener = Listener.AddComponent<SceneAliveListener>();
+                }
+
+                if (SceneOpDic != null && SceneOpDic.ContainsKey(GameSceneCtr.mIns.CurScene.buildIndex))
+                {
+                    Dictionary<int, List<FieldInfo>> dic = SceneOpDic[GameSceneCtr.mIns.CurScene.buildIndex];
+                    if (dic.ContainsKey(0))
+                    {
+                        List<FieldInfo> list = dic[0];
+                        for (int i = 0; i < list.Count; ++i)
+                        {
+                            FieldInfo f = list[i];
+#if UNITY_EDITOR
+                            if (f.GetValue(null) == null && f.IsStatic)
+                            {
+                                if (FrameWorkConfig.Open_DEBUG)
+                                    LogMgr.LogFormat("====> {0} 对象实例化", f.FieldType);
+                                f.SetValue(null, Activator.CreateInstance(f.FieldType, true));
+                            }
+                            else
+                            {
+                                LogMgr.Log("已经实例化过一次或者为非静态字段 => " + f.Name);
+                            }
+#else
+                            f.SetValue(null,Activator.CreateInstance(f.FieldType,true));
+#endif
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMgr.LogException(ex);
+            }
+        }
+
+        [SceneLeave(-10)]
+        private static void LeavedScene(int level)
+        {
+            try
+            {
+                if (!GameSceneCtr.mIns.CurScene.IsValid())
+                    return;
+
+                LogMgr.LogFormat("场景离开 {0} ", GameSceneCtr.mIns.CurScene.name);
+
+                if (SceneOpDic != null && SceneOpDic.ContainsKey(GameSceneCtr.mIns.CurScene.buildIndex))
+                {
+                    Dictionary<int, List<FieldInfo>> dic = SceneOpDic[GameSceneCtr.mIns.CurScene.buildIndex];
+                    if (dic.ContainsKey(1))
+                    {
+                        List<FieldInfo> list = dic[1];
+                        for (int i = 0; i < list.Count; ++i)
+                        {
+                            FieldInfo f = list[i];
+#if UNITY_EDITOR
+                            if (f.GetValue(null) != null && f.IsStatic)
+                            {
+                                if (FrameWorkConfig.Open_DEBUG)
+                                    LogMgr.LogFormat("====> {0} 对象置空", f.FieldType);
+                                f.SetValue(null, null);
+                            }
+                            else
+                            {
+                                LogMgr.Log("对象从未实例化过或者为非静态字段 => " + f.Name);
+                            }
+#else
+                            f.SetValue(null,null);
+#endif
+
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMgr.LogException(ex);
+            }
+
+        }
+
         private void Init ()
         {
-            if (Inited)
+            if (SceneList != null)
                 return;
 
-            #if UNITY_5_3 || UNITY_5_4 || UNITY_5_5 || UNITY_5_6
+#if UNITY_5_3 || UNITY_5_4 || UNITY_5_5 || UNITY_5_6
             this.SceneList = new List<GameSceneInfo>((int)AutoScenes.END);
 
             for (int i = 0; i < (int)AutoScenes.END; ++i)
@@ -172,7 +280,6 @@ namespace KFrameWork
             }
 #endif
 
-            Inited = true;
         }
 
 
@@ -191,8 +298,7 @@ namespace KFrameWork
                 }
             }
 
-            if (!FrameWorkConfig.Open_DEBUG)
-                throw new FrameWorkResNotMatchException(string.Format( "不存在此场景 ：{0}",id));
+            LogMgr.LogError(string.Format("不存在此场景 ：{0}", id));
 
             s = default(GameSceneInfo);
             return false;
@@ -255,135 +361,29 @@ namespace KFrameWork
             }
         }
 
-        public static void ClearSceneEvents()
+        public void Destroy()
         {
             if(SceneOpDic != null)
             {
+                var en = SceneOpDic.GetEnumerator();
+                while (en.MoveNext())
+                {
+                    var valueEn = en.Current.Value.GetEnumerator();
+                    while (valueEn.MoveNext())
+                    {
+                        List<FieldInfo> fs = valueEn.Current.Value;
+                        for (int i = 0; i < fs.Count; ++i)
+                        {
+                            fs[i].SetValue(null, null);
+                        }
+                    }
+                }
                 SceneOpDic.Clear();
                 SceneOpDic = null;
+
+                FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelWasLoaded, typeof(GameSceneCtr), "EnterScene");
+                FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelLeaved, typeof(GameSceneCtr), "LeavedScene");
             }
-        }
-
-        public void Destroy()
-        {
-            var en= SceneOpDic.GetEnumerator();
-            while (en.MoveNext())
-            {
-                var valueEn = en.Current.Value.GetEnumerator();
-                while (valueEn.MoveNext())
-                {
-                    List<FieldInfo> fs = valueEn.Current.Value;
-                    for (int i = 0; i < fs.Count; ++i)
-                    {
-                        fs[i].SetValue(null, null);
-                    }
-                }
-            }
-            SceneOpDic.Clear();
-            SceneOpDic = null;
-
-            FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelWasLoaded, typeof(GameSceneCtr), "EnterScene");
-            FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelLeaved, typeof(GameSceneCtr), "LeavedScene");
-        }
-
-        [SceneEnter(-10)]
-        private static void EnterScene(int level)
-        {
-            try
-            {
-                if (mIns.SceneList == null)
-                    mIns.Init();
-
-                GameSceneCtr.mIns.isLoadingLevel = false;
-                GameSceneCtr.mIns.LastScene = GameSceneCtr.mIns.CurScene;
-                if (GameSceneCtr.mIns.nextScene.IsValid() == false)
-                {
-                    GameSceneCtr.mIns.CurScene = GameSceneCtr.mIns.DefaultScene;
-                }
-                else
-                {
-                    GameSceneCtr.mIns.CurScene = GameSceneCtr.mIns.nextScene;
-                }
-
-                LogMgr.LogFormat("场景进入 {0}", GameSceneCtr.mIns.CurScene.name);
-
-                if (SceneOpDic != null && SceneOpDic.ContainsKey(GameSceneCtr.mIns.CurScene.buildIndex))
-                {
-                    Dictionary<int, List<FieldInfo>> dic = SceneOpDic[GameSceneCtr.mIns.CurScene.buildIndex];
-                    if (dic.ContainsKey(0))
-                    {
-                        List<FieldInfo> list = dic[0];
-                        for (int i = 0; i < list.Count; ++i)
-                        {
-                            FieldInfo f = list[i];
-#if KDEBUG
-                            if (f.GetValue(null) == null && f.IsStatic)
-                            {
-                                if (FrameWorkConfig.Open_DEBUG)
-                                    LogMgr.LogFormat("====> {0} 对象实例化", f.FieldType);
-                                f.SetValue(null, Activator.CreateInstance(f.FieldType, true));
-                            }
-                            else
-                            {
-                                LogMgr.Log("已经实例化过一次或者为非静态字段 => " + f.Name);
-                            }
-#else
-                        f.SetValue(null,Activator.CreateInstance(f.FieldType,,true)));
-
-#endif
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogMgr.LogException(ex);
-            }
-        }
-
-        [SceneLeave(-10)]
-        private static void LeavedScene(int level)
-        {
-            try
-            {
-                if (!GameSceneCtr.mIns.CurScene.IsValid())
-                    return;
-
-                LogMgr.LogFormat("场景离开 {0} ", GameSceneCtr.mIns.CurScene.name);
-
-                if (SceneOpDic != null && SceneOpDic.ContainsKey(GameSceneCtr.mIns.CurScene.buildIndex))
-                {
-                    Dictionary<int, List<FieldInfo>> dic = SceneOpDic[GameSceneCtr.mIns.CurScene.buildIndex];
-                    if (dic.ContainsKey(1))
-                    {
-                        List<FieldInfo> list = dic[1];
-                        for (int i = 0; i < list.Count; ++i)
-                        {
-                            FieldInfo f = list[i];
-#if KDEBUG
-                            if (f.GetValue(null) != null && f.IsStatic)
-                            {
-                                if (FrameWorkConfig.Open_DEBUG)
-                                    LogMgr.LogFormat("====> {0} 对象置空",f.FieldType);
-                                f.SetValue(null, null);
-                            }
-                            else
-                            {
-                                LogMgr.Log("对象从未实例化过或者为非静态字段 => " + f.Name);
-                            }
-#else
-                        f.SetValue(null,null);
-#endif
-
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogMgr.LogException(ex);
-            }
-
         }
 
         public static void LoadScene(string name)
@@ -397,7 +397,6 @@ namespace KFrameWork
 #else
             Application.LoadLevel(name);
 #endif
-            MainLoop.getLoop().CallSceneLeave();
             mIns.isLoadingLevel = false;
         }
 
@@ -412,11 +411,8 @@ namespace KFrameWork
 #else
             Application.LoadLevel(name);
 #endif
-            MainLoop.getLoop().CallSceneLeave();
             mIns.isLoadingLevel = false;
         }
-
-
 
         public static void LoadLevelAddictive(int name)
         {
@@ -429,7 +425,6 @@ namespace KFrameWork
 #else
             Application.LoadLevelAddictive(name);
 #endif
-            MainLoop.getLoop().CallSceneLeave();
             mIns.isLoadingLevel = false;
         }
 
@@ -487,25 +482,31 @@ namespace KFrameWork
 #endif
         }
 
-
+#if UNITY_5_3 || UNITY_5_4
         public static bool UnLoadScene(string name)
 		{
-#if UNITY_5_3 || UNITY_5_4 || UNITY_5_5 || UNITY_5_6
-
 			return SceneManager.UnloadScene(name);
-#else
-            return Application.UnloadLevel(name);
-#endif
-		}
-
-		public static bool UnLoadScene(int name)
+        }
+#elif UNITY_5_2 || UNITY_5_1
+        public static bool UnLoadScene(string name)
 		{
-#if UNITY_5_3 || UNITY_5_4 || UNITY_5_5 || UNITY_5_6
-			return SceneManager.UnloadScene(name);
-#else
             return Application.UnloadLevel(name);
+
+        }
 #endif
-		}
+
+#if UNITY_5_3 || UNITY_5_4 
+        public static bool UnLoadScene(int name)
+        {
+            return SceneManager.UnloadScene(name);
+        }
+#elif UNITY_5_2 || UNITY_5_1
+        public static bool UnLoadScene(int name){
+            return Application.UnloadLevel(name);
+        }
+#endif
+
+
 
 #if UNITY_5_3 || UNITY_5_4 || UNITY_5_5 || UNITY_5_6
         public static Scene GetSceneByName(string name)
@@ -527,7 +528,6 @@ namespace KFrameWork
                 SceneOpDic.Clear();
                 SceneOpDic = null;
             }
-
         }
 
     }

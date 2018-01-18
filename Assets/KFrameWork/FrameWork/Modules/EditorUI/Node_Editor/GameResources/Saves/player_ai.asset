@@ -52,7 +52,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   body: {fileID: 114212881984142682}
   direction: 1
-  maxConnectionCount: 0
+  maxConnectionCount: 1
   styleID: Float
   _connections:
   - {fileID: 114369356676975294}
@@ -112,7 +112,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   body: {fileID: 114719163144621356}
   direction: 1
-  maxConnectionCount: 0
+  maxConnectionCount: 1
   styleID: Float
   _connections:
   - {fileID: 114304957145967626}

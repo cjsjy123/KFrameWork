@@ -39,17 +39,7 @@ namespace KFrameWork
 
         public static void ClearPool()
         {
-            for (int i = 0; i < caches.Count; ++i)
-            {
-                object o = caches[i];
-                if (o is IPool)
-                {
-                    IPool t = (IPool)o;
-                    t.RemovedFromPool();
-                }
-            }
             caches.Clear();
-            caches = null;
         }
 
     }
@@ -173,111 +163,6 @@ namespace KFrameWork
         }
     }
 
-    public class ShaderPool
-    {
-        private static Dictionary<string, Shader> caches = new Dictionary<string, Shader>();
-
-        public static Shader TrySpawn(string Key)
-        {
-            if (caches.ContainsKey(Key))
-            {
-                return caches[Key];
-            }
-
-            Shader shader = Shader.Find(Key);
-            if (shader != null && shader.isSupported)
-            {
-                caches[Key] = shader;
-                return shader;
-            }
-            else
-            {
-                LogMgr.LogErrorFormat("Not found your need shader: {0}",Key);
-            }
-            return null;
-        }
-
-        public static void TryDespawn(Shader shader)
-        {
-            if(shader != null)
-                caches[shader.name] = shader;
-        }
-    }
-
-    public class MaterialPropertyBlockPool
-    {
-
-        public static MaterialPropertyBlock TrySpawn()
-        {
-            MaterialPropertyBlock t = KObjectPool.mIns.Pop<MaterialPropertyBlock>();
-            if (t == null)
-                t = new MaterialPropertyBlock();
-            return t;
-        }
-
-        public static void TryDespawn(MaterialPropertyBlock o)
-        {
-            KObjectPool.mIns.Push(o);
-        }
-    }
-
-    public class MaterialPool 
-    {
-        private static int SeekByShader(Material mat, Shader shader)
-        {
-            if (mat == null || !mat.shader.Equals(shader))
-                return -100000;
-
-            return 1;
-        }
-
-        public static Material TrySpawn(Shader shader)  
-        {
-            Material t = KObjectPool.mIns.Seek<Material, Shader>(SeekByShader,shader);
-            if (t == null)
-                t = new Material(shader);
-            else if(t.shader.Equals(shader) == false)
-                t.shader = shader;
-            return t;
-        }
-
-        public static Material TrySpawn(Material old)
-        {
-            Material t = KObjectPool.mIns.Pop<Material>();
-            if (t == null)
-                t = new Material(old);
-            else
-                t.CopyPropertiesFromMaterial(old);
-            return t;
-        }
-
-        public static Material[] TrySpawn(Material[] old)
-        {
-            Material[] newmats = new Material[old.Length];
-            for(int i =0; i < newmats.Length;++i)
-            {
-                Material t = KObjectPool.mIns.Pop<Material>();
-                if (t == null)
-                    t = new Material(old[i]);
-                else
-                    t.CopyPropertiesFromMaterial(old[i]);
-
-                newmats[i] = t;
-            }
-
-            return newmats;
-
-        }
-
-        public static void TryDespawn(Material o)
-        {
-            if (o != null)
-            {
-                ShaderPool.TryDespawn(o.shader);
-            }
-            KObjectPool.mIns.Push(o);
-        }
-    }
 
 }
 

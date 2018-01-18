@@ -8,9 +8,9 @@ namespace KFrameWork
 {
     public abstract class TcpMessage : NetMessage, ISerialize
     {
-        public virtual int MainCmd { get; protected set; }
+        public int MainCmd { get; protected set; }
 
-        public virtual int SubCmd { get; protected set; }
+        public int SubCmd { get; protected set; }
 
         public bool IgnoreResp { get; set; }
 
@@ -27,6 +27,8 @@ namespace KFrameWork
         }
 
         public NetError errorType { get; set; }
+
+        public abstract float getSendTime();
 
         public abstract byte[] Serialize();
 

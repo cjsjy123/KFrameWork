@@ -177,56 +177,6 @@ namespace KFrameWork
             this.bitIndex = 0;
             this.bitDataSort =0;
         }
-
-
-        public override void RemovedFromPool ()
-        {
-            this.m_l1 = null;
-            this.m_l2 = null;
-            this.m_l3 = null;
-
-            this.m_i1 = null;
-            this.m_i2 = null;
-            this.m_i2 = null;
-
-            this.m_st1 = null;
-            this.m_st2 = null;
-            this.m_st3 = null;
-
-            this.m_string1 = null;
-            this.m_string2 = null;
-            this.m_st3 = null;
-
-            this.m_c1 = null;
-            this.m_c2 = null;
-            this.m_c3 = null;
-
-            this.m_b1 = null;
-            this.m_b2 = null;
-            this.m_b3 = null;
-
-            this.m_f1 = null;
-            this.m_f2 = null;
-            this.m_f3 = null;
-
-            this.m_d1 = null;
-            this.m_d2 = null;
-            this.m_d3 = null;
-
-            this.m_v1 = null;
-            this.m_v2 = null;
-            this.m_v3 = null;
-
-            this.m_o1 = null;
-            this.m_o2 = null;
-            this.m_o3 = null;
-
-            this.m_uo1 = null;
-            this.m_uo2 = null;
-            this.m_uo3 = null;
-
-        }
-            
    
         private long _ReadIndex(int ReadIndex, out int index)
         {

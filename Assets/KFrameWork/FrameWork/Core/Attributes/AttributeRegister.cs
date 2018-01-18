@@ -104,8 +104,8 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            if (MainLoop.getLoop() != null)
-                MainLoop.getLoop().RegisterStaticEvent(MainLoopEvent.OnLevelWasLoaded, method,scenter.Priority);
+            if (MainLoop.getInstance() != null)
+                MainLoop.getInstance().RegisterStaticEvent(MainLoopEvent.OnLevelWasLoaded, method,scenter.Priority);
         }
     }
 
@@ -115,9 +115,8 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if (method.isLoopFunction())
         {
-            if (MainLoop.getLoop() != null)
-                MainLoop.getLoop().RegisterStaticEvent(MainLoopEvent.OnLevelLeaved, method, scene.Priority); 
-
+            if (MainLoop.getInstance() != null)
+                MainLoop.getInstance().RegisterStaticEvent(MainLoopEvent.OnLevelLeaved, method, scene.Priority); 
         }
     }
 
@@ -150,7 +149,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Start,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.Start,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -161,7 +160,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.FixedUpdate,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.FixedUpdate,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -172,7 +171,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Update,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.Update,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -183,7 +182,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.LateUpdate,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -194,7 +193,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -205,7 +204,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationQuit,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.OnApplicationQuit,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -216,7 +215,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnDestroy,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.OnDestroy,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -227,7 +226,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnDisable,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.OnDisable,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -238,7 +237,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnEnable,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.OnEnable,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -249,7 +248,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if(method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>),method),
                 false);
         }
@@ -260,7 +259,7 @@ public static class AttributeRegister
         MethodInfo method = target as MethodInfo;
         if (method.isLoopFunction())
         {
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.AfterUpdate,
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.AfterUpdate,
                 (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), method),
                 false);
         }
@@ -276,7 +275,7 @@ public static class AttributeRegister
         if(method.LogStaticMethod())
         {
             Action<System.Object, int> callback =(Action<System.Object, int>)Delegate.CreateDelegate(typeof(Action<System.Object,int>),method);
-            MainLoop.getLoop().PreRegisterCachedAction(delegateAtt.Invokeopportunity,callback);
+            MainLoop.getInstance().PreRegisterCachedAction(delegateAtt.Invokeopportunity,callback);
 
 
             Type tp = delegateAtt.tp;

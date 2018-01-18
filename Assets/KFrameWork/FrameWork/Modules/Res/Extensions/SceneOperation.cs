@@ -53,24 +53,21 @@ public class SceneOperation  {
 
     public void EnableScene()
     {
-        MainLoop.getLoop().CallSceneLeave();
 
         if (FrameWorkConfig.Open_DEBUG)
             LogMgr.LogFormat("启动场景 ：{0}",this.ScenePath);
 
         this._async.allowSceneActivation = true;
-
-        if (MainLoop.OpenLua)
+#if TOLUA
+        if (MainLoop.getInstance().OpenLua && LuaClient.GetMainState() != null)
         {
-            #if TOLUA
             LuaClient.GetMainState().Collect();
-#endif
         }
+#endif
 
         IBundleRef bundle = ResBundleMgr.mIns.Cache.TryGetValue(ScenePath);
         if (bundle != null)
         {
-            bundle.UnLock();
             bundle.UnLoad(true);
         }
 

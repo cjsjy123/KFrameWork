@@ -143,45 +143,6 @@ namespace KFrameWork
         }
 #endif
 
-        //        protected virtual void OnTriggerEnter (Collider other)
-        //        {
-        //        }
-        //
-        //        protected virtual void OnTriggerExit (Collider other)
-        //        {
-        //        }
-        //
-        //        protected virtual void Update ()
-        //        {
-        //        }
-        //
-        //        protected virtual void FixedUpdate ()
-        //        {
-        //        }
-        //
-        //        protected virtual void LateUpdate ()
-        //        {
-        //        }
-        //
-        //        protected virtual void OnApplicationQuit ()
-        //        {
-        //        }
-        //
-        //        protected virtual void OnApplicationPause ()
-        //        {
-        //        }
-        //
-        //        protected virtual void OnEnable ()
-        //        {
-        //        }
-        //
-        //        protected virtual void OnDisable ()
-        //        {
-        //        }
-        //
-        //        protected virtual void OnDestroy ()
-        //        {
-        //        }
     }
 #endif
     }

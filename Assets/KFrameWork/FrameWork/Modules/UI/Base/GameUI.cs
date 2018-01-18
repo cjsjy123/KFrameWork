@@ -19,10 +19,6 @@ namespace KFrameWork
     [RequireComponent(typeof(RectTransform))]
     public abstract class GameUI : LuaMonoBehaviour
     {
-//#if UNITY_EDITOR
-//        private static bool ShowUIBounds = true;
-//#endif
-
         private static int uidCounter = 0;
         #region lua
 #if Advance
@@ -40,22 +36,6 @@ namespace KFrameWork
 
 #endif
         #endregion
-
-//#if Advance
-//        [Inspect]
-//        public bool ShowBounds
-//        {
-//            get
-//            {
-//                return ShowUIBounds;
-//            }
-//            set
-//            {
-//                ShowUIBounds = value;
-//            }
-//        }
-//#endif
-
 #if Advance
         [Inspect, ReadOnly]
 #endif
@@ -504,7 +484,7 @@ namespace KFrameWork
             }
         }
 
-        [Script_SharpLogic((int)BaseCmdDef.CallExit)]
+        [Script_SharpLogic((int)FrameWorkCmdDefine.UICallExit)]
         private static void staticExit(AbstractParams p)
         {
             if (p != null)
@@ -518,7 +498,7 @@ namespace KFrameWork
             }
         }
 
-        [Script_SharpLogic((int)BaseCmdDef.CallEnter)]
+        [Script_SharpLogic((int)FrameWorkCmdDefine.UICallEnter)]
         private static void staticEnter(AbstractParams p)
         {
             if (p != null)
@@ -537,7 +517,7 @@ namespace KFrameWork
             }
         }
 
-        [Script_SharpLogic((int)BaseCmdDef.CallRelease)]
+        [Script_SharpLogic((int)FrameWorkCmdDefine.UICallRelease)]
         private static void staticRelease(AbstractParams p)
         {
             if (p != null)
@@ -701,31 +681,15 @@ namespace KFrameWork
         /// </summary>
         public void DoVisiable()
         {
-            if (this.isActiveAndEnabled)
-            {
-                rectTransform.localScale = Vector3.one;
-                rectTransform.anchoredPosition = Vector2.zero;
-            }
-            else
-            {
-                LogMgr.LogWarningFormat("{0} use Active Property", this);
-                this.gameObject.SetActive(true);
-            }
+            rectTransform.localScale = Vector3.one;
+            rectTransform.anchoredPosition = Vector2.zero;
         }
         /// <summary>
         /// 执行操作使得UI隐藏
         /// </summary>
         public void DoInVisiable()
         {
-            if (this.isActiveAndEnabled)
-            {
-                rectTransform.localScale = Vector3.zero;
-            }
-            else
-            {
-                LogMgr.LogWarningFormat("{0} use Active Property", this);
-                this.gameObject.SetActive(false);
-            }
+            rectTransform.localScale = Vector3.zero;
         }
 #endregion
     }

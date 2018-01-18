@@ -8,12 +8,6 @@ using NodeEditorFramework.IO;
 
 namespace KFrameWork
 {
-    //base from 10000
-    public enum FSMCmdDef
-    {
-        CallEnter = 10001,
-        CallExit = 10002,
-    }
 
     [SingleTon]
     public partial class FSMCtr 

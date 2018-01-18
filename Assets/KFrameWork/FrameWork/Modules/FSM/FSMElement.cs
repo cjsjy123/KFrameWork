@@ -79,7 +79,7 @@ namespace KFrameWork
         protected abstract void From(FSMElement element);
         #endregion
 
-        [Script_SharpLogic((int)FSMCmdDef.CallEnter)]
+        [Script_SharpLogic((int)FrameWorkCmdDefine.FSMCallEnter)]
         private static void CallEnter(AbstractParams p)
         {
             if (p.ArgCount > 0)
@@ -96,7 +96,7 @@ namespace KFrameWork
             }
         }
 
-        [Script_SharpLogic((int)FSMCmdDef.CallExit)]
+        [Script_SharpLogic((int)FrameWorkCmdDefine.FSMCallExit)]
         private static void CallExit(AbstractParams p)
         {
             if (p.ArgCount > 0)

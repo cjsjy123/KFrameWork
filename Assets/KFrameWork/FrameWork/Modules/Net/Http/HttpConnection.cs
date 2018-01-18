@@ -38,7 +38,7 @@ namespace KFrameWork
                 LogMgr.LogFormat("Http Closed :{0}", connection);
             isConnected = false;
 
-            //MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate, this.UpdateQueue);
+            //MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.LateUpdate, this.UpdateQueue);
         }
 
         protected override void ConnectionOpened(NetConnection connection)
@@ -53,7 +53,7 @@ namespace KFrameWork
             if (FrameWorkConfig.Open_DEBUG)
                 LogMgr.LogFormat("Http Connected :{0}",connection);
 
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate, this.UpdateQueue);
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.LateUpdate, this.UpdateQueue);
         }
 
         public override void MessageArrived(NetConnection connection, NetMessage msg)

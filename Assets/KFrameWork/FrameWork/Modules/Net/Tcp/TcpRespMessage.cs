@@ -28,6 +28,9 @@ namespace KFrameWork
 
         public NetError errorType { get; set; }
 
+        public abstract float getSendTime();
+
+
         public abstract void DeSerialize(NetByteBuffer buffer);
 
         public abstract void DeSerialize(byte[] bytearray);

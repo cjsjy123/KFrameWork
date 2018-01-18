@@ -158,7 +158,7 @@ namespace KFrameWork
                 }
                 else
                 {
-                    LogMgr.LogErrorFormat("Www Error :{0}", localWWW.error);
+                    LogMgr.LogErrorFormat("Www Error :{0} to {1}", localWWW.error, localWWW.url);
                     Schedule.mIns.UnScheduleInvoke(TimeOutEvent);
                     if (wwwreferences.ContainsKey(httpmsg.url))
                     {

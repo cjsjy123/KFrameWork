@@ -35,7 +35,7 @@ namespace KFrameWork
             }
         }
 
-        private BundleInfoFilter Info;
+        private BundleInfoFilter Info = null;
 
         public BundleInfoFilter BundleInformation
         {
@@ -47,7 +47,7 @@ namespace KFrameWork
         }
         public BundleCache Cache { get; private set; }
 
-        private string targetVerPath;
+        public string targetVerPath { get; private set; }
 
         public bool isDone { get; private set; }
 
@@ -74,7 +74,9 @@ namespace KFrameWork
                     ab.Unload(true);
                 }
                 else
-                    TaskManager.CreateTask(_LoadAssetInfos()).Start();
+                {
+                    LogMgr.LogError("Res Init Error");
+                }
             }
         }
 
@@ -107,11 +109,11 @@ namespace KFrameWork
                     this.Info.LoadFromMemory(fs);
                 }
             }
+            this.isDone = true;
 #else
             throw new FrameWorkException("Missing Tang pack try use self pack bundle");
 #endif
-
-            this.isDone = true;
+    
         }
 
         private byte[] CreateAssetbundleBytes(out AssetBundle ab)
@@ -125,49 +127,6 @@ namespace KFrameWork
             return null;
         }
 
-        private IEnumerator _LoadAssetInfos()
-        {
-            if (File.Exists(targetVerPath))
-            {
-#if USE_TANGAB
-                using (FileStream fs = new FileStream(targetVerPath, FileMode.Open, FileAccess.Read))
-                {
-                    BinaryReader br = new BinaryReader(fs);
-                    if (br.ReadChar() == 'A' && br.ReadChar() == 'B' && br.ReadChar() == 'D')
-                    {
-                        if (br.ReadChar() == 'T')
-                            this.Info = new BundleTextInfo();
-                        else
-                            this.Info = new BundleBinaryInfo();
-
-                        fs.Position = 0;
-                        this.Info.LoadFromMemory(fs);
-                    }
-                    br.Close();
-                    this.isDone = true;
-                }
-#else
-                throw new FrameWorkException("Missing Tang pack try use self pack bundle");
-#endif
-            }
-            else
-            {
-                WWW w = new WWW(BundlePathConvert.GetWWWPath(targetVerPath));
-                yield return w;
-                if (w.error == null)
-                {
-                    LoadAssetbundleBytes(w.bytes);
-                }
-                else
-                {
-                    LogMgr.LogError(string.Format("{0} not exist! info:{1}", targetVerPath, w.error));
-                }
-            }
-
-            if (FrameWorkConfig.Open_DEBUG)
-                LogMgr.Log("bundle info Finish");
-        }
-
         public void Reload()
         {
             this.Cache.Reload();
@@ -175,18 +134,6 @@ namespace KFrameWork
             this.Start();
         }
 
-        public static void YieldInited(Action<WaitTaskCommand> DoneEvent)
-        {
-            if (mIns == null || !ResBundleMgr.mIns.isDone)
-            {
-                WaitTaskCommand cmd = WaitTaskCommand.Create(new WaitWWWTask(), DoneEvent);
-                cmd.Excute();
-            }
-            else
-            {
-                DoneEvent(null);
-            }
-        }
 
         public static void UnLoadUnused(bool force =false)
         {

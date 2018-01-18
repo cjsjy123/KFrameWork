@@ -192,7 +192,6 @@ namespace KFrameWork
         public abstract UnityEngine.Object ReadUnityObject();
 
         public abstract void RemoveToPool();
-        public abstract void RemovedFromPool();
         #endregion
 
     }

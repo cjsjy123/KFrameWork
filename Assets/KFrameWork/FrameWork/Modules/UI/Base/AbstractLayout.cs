@@ -46,10 +46,6 @@ namespace KFrameWork
 
     public abstract class AbstractLayout
     {
-
-
-        public Camera UIcamera;
-
         /// <summary>
         /// opened ui container
         /// </summary>
@@ -183,6 +179,17 @@ namespace KFrameWork
             }
         }
 
+        private class UISceneAliveListener:MonoBehaviour
+        {
+            void OnDestroy()
+            {
+#if UNITY_EDITOR
+                GameUIControl.mIns.Dump();
+#endif
+                GameUIControl.mIns.ClearUI(true);
+            }
+        }
+
         public AbstractLayout()
         {
             this.uicontainer = new List<GameUI>();
@@ -212,6 +219,11 @@ namespace KFrameWork
 
         protected abstract void UpdateForPropertys();
 
+        protected virtual Camera getUICamera()
+        {
+            return Camera.main;
+        }
+
         protected virtual Canvas CreateCanvas(string name)
         {
             if (gameuiRoot == null)
@@ -223,6 +235,7 @@ namespace KFrameWork
             {
                 gameuiRoot = new GameObject("GameUIRoot");
                 gameuiRoot.layer = LayerMask.NameToLayer("UI");
+                gameuiRoot.AddComponent<UISceneAliveListener>();
             }
 
             //set gameobject
@@ -231,7 +244,7 @@ namespace KFrameWork
             //set canvas
             Canvas uicanvas = canvasObject.AddComponent<Canvas>();
             uicanvas.renderMode = RenderMode.ScreenSpaceCamera;
-            uicanvas.worldCamera = UIcamera ? UIcamera:Camera.main;
+            uicanvas.worldCamera = getUICamera();
             uicanvas.planeDistance = 100;
             uicanvas.overrideSorting = true;
             uicanvas.sortingLayerName = this.sortingLayer;
@@ -278,7 +291,7 @@ namespace KFrameWork
             }
             else
             {
-                ScriptCommand cmd = ScriptCommand.Create((int)BaseCmdDef.CallEnter);
+                ScriptCommand cmd = ScriptCommand.Create((int)FrameWorkCmdDefine.UICallEnter);
                 if (p != null)
                     cmd.CallParams = p;
                 cmd.CallParams.InsertObject(0, ui);
@@ -599,7 +612,7 @@ namespace KFrameWork
                 ///可能会出现都在最外面，parent is null，只是删除了第一个对象，所以最好持有对象然后删除
                 if (CompareUI(gameui, respath, Parent))
                 {
-                    CloseAtIndex(gameui, i, p);
+                    CloseAtIndex(gameui, i,false, p);
                     break;
                 }
             }
@@ -618,7 +631,7 @@ namespace KFrameWork
                 GameUI gameui = this.uicontainer[i];
                 if (CompareUI(gameui,respath))
                 {
-                    CloseAtIndex(gameui, i, p);
+                    CloseAtIndex(gameui, i,false, p);
                     break;
                 }
             }
@@ -652,7 +665,7 @@ namespace KFrameWork
                 GameUI gameui = this.uicontainer[i];
                 if (gameui == ui)
                 {
-                    CloseAtIndex(gameui, i, p);
+                    CloseAtIndex(gameui, i, false, p);
                     break;
                 }
             }
@@ -664,7 +677,7 @@ namespace KFrameWork
             for (int i = this.uicontainer.Count - 1; i >= 0; i--)
             {
                 GameUI gameui = this.uicontainer[i];
-                ScriptCommand cmd= ScriptCommand.Create((int)BaseCmdDef.CallRelease,1);
+                ScriptCommand cmd= ScriptCommand.Create((int)FrameWorkCmdDefine.UICallRelease,1);
                 cmd.target = ScriptTarget.Sharp;
                 cmd.CallParams.WriteObject(gameui);
                 cmd.Excute();
@@ -684,7 +697,7 @@ namespace KFrameWork
                     }
                     else
                     {
-                        this.CloseAtIndex(ui, i);
+                        this.CloseAtIndex(ui, i,all);
                     }
                 }
             }
@@ -820,9 +833,9 @@ namespace KFrameWork
             return false;
         }
 
-        protected void CloseAtIndex(GameUI gameui, int index, AbstractParams p = null)
+        protected void CloseAtIndex(GameUI gameui, int index,bool force =false , AbstractParams p = null)
         {
-            if (!removeList.Contains(gameui))
+            if (!removeList.Contains(gameui) )
             {
                 //check children
                 GameUI[] childrenUI = gameui.GetComponentsInChildren<GameUI>();
@@ -834,13 +847,13 @@ namespace KFrameWork
                         {
                             if (uicontainer[j] == childrenUI[i])
                             {
-                                CloseAtIndex(uicontainer[j], j);
+                                CloseAtIndex(uicontainer[j], j, force);
                             }
                         }
                     }
                 }
 
-                ScriptCommand cmd = ScriptCommand.Create((int)BaseCmdDef.CallExit);
+                ScriptCommand cmd = ScriptCommand.Create((int)FrameWorkCmdDefine.UICallExit);
                 if (p != null)
                     cmd.CallParams = p;
                 cmd.target = ScriptTarget.Sharp;
@@ -852,7 +865,14 @@ namespace KFrameWork
 
                 CacheCommand.CanCelAllBy(gameui);
 
-                DestroyUI(gameui);
+                if(force)
+                {
+                    gameui.DestorySelf();
+                }
+                else
+                {
+                    DestroyUI(gameui); 
+                }
 
                 removeList.Add(gameui);
             }
@@ -877,11 +897,18 @@ namespace KFrameWork
             removeList.Clear();
         }
 
+        bool isNull(GameUI ui)
+        {
+            return ui == null;
+        }
+
         public virtual void Dump()
         {
+#if UNITY_EDITOR
+            uicontainer.RemoveAll(isNull);
             if (this.uicontainer.Count > 0)
             {
-                var stringbuilder = new StringBuilder(256);
+                StringBuilder stringbuilder = new StringBuilder(256);
                 stringbuilder.AppendFormat("------------------- {0} Start -------------------\n", this.LayoutName);
                 
                 for (int i = this.uicontainer.Count -1; i >= 0; --i)
@@ -901,6 +928,7 @@ namespace KFrameWork
                 stringbuilder.AppendFormat("------------------- {0} End -------------------\n", this.LayoutName);
                 LogMgr.Log(stringbuilder.ToString());
             }
+#endif
 
         }
 

@@ -36,8 +36,6 @@ namespace KFrameWork
 
         void LogDepends();
 
-        void Lock(LockType tp = LockType.DontDestroy | LockType.OnlyReadNoWrite);
-        void UnLock(LockType tp = LockType.DontDestroy | LockType.OnlyReadNoWrite);
         void UnLoad(bool all);
 
         string[] GetAllAssetNames();

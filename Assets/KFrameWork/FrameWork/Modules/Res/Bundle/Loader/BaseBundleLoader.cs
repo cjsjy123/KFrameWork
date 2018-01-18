@@ -21,7 +21,7 @@ namespace KFrameWork
             get
             {
 #if UNITY_EDITOR 
-                if (Application.isPlaying && MainLoop.OpenABMode)
+                if (Application.isPlaying && MainLoop.getInstance().OpenABMode)
                     return true;
                 return false;
 #elif UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID 
@@ -268,18 +268,6 @@ namespace KFrameWork
             this._AsyncOpation = null;
         }
 
-        public virtual void RemovedFromPool()
-        {
-            this._BundleMainObject = null;
-            this._BundleRef = null;
-            this.LoadResPath = null;
-            this.LoadState = BundleLoadState.Prepared;
-            this.onComplete = null;
-            this.LoaderInsObject = null;
-            this.PreParedGameObject = null;
-            this._AsyncOpation = null;
-        }
-
         #endregion
 
         protected void InvokeHandler(bool bvalue)
@@ -326,7 +314,7 @@ namespace KFrameWork
 
         protected AssetBundle LoadAssetBundle(string path)
         {
-            if (MainLoop.OpenABMode)
+            if (MainLoop.getInstance().OpenABMode)
             {
 #if UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID
                 AssetBundle ab = KAssetBundle.LoadFromFile(path);
@@ -351,7 +339,7 @@ namespace KFrameWork
             }
 
 #if UNITY_IOS || UNITY_IPHONE || UNITY_ANDROID 
-            if (GameApplication.isPlaying && MainLoop.OpenABMode)
+            if (GameApplication.isPlaying && MainLoop.getInstance().OpenABMode)
             {
                 AssetBundle ab = null;
                 using (gstring.Block())
@@ -402,7 +390,7 @@ namespace KFrameWork
 
         protected AssetBundleCreateRequest LoadFullAssetToMemAsync(BundlePkgInfo pkginfo)
         {
-            if (Application.isPlaying && MainLoop.OpenABMode)
+            if (Application.isPlaying && MainLoop.getInstance())
             {
                 AssetBundleCreateRequest abRequst = null;
                 using (gstring.Block())

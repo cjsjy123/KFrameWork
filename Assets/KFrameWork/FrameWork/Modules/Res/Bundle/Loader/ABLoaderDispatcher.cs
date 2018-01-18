@@ -17,9 +17,9 @@ public static class ABLoaderDispatcher  {
     }
 
     private static ABLoaderMode Mode = ABLoaderMode.Self;
-        #if USE_TANGAB
-    private static GameObject _TangRoot;
 
+#if USE_TANGAB
+    private static GameObject _TangRoot;
     private static AssetBundleManager manager;
     private static GameObject TangRoot
     {
@@ -38,6 +38,7 @@ public static class ABLoaderDispatcher  {
         }
     }
 #endif
+
     public static void PreLoadForAssets(string pathname)
     {
         if (Mode == ABLoaderMode.Self)
@@ -57,9 +58,9 @@ public static class ABLoaderDispatcher  {
         }
         else if (Mode == ABLoaderMode.ABTang)
         {
-            //BundlePkgInfo info = ResBundleMgr.mIns.BundleInformation.SeekInfo(pathname);
-            //string resultpath = info.EditorPath.Replace("/",".");
-            //manager.Load(resultpath);
+#if USE_TANGAB
+
+#endif
         }
 
     }
@@ -87,7 +88,6 @@ public static class ABLoaderDispatcher  {
         }
         else if (Mode == ABLoaderMode.ABTang)
         {
-
 #if USE_TANGAB
             BundlePkgInfo info = ResBundleMgr.mIns.BundleInformation.SeekInfo(pathname);
             string resultpath = info.EditorPath.Replace("/", ".");
@@ -132,7 +132,7 @@ public static class ABLoaderDispatcher  {
         }
         else if (Mode == ABLoaderMode.ABTang)
         {
-            #if USE_TANGAB
+#if USE_TANGAB
             BundlePkgInfo info = ResBundleMgr.mIns.BundleInformation.SeekInfo(pathname);
             string resultpath = info.EditorPath.Replace("/", ".");
             manager.Load(resultpath);
@@ -172,6 +172,10 @@ public static class ABLoaderDispatcher  {
         else if (Mode == ABLoaderMode.ABTang)
         {
 
+#if USE_TANGAB
+
+#endif
+
         }
 
         return null;
@@ -202,7 +206,9 @@ public static class ABLoaderDispatcher  {
         }
         else if (Mode == ABLoaderMode.ABTang)
         {
+#if USE_TANGAB
 
+#endif
         }
 
         return default(AssetBundleResult);
@@ -234,6 +240,10 @@ public static class ABLoaderDispatcher  {
         else if (Mode == ABLoaderMode.ABTang)
         {
 
+#if USE_TANGAB
+
+
+#endif
         }
 
     }
@@ -262,7 +272,9 @@ public static class ABLoaderDispatcher  {
         }
         else if (Mode == ABLoaderMode.ABTang)
         {
+#if USE_TANGAB
 
+#endif
         }
 
     }

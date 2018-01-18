@@ -1,9 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using System;
+using KFrameWork;
+
 #if Advance
 using AdvancedInspector;
 #endif
-using System;
 
 public abstract class BaseTimeLerp<T> : BaseLerp<T> where T:struct
 {
@@ -35,7 +37,7 @@ public abstract class BaseTimeLerp<T> : BaseLerp<T> where T:struct
     {
         if (isRunning)
         {
-            currenttime += Time.deltaTime ;
+            currenttime += GameSyncCtr.mIns.RenderDeltaTime;
             setCurrentLerpTarget(CheckParams(getCurrentLerpTarget()));
 
             if (LoopCnt > 0 && currentLoopCnt > LoopCnt)

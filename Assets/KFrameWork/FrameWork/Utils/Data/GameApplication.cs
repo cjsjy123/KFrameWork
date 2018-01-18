@@ -18,7 +18,9 @@ namespace KFrameWork
         {
             _playing = true;
             absoluteURL = Application.absoluteURL;
+#if UNITY_5_6_OR_NEWER
             bundleIdentifier = Application.identifier;
+#endif
             cloudProjectId = Application.cloudProjectId;
             companyName = Application.companyName;
             genuine = Application.genuine;
@@ -40,20 +42,26 @@ namespace KFrameWork
             _width = Screen.width;
             _Height = Screen.height;
 
-            if (FrameWorkConfig.Open_DEBUG)
-            {
-                for (int i = (int)RenderTextureFormat.ARGB32; i < (int)RenderTextureFormat.RGB111110Float + 1; ++i)
-                {
-                    if (SystemInfo.SupportsRenderTextureFormat((RenderTextureFormat)i))
-                    {
-                        LogMgr.Log("支持 " + (RenderTextureFormat)i);
-                    }
-                    else
-                    {
-                        LogMgr.Log("不支持 " + (RenderTextureFormat)i);
-                    }
-                }
-            }
+#if UNITY_EDITOR
+            isEditor = true;
+#else
+            isEditor = false;
+#endif
+
+            //if (FrameWorkConfig.Open_DEBUG)
+            //{
+            //    for (int i = (int)RenderTextureFormat.ARGB32; i < (int)RenderTextureFormat.RGB111110Float + 1; ++i)
+            //    {
+            //        if (SystemInfo.SupportsRenderTextureFormat((RenderTextureFormat)i))
+            //        {
+            //            LogMgr.Log("支持 " + (RenderTextureFormat)i);
+            //        }
+            //        else
+            //        {
+            //            LogMgr.Log("不支持 " + (RenderTextureFormat)i);
+            //        }
+            //    }
+            //}
 
         }
 
@@ -170,7 +178,10 @@ namespace KFrameWork
 
         public static string absoluteURL { get; private set; }
 
+        public static bool isEditor { get; private set; }
+#if UNITY_5_6_OR_NEWER
         public static string bundleIdentifier { get; private set; }
+#endif
 
         public static string cloudProjectId { get; private set; }
 

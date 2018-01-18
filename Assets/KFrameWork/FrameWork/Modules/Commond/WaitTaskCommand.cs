@@ -59,7 +59,7 @@ namespace KFrameWork
                     //if(FrameWorkConfig.Open_DEBUG)
                     //    LogMgr.LogFormat("{0} ID:{1} start . ::::Task :{2}",this,this.UID,this.m_task);
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+                    MainLoop.getInstance().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
                 }
             }
             catch(FrameWorkException ex)
@@ -76,7 +76,7 @@ namespace KFrameWork
 
         public static void Destroy()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
+            MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
         }
 
         [DelegateMethodAttribute(MainLoopEvent.BeforeUpdate,"methodID",typeof(WaitTaskCommand))]
@@ -129,12 +129,12 @@ namespace KFrameWork
         public override void Cancel()
         {
             base.Cancel();
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
+            MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
         }
 
         protected override void SetFinished()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+            MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
 
             if (this.CallBack != null)
                 this.CallBack(this);
@@ -152,13 +152,6 @@ namespace KFrameWork
         public override void RemoveToPool ()
         {
             base.RemoveToPool ();
-            this.m_task = null;
-            this.CallBack = null;
-        }
-
-        public override void RemovedFromPool ()
-        {
-            base.RemovedFromPool ();
             this.m_task = null;
             this.CallBack = null;
         }

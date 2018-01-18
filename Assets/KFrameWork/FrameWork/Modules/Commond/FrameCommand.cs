@@ -63,7 +63,7 @@ namespace KFrameWork
 
         public static void Destroy()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
+            MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
         }
 
         public override void Excute ()
@@ -77,7 +77,7 @@ namespace KFrameWork
                     this.m_startFrame = GameSyncCtr.mIns.RenderFrameCount;
 
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+                    MainLoop.getInstance().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
                 }
             }
             catch(FrameWorkException ex)
@@ -156,7 +156,7 @@ namespace KFrameWork
         {
             base.Cancel();
 
-            if (!MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this))
+            if (!MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this))
             {
                 LogMgr.LogError("删除失败");
             }
@@ -164,7 +164,7 @@ namespace KFrameWork
 
         protected override void SetFinished()
         {
-            if (!MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this))
+            if (!MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this))
             {
                 LogMgr.LogError("删除失败");
             }
@@ -205,14 +205,6 @@ namespace KFrameWork
             this.m_pausedFrameCnt =0;
             this._frame = 0;
             this.Callback = null;
-        }
-
-
-        public override void RemovedFromPool ()
-        {
-            base.RemovedFromPool();
-            this.Callback = null;
-
         }
 
         public override void Release (bool force)

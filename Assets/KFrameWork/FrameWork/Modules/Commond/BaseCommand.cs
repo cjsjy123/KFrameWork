@@ -33,7 +33,7 @@ namespace KFrameWork
                     {
                         this.m_isBatching =false;
                         this.Next = null;
-                        MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
+                        MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
 
                         if(this.isRunning)
                             this.SetFinished();
@@ -43,7 +43,7 @@ namespace KFrameWork
             else
             {
                 this.m_isBatching =false;
-                MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
+                MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
 
                 if (this.isRunning)
                     this.SetFinished();
@@ -56,7 +56,7 @@ namespace KFrameWork
             {
                 this.m_isBatching =true;
                 this.Next.Excute();
-                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
+                MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.LateUpdate,this._SequenceCall);
             }
         }
 
@@ -72,13 +72,6 @@ namespace KFrameWork
             this.GenID();
             this.m_bReleased =false;
             this.m_isBatching =false;
-            this.Next = null;
-        }
-
-        public virtual void RemovedFromPool ()
-        {
-            this.m_bReleased = false;
-            this.m_isBatching = false;
             this.Next = null;
         }
 

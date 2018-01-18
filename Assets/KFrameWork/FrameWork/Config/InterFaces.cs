@@ -4,12 +4,6 @@ using System;
 
 namespace KFrameWork
 {
-    public interface ISharedPtr
-    {
-        void AddRef ();
-
-        void RemoveRef ();
-    }
 
     public interface ITask
     {

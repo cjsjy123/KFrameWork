@@ -82,6 +82,11 @@ namespace KFrameWork
 			_assetbundle = bundle;
 		}
 
+        public bool isEmpty()
+        {
+            return _assetbundle == null;
+        }
+
 
         public UnityEngine.Object Load(string name) 
         {

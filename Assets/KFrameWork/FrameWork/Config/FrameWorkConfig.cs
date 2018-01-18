@@ -10,8 +10,6 @@ using System.Reflection;
 using UnityEditor;
 #endif
 
-[TagSet("CameraUITag", "Camera3DTag")]
-//[ScriptMarcoDefine("TOLUA", "Advance", "USE_TANGAB"]//,"UNITY_NAVMESH"
 public static class FrameWorkConfig  {
 
     public static int FPS_Value = 30;
@@ -25,8 +23,6 @@ public static class FrameWorkConfig  {
     public static bool Open_DEBUG =false;
 
     public static int Preload_ParamsCount =10;
-
-    public static bool ShowUnityInfoReport =true;
 
     [FrameWorkDestroy]
     private static void DestroyFrameWorkEvent(int lv)
@@ -48,11 +44,12 @@ public static class FrameWorkConfig  {
         }
 
 
-        //if (KObjectPool.mIns != null)
-        //    KObjectPool.mIns.Destroy();
+        if (KObjectPool.mIns != null)
+            KObjectPool.mIns.Clear();
 
-        if(GameSyncCtr.mIns != null)
+        if (GameSyncCtr.mIns != null)
             GameSyncCtr.mIns.EndSync();
+
 
         FrameCommand.Destroy();
         WaitTaskCommand.Destroy();
@@ -72,24 +69,7 @@ public static class FrameWorkConfig  {
         try
         {
             GameApplication.Start();
-
-            if (MainLoop.OpenLua)
-            {
-#if TOLUA
-                new LuaResLoader();
-                loop.gameObject.AddComponent(typeof(GameLuaClient));
-#endif
-            }
-#if UNITY_EDITOR
-            //maxNumberOfSamplesPerFrame
-            PlayerSettings.aotOptions = "nrgctx-trampolines=8096,nimt-trampolines=8096,ntrampolines=4048";
-#endif
             Application.targetFrameRate = FPS_Value;
-
-            if (Open_DEBUG)
-            {
-                loop.TryAddComponent<GameDebugger>();
-            }
         }
         catch(Exception ex)
         {

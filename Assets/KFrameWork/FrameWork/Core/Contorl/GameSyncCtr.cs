@@ -12,7 +12,6 @@ namespace KFrameWork
     {
         public static GameSyncCtr mIns;
 
-        #region fields
         private bool _RenderReCal =false;
         private bool _LogicRecal =false;
 
@@ -75,7 +74,12 @@ namespace KFrameWork
         {
             get
             {
-                return Time.realtimeSinceStartup - this.accnumPausedTime;
+                if(FrameRate == 0)
+                {
+                    return 0f;
+                }
+
+                return RenderFrameCount / (float)FrameRate;
             }
         }
 
@@ -194,22 +198,14 @@ namespace KFrameWork
         }
         #endregion
 
-        #endregion
-        public GameSyncCtr()
-        {
-            this._LogicFrameCount = 0;
-            this._RenderFrameCount = 0;
-
-        }
-
         public void StartSync()
         {
             this.FrameRate = Application.targetFrameRate;
             this.Scale = Time.timeScale;
 
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.FixedUpdate,_LogicFrameUpdate);
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate, _FrameUpdateEnd);
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.FixedUpdate,_LogicFrameUpdate);
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.LateUpdate, _FrameUpdateEnd);
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
         }
 
         public bool DetermineEnableFrame()
@@ -254,14 +250,12 @@ namespace KFrameWork
                 if(!Time.timeScale.FloatEqual(0f))
                 {
                     float now = Time.realtimeSinceStartup - this.accnumPausedTime;
-                    float delta = now - this.recordLasttime;
+                    float passedtime = (now - this.recordLasttime) / Time.timeScale;
                     this.recordLasttime = now;
 
-                    float delval = delta;
+                    this.accumtime += passedtime;
 
-                    delval /= Time.timeScale;
-                    this.accumtime += delval ;
-                    this.FpsUpdateTimeleft -= delval;
+                    this.FpsUpdateTimeleft -= passedtime;
                     this.FpsRenderCount++;
 
                     if(FpsUpdateTimeleft.FloatLessEqual(0f))
@@ -282,7 +276,6 @@ namespace KFrameWork
 
         private void _LogicFrameUpdate(int value)
         {
-
             this.LogicFrameCount++;   
         }
 
@@ -318,10 +311,10 @@ namespace KFrameWork
 
         public void EndSync()
         {
-            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.Update,_RenderFrameUpdate);
-            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.FixedUpdate,_LogicFrameUpdate);
-            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate, _FrameUpdateEnd);
-            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
+            MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.Update,_RenderFrameUpdate);
+            MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.FixedUpdate,_LogicFrameUpdate);
+            MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.LateUpdate, _FrameUpdateEnd);
+            MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.OnApplicationPause,_GamePaused);
         }
 
     }

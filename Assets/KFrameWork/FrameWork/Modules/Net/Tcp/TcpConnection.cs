@@ -86,7 +86,7 @@ namespace KFrameWork
             this.selfport = 0;
             this.selfip = null;
 
-            MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.LateUpdate, UpdateAsync2Sync);
+            MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.LateUpdate, UpdateAsync2Sync);
         }
 
         protected virtual void TimeOutCallBack(int code)
@@ -126,7 +126,6 @@ namespace KFrameWork
                 TcpMessage tcpmsg = msg as TcpMessage;
                 if (tcpmsg != null)
                 {
-
                     byte[] netmsg = tcpmsg.Serialize();
                     NetByteBuffer buffer = NetByteBuffer.CreateWithSize(netmsg.Length+ 10);
 
@@ -135,7 +134,7 @@ namespace KFrameWork
                     if (netmsg != null && netmsg.Length > 0)
                     {
                         if (!msg.IgnoreResp)
-                            sendQueue.Add(new KeyValuePair<float, int>(GameSyncCtr.mIns.FrameWorkTime, tcpmsg.SubCmd));
+                            sendQueue.Add(new KeyValuePair<float, int>(tcpmsg.getSendTime(), tcpmsg.SubCmd));
 
                         //LogMgr.LogFormat("发送消息 :{0}", tcpmsg);
                         msocket.BeginSend(netmsg, 0, netmsg.Length, SocketFlags.None, SendCallback, null);
@@ -197,18 +196,26 @@ namespace KFrameWork
             if (FrameWorkConfig.Open_DEBUG)
                 LogMgr.LogFormat("TCP :{0} Connection Created", connection);
 
-            MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.LateUpdate, UpdateAsync2Sync);
+            MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.LateUpdate, UpdateAsync2Sync);
         }
 
-        public void RemoveTimeOutMsg(int timeoutcmd)
+
+        public void RemoveTimeOutMsg(int timeoutcmd,float time)
         {
             for (int i = 0; i < sendQueue.Count; ++i)
             {
                 KeyValuePair<float, int> kv = sendQueue[i];
                 if (kv.Value == timeoutcmd)
                 {
-                    sendQueue.RemoveAt(i);
-                    break;
+                    if (time == kv.Key)
+                    {
+                        sendQueue.RemoveAt(i);
+                        break;
+                    }
+                    else
+                    {
+                        LogMgr.LogErrorFormat("时间匹配异常 :{0}", kv.Value);
+                    }
                 }
             }
         }
@@ -230,24 +237,13 @@ namespace KFrameWork
                 connectFlag = 0;
             }
 
-            float currenttime = GameSyncCtr.mIns.FrameWorkTime;
-
             while (receiveQueue.Count > 0)
             {
                 TcpRespMessage msg = receiveQueue.Dequeue();
-                MessageArrived(this, msg);
-
-                for (int i = 0; i < sendQueue.Count; ++i)
-                {
-                    KeyValuePair<float, int> kv = sendQueue[i];
-                    if (kv.Value + 1 == msg.SubCmd)
-                    {
-                        sendQueue.RemoveAt(i);
-                        break;
-                    }
-                }
+                this.MessageArrived(this,msg);
             }
 
+            float currenttime = GameSyncCtr.mIns.FrameWorkTime;
             for (int i = sendQueue.Count - 1; i >= 0; i--)
             {
                 KeyValuePair<float, int> kv = sendQueue[i];
@@ -257,7 +253,6 @@ namespace KFrameWork
                     sendQueue.RemoveAt(i);
                 }
             }
-
         }
 
         [FrameWorkDestroy]

@@ -80,17 +80,18 @@ namespace KFrameWork
 #else
             return false;
 #endif
-
         }
 
         protected virtual void Awake()
         {
-            #if TOLUA
-            if (!string.IsNullOrEmpty(respath) && LuaClient.Instance != null)
+            if (!string.IsNullOrEmpty(respath)
+#if TOLUA
+                && LuaClient.Instance != null
+#endif
+                )
             {
                 TryAwake();
             }
-#endif
         }
 
         public void InitLua(string path)

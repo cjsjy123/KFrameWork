@@ -14,11 +14,14 @@ namespace KFrameWork
         public static int isqrt(long x)
         {
 
-            long remainder = x;
+            long remainder = x > 0?  x :-x;
 
             long place = 1 << 30;//4 * 8 - 2
 
-            while (place > remainder) { place /= 4; }
+            while (place > remainder)
+            {
+                place /= 4;
+            }
 
             long root = 0;
             while (place != 0)
@@ -125,14 +128,14 @@ namespace KFrameWork
 
     [Serializable]
     /// <summary>
-    /// 剔除vector2操作中的隐式转换，提倡在kint系列中多用kint，而不是vector，减少vector的使用,减少数据差异的可能性 ，set, up 会自动进行转换，IntX,Y,Z系列则直接覆盖
+    /// 剔除vector2操作中的隐式转换，提倡在kint系列中多用kint，而不是vector，减少vector的使用,减少数据差异的可能性 ，set, up 会自动进行转换，_x,Y,Z系列则直接覆盖
     /// </summary>
     public struct KInt2 : IEquatable<KInt2>
     {
         [SerializeField]
-        private int _x;
+        private long _x;
         [SerializeField]
-        private int _y;
+        private long _y;
 
         public const float scale = 0.001f;
         public const int divscale = 1000;
@@ -154,7 +157,7 @@ namespace KFrameWork
         {
             get
             {
-                return _x;
+                return (int)_x;
             }
             set
             {
@@ -175,7 +178,7 @@ namespace KFrameWork
         {
             get
             {
-                return _y;
+                return (int)_y;
             }
             set
             {
@@ -197,25 +200,22 @@ namespace KFrameWork
         {
             get
             {
-                int xx = _x * _x;
-                int yy = _y * _y;
+
+                long xy = _x * _x /div2scale + _y * _y /div2scale;
+
+                xy = xy < 0 ?-xy:xy;
+
+                int v = KInt.isqrt(xy);
 #if UNITY_EDITOR
-                if (xx + yy >= int.MaxValue || xx + yy  <= int.MinValue)
-                {
-                    LogMgr.LogError("Reach over");
-                }
-#endif
-                int v = KInt.isqrt(xx + yy );
-#if UNITY_EDITOR
-                float kv = Mathf.Sqrt(xx + yy );
+                float kv = Mathf.Sqrt(xy);
                 if (Math.Abs(kv - v) > 1)
                 {
                     LogMgr.LogError("error");
-                    return (int)kv;
+                    v=  (int)kv;
                 }
 #endif
 
-                return v;
+                return v ;
             }
         }
 
@@ -230,8 +230,8 @@ namespace KFrameWork
                 }
 
                 KInt2 normlize = new KInt2();
-                normlize.IntX = _x * divscale / len;
-                normlize.IntY = _y * divscale / len;
+                normlize._x = _x  / len;
+                normlize._y = _y  / len;
 
                 return normlize;
             }
@@ -252,15 +252,10 @@ namespace KFrameWork
         {
             get
             {
-                int xx = _x * _x / (div2scale);
-                int yy = _y * _y / (div2scale);
-#if UNITY_EDITOR
-                if (xx + yy >= int.MaxValue || xx + yy <= int.MinValue)
-                {
-                    LogMgr.LogError("Reach over");
-                }
-#endif
-                return xx + yy;
+                long xx = _x * _x / (div2scale);
+                long yy = _y * _y / (div2scale);
+
+                return (int)(xx + yy);
             }
         }
 
@@ -373,16 +368,16 @@ namespace KFrameWork
         public static KInt2 Lerp(KInt2 a, KInt2 b, float f)
         {
             KInt2 data = new KInt2();
-            data.IntX = (int)(a._x * (1f - f) + (b._x * f));
-            data.IntY = (int)(a._y * (1f - f) + (b._y * f));
+            data._x = (long)(a._x * (1f - f) + (b._x * f));
+            data._y = (long)(a._y * (1f - f) + (b._y * f));
             return data;
         }
 
         public static KInt2 Lerp(KInt2 a, KInt2 b, int percent, int max)
         {
             KInt2 data = new KInt2();
-            data.IntX = (a._x * (max - percent) / max + (b._x * percent) / max);
-            data.IntY = (a._y * (max - percent) / max + (b._y * percent) / max);
+            data._x = (a._x * (max - percent) / max + (b._x * percent) / max);
+            data._y = (a._y * (max - percent) / max + (b._y * percent) / max);
 
             return data;
         }
@@ -400,7 +395,7 @@ namespace KFrameWork
 
         public override int GetHashCode()
         {
-            return this._x * 73856093 ^ this._y * 19349663 ;
+            return base.GetHashCode() ;
         }
 
         public bool Equals(KInt2 other)
@@ -428,8 +423,8 @@ namespace KFrameWork
         public static KInt2 operator -(KInt2 vector)
         {
             KInt2 ki2  =new KInt2();
-            ki2.IntX = -vector.IntX;
-            ki2.IntY = -vector.IntY;
+            ki2._x = -vector._x;
+            ki2._y = -vector._y;
             return ki2;
         }
 
@@ -437,8 +432,8 @@ namespace KFrameWork
         public static KInt2 operator +(KInt2 left, KInt2 right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x + right._x;
-            value.IntY = left._y + right._y;
+            value._x = left._x + right._x;
+            value._y = left._y + right._y;
             return value;
         }
 
@@ -446,8 +441,8 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x + right.x * divscale);
-            value.IntY = (int)(left._y + right.y * divscale);
+            value._x = (long)(left._x + right.x * divscale);
+            value._y = (long)(left._y + right.y * divscale);
             return value;
         }
 
@@ -455,24 +450,24 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x + right.x * divscale);
-            value.IntY = (int)(left._y + right.y * divscale);
+            value._x = (long)(left._x + right.x * divscale);
+            value._y = (long)(left._y + right.y * divscale);
             return value;
         }
 
         public static KInt2 operator +(KInt2 left, int right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x + right * divscale;
-            value.IntY = left._y + right * divscale;
+            value._x = left._x + right * divscale;
+            value._y = left._y + right * divscale;
             return value;
         }
 
         public static KInt2 operator +(KInt2 left, short right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x + right * divscale;
-            value.IntY = left._y + right * divscale;
+            value._x = left._x + right * divscale;
+            value._y = left._y + right * divscale;
             return value;
         }
 
@@ -480,24 +475,24 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x + r;
-            value.IntY = left._y + r;
+            value._x = left._x + r;
+            value._y = left._y + r;
             return value;
         }
 
         public static KInt2 operator +(int right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x + right * divscale;
-            value.IntY = left._y + right * divscale;
+            value._x = left._x + right * divscale;
+            value._y = left._y + right * divscale;
             return value;
         }
 
         public static KInt2 operator +(short right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x + right * divscale;
-            value.IntY = left._y + right * divscale;
+            value._x = left._x + right * divscale;
+            value._y = left._y + right * divscale;
             return value;
         }
 
@@ -505,8 +500,8 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x + r;
-            value.IntY = left._y + r;
+            value._x = left._x + r;
+            value._y = left._y + r;
             return value;
         }
 
@@ -516,8 +511,8 @@ namespace KFrameWork
         public static KInt2 operator -(KInt2 left, KInt2 right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x - right._x;
-            value.IntY = left._y - right._y;
+            value._x = left._x - right._x;
+            value._y = left._y - right._y;
             return value;
         }
 
@@ -525,8 +520,8 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x - right.x * divscale);
-            value.IntY = (int)(left._y - right.y * divscale);
+            value._x = (long)(left._x - right.x * divscale);
+            value._y = (long)(left._y - right.y * divscale);
             return value;
         }
 
@@ -534,8 +529,8 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left.x * divscale - right._x);
-            value.IntY = (int)(left.y * divscale - right._y);
+            value._x = (long)(left.x * divscale - right._x);
+            value._y = (long)(left.y * divscale - right._y);
             return value;
         }
 
@@ -543,8 +538,8 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
             return value;
         }
 
@@ -552,8 +547,8 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
             return value;
         }
 
@@ -561,8 +556,8 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
             return value;
         }
 
@@ -570,8 +565,8 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
             return value;
         }
 
@@ -579,8 +574,8 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
             return value;
         }
 
@@ -588,8 +583,8 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt2 value = new KInt2();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
             return value;
         }
         #endregion
@@ -600,8 +595,8 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = left._x * right._x / divscale;
-            value.IntY = left._y * right._y / divscale;
+            value._x = left._x * right._x / divscale;
+            value._y = left._y * right._y / divscale;
             return value;
         }
 
@@ -609,8 +604,8 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x * right.x);
-            value.IntY = (int)(left._y * right.y);
+            value._x = (int)(left._x * right.x);
+            value._y = (int)(left._y * right.y);
 
             return value;
         }
@@ -619,56 +614,56 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left.x * right._x);
-            value.IntY = (int)(left.y * right._y);
+            value._x = (long)(left.x * right._x);
+            value._y = (long)(left.y * right._y);
             return value;
         }
 
         public static KInt2 operator *(KInt2 left, int right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
             return value;
         }
 
         public static KInt2 operator *(KInt2 left, short right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
             return value;
         }
 
         public static KInt2 operator *(KInt2 left, float right)
         {
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x * right);
-            value.IntY = (int)(left._y * right);
+            value._x = (long)(left._x * right);
+            value._y = (long)(left._y * right);
             return value;
         }
 
         public static KInt2 operator *(int right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
             return value;
         }
 
         public static KInt2 operator *(short right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
             return value;
         }
 
         public static KInt2 operator *(float right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x * right);
-            value.IntY = (int)(left._y * right);
+            value._x = (long)(left._x * right);
+            value._y = (long)(left._y * right);
             return value;
         }
 
@@ -678,8 +673,8 @@ namespace KFrameWork
         public static KInt2 operator /(KInt2 left, KInt2 right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x * divscale / right._x;
-            value.IntY = left._y * divscale / right._y;
+            value._x = left._x * divscale / right._x;
+            value._y = left._y * divscale / right._y;
             return value;
         }
 
@@ -687,8 +682,8 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x / right.x);
-            value.IntY = (int)(left._y / right.y);
+            value._x = (long)(left._x / right.x);
+            value._y = (long)(left._y / right.y);
             return value;
         }
 
@@ -696,56 +691,56 @@ namespace KFrameWork
         {
             //keep one scale
             KInt2 value = new KInt2();
-            value.IntX = (int)(left.x * divscale / right._x);
-            value.IntY = (int)(left.y * divscale / right._y);
+            value._x = (long)(left.x * divscale / right._x);
+            value._y = (long)(left.y * divscale / right._y);
             return value;
         }
 
         public static KInt2 operator /(KInt2 left, int right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
             return value;
         }
 
         public static KInt2 operator /(KInt2 left, short right)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
             return value;
         }
 
         public static KInt2 operator /(KInt2 left, float right)
         {
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x / right);
-            value.IntY = (int)(left._y / right);
+            value._x = (long)(left._x / right);
+            value._y = (long)(left._y / right);
             return value;
         }
 
         public static KInt2 operator /(int right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
             return value;
         }
 
         public static KInt2 operator /(short right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
             return value;
         }
 
         public static KInt2 operator /(float right, KInt2 left)
         {
             KInt2 value = new KInt2();
-            value.IntX = (int)(left._x / right);
-            value.IntY = (int)(left._y / right);
+            value._x = (long)(left._x / right);
+            value._y = (long)(left._y / right);
             return value;
         }
 
@@ -765,16 +760,16 @@ namespace KFrameWork
 
     [Serializable]
     /// <summary>
-    /// 剔除vector3操作中的隐式转换，提倡在kint系列中多用kint，而不是vector，减少vector的使用,减少数据差异的可能性 ，set, up 会自动进行转换，IntX,Y,Z系列则直接覆盖
+    /// 剔除vector3操作中的隐式转换，提倡在kint系列中多用kint，而不是vector，减少vector的使用,减少数据差异的可能性 ，set, up 会自动进行转换，_x,Y,Z系列则直接覆盖
     /// </summary>
     public struct KInt3:IEquatable<KInt3>
     {
         [SerializeField]
-        private int _x;
+        private long _x;
         [SerializeField]
-        private int _y;
+        private long _y;
         [SerializeField]
-        private int _z;
+        private long _z;
 
         public const float scale = 0.001f;
         public const int divscale = 1000;
@@ -799,7 +794,7 @@ namespace KFrameWork
         {
             get
             {
-                return _x;
+                return (int)_x;
             }
             set
             {
@@ -820,7 +815,7 @@ namespace KFrameWork
         {
             get
             {
-                return _y;
+                return (int)_y;
             }
             set
             {
@@ -840,7 +835,7 @@ namespace KFrameWork
         {
             get
             {
-                return _z;
+                return (int)_z;
             }
             set
             {
@@ -863,26 +858,20 @@ namespace KFrameWork
         {
             get
             {
-                int xx = _x * _x;
-                int yy = _y * _y;
-                int zz = _z * _z;
+                long xyz = _x  * _x / div2scale + _y  * _y / div2scale + _z * _z / div2scale;
+
+                xyz = xyz < 0? -xyz: xyz;
+                int v = KInt.isqrt(xyz);
 #if UNITY_EDITOR
-                if (xx + yy + zz >= int.MaxValue || xx+ yy + zz<= int.MinValue)
-                {
-                    LogMgr.LogError("Reach over");
-                }
-#endif
-                int v = KInt.isqrt(xx + yy + zz);
-#if UNITY_EDITOR
-                float kv = Mathf.Sqrt(xx+yy+zz);
+                float kv = Mathf.Sqrt(xyz);
                 if (Math.Abs(kv - v) > 1)
                 {
                     LogMgr.LogError("error");
-                    return (int)kv;
+                    v = (int)kv;
                 }
 #endif
 
-                return v;
+                return v ;
             }
         }
 
@@ -896,9 +885,9 @@ namespace KFrameWork
                 }
 
                 KInt3 normlize = new KInt3();
-                normlize.IntX = _x * divscale / len;
-                normlize.IntY = _y * divscale / len;
-                normlize.IntZ = _z * divscale / len;
+                normlize._x = _x  / len;
+                normlize._y = _y  / len;
+                normlize._z = _z  / len;
 
                 return normlize; 
             }
@@ -939,16 +928,11 @@ namespace KFrameWork
         {
             get
             {
-                int xx = _x * _x /(div2scale);
-                int yy = _y * _y / (div2scale);
-                int zz = _z * _z / (div2scale);
-#if UNITY_EDITOR
-                if (xx + yy + zz >= int.MaxValue || xx + yy + zz <= int.MinValue)
-                {
-                    LogMgr.LogError("Reach over");
-                }
-#endif
-                return xx + yy + zz;
+                long xx = _x * _x /(div2scale);
+                long yy = _y * _y / (div2scale);
+                long zz = _z * _z / (div2scale);
+
+                return (int)(xx + yy + zz);
             }
         }
 
@@ -1106,9 +1090,9 @@ namespace KFrameWork
         public static KInt3 Lerp(KInt3 a, KInt3 b, float f)
         {
             KInt3 data = new KInt3();
-            data.IntX = (int)(a._x * (1f - f) + (b._x * f));
-            data.IntY = (int)(a._y * (1f - f) + (b._y * f));
-            data.IntZ = (int)(a._z * (1f - f) + (b._z * f));
+            data._x = (long)(a._x * (1f - f) + (b._x * f));
+            data._y = (long)(a._y * (1f - f) + (b._y * f));
+            data._z = (long)(a._z * (1f - f) + (b._z * f));
 
             return data;
         }
@@ -1116,9 +1100,9 @@ namespace KFrameWork
         public static KInt3 Lerp(KInt3 a, KInt3 b, int percent,int max)
         {
             KInt3 data = new KInt3();
-            data.IntX = (a._x * (max - percent) /max +  (b._x * percent) / max);
-            data.IntY = (a._y * (max - percent) / max + (b._y * percent) / max);
-            data.IntZ = (a._z * (max - percent) / max + (b._z * percent) / max);
+            data._x = (a._x * (max - percent) /max +  (b._x * percent) / max);
+            data._y = (a._y * (max - percent) / max + (b._y * percent) / max);
+            data._z = (a._z * (max - percent) / max + (b._z * percent) / max);
 
             return data;
         }
@@ -1136,7 +1120,7 @@ namespace KFrameWork
 
         public override int GetHashCode()
         {
-            return this._x * 73856093 ^ this._y * 19349663 ^ this._z * 83492791;
+            return base.GetHashCode();
         }
 
         public bool Equals(KInt3 other)
@@ -1166,9 +1150,9 @@ namespace KFrameWork
         public static KInt3 operator -(KInt3 vector)
         {
             KInt3 ki3 = new KInt3();
-            ki3.IntX = -vector.IntX;
-            ki3.IntY = -vector.IntY;
-            ki3.IntZ = -vector.IntZ;
+            ki3._x = -vector._x;
+            ki3._y = -vector._y;
+            ki3._z = -vector._z;
             return ki3;
         }
 
@@ -1176,9 +1160,9 @@ namespace KFrameWork
         public static KInt3 operator +(KInt3 left, KInt3 right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x + right._x;
-            value.IntY = left._y + right._y;
-            value.IntZ = left._z + right._z;
+            value._x = left._x + right._x;
+            value._y = left._y + right._y;
+            value._z = left._z + right._z;
             return value;
         }
 
@@ -1186,9 +1170,9 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = (int)(left._x + right.x * divscale);
-            value.IntY = (int)(left._y + right.y * divscale);
-            value.IntZ = (int)(left._z + right.z * divscale);
+            value._x = (long)(left._x + right.x * divscale);
+            value._y = (long)(left._y + right.y * divscale);
+            value._z = (long)(left._z + right.z * divscale);
             return value;
         }
 
@@ -1196,27 +1180,27 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = (int)(left._x + right.x * divscale);
-            value.IntY = (int)(left._y + right.y * divscale);
-            value.IntZ = (int)(left._z + right.z * divscale);
+            value._x = (long)(left._x + right.x * divscale);
+            value._y = (long)(left._y + right.y * divscale);
+            value._z = (long)(left._z + right.z * divscale);
             return value;
         }
 
         public static KInt3 operator +(KInt3 left, int right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x + right *divscale;
-            value.IntY = left._y + right * divscale;
-            value.IntZ = left._z + right * divscale;
+            value._x = left._x + right *divscale;
+            value._y = left._y + right * divscale;
+            value._z = left._z + right * divscale;
             return value;
         }
 
         public static KInt3 operator +(KInt3 left, short right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x + right * divscale;
-            value.IntY = left._y + right * divscale;
-            value.IntZ = left._z + right * divscale;
+            value._x = left._x + right * divscale;
+            value._y = left._y + right * divscale;
+            value._z = left._z + right * divscale;
             return value;
         }
 
@@ -1224,27 +1208,27 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x + r;
-            value.IntY = left._y + r;
-            value.IntZ = left._z + r;
+            value._x = left._x + r;
+            value._y = left._y + r;
+            value._z = left._z + r;
             return value;
         }
 
         public static KInt3 operator +(int right ,KInt3 left )
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x + right * divscale;
-            value.IntY = left._y + right * divscale;
-            value.IntZ = left._z + right * divscale;
+            value._x = left._x + right * divscale;
+            value._y = left._y + right * divscale;
+            value._z = left._z + right * divscale;
             return value;
         }
 
         public static KInt3 operator +( short right,KInt3 left)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x + right * divscale;
-            value.IntY = left._y + right * divscale;
-            value.IntZ = left._z + right * divscale;
+            value._x = left._x + right * divscale;
+            value._y = left._y + right * divscale;
+            value._z = left._z + right * divscale;
             return value;
         }
 
@@ -1252,9 +1236,9 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x + r;
-            value.IntY = left._y + r;
-            value.IntZ = left._z + r;
+            value._x = left._x + r;
+            value._y = left._y + r;
+            value._z = left._z + r;
             return value;
         }
 
@@ -1264,9 +1248,9 @@ namespace KFrameWork
         public static KInt3 operator -(KInt3 left, KInt3 right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x - right._x;
-            value.IntY = left._y - right._y;
-            value.IntZ = left._z - right._z;
+            value._x = left._x - right._x;
+            value._y = left._y - right._y;
+            value._z = left._z - right._z;
             return value;
         }
 
@@ -1274,9 +1258,9 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = (int)(left._x - right.x * divscale);
-            value.IntY = (int)(left._y - right.y * divscale);
-            value.IntZ = (int)(left._z - right.z * divscale);
+            value._x = (long)(left._x - right.x * divscale);
+            value._y = (long)(left._y - right.y * divscale);
+            value._z = (long)(left._z - right.z * divscale);
             return value;
         }
 
@@ -1284,9 +1268,9 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = (int)(left.x * divscale - right._x );
-            value.IntY = (int)(left.y * divscale - right._y );
-            value.IntZ = (int)(left.z * divscale - right._z );
+            value._x = (long)(left.x * divscale - right._x );
+            value._y = (long)(left.y * divscale - right._y );
+            value._z = (long)(left.z * divscale - right._z );
             return value;
         }
 
@@ -1294,9 +1278,9 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
-            value.IntZ = left._z - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
+            value._z = left._z - r;
             return value;
         }
 
@@ -1304,9 +1288,9 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
-            value.IntZ = left._z - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
+            value._z = left._z - r;
             return value;
         }
 
@@ -1314,9 +1298,9 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
-            value.IntZ = left._z - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
+            value._z = left._z - r;
             return value;
         }
 
@@ -1324,9 +1308,9 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
-            value.IntZ = left._z - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
+            value._z = left._z - r;
             return value;
         }
 
@@ -1334,9 +1318,9 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
-            value.IntZ = left._z - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
+            value._z = left._z - r;
             return value;
         }
 
@@ -1344,9 +1328,9 @@ namespace KFrameWork
         {
             int r = (int)(right * divscale);
             KInt3 value = new KInt3();
-            value.IntX = left._x - r;
-            value.IntY = left._y - r;
-            value.IntZ = left._z - r;
+            value._x = left._x - r;
+            value._y = left._y - r;
+            value._z = left._z - r;
             return value;
         }
         #endregion
@@ -1357,9 +1341,9 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = left._x * right._x / divscale;
-            value.IntY = left._y * right._y / divscale;
-            value.IntZ = left._z * right._z / divscale;
+            value._x = left._x * right._x / divscale;
+            value._y = left._y * right._y / divscale;
+            value._z = left._z * right._z / divscale;
             return value;
         }
 
@@ -1367,9 +1351,9 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX =(int) (left._x * right.x);
-            value.IntY = (int)(left._y * right.y );
-            value.IntZ = (int) (left._z * right.z) ;
+            value._x = (long) (left._x * right.x);
+            value._y = (long)(left._y * right.y );
+            value._z = (long) (left._z * right.z) ;
             return value;
         }
 
@@ -1377,63 +1361,63 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = (int)(left.x * right._x);
-            value.IntY = (int)(left.y * right._y);
-            value.IntZ = (int)(left.z * right._z);
+            value._x = (long)(left.x * right._x);
+            value._y = (long)(left.y * right._y);
+            value._z = (long)(left.z * right._z);
             return value;
         }
 
         public static KInt3 operator *(KInt3 left, int right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
-            value.IntZ = left._z * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
+            value._z = left._z * right;
             return value;
         }
 
         public static KInt3 operator *(KInt3 left, short right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
-            value.IntZ = left._z * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
+            value._z = left._z * right;
             return value;
         }
 
         public static KInt3 operator *(KInt3 left, float right)
         {
             KInt3 value = new KInt3();
-            value.IntX = (int) (left._x * right);
-            value.IntY = (int)(left._y * right);
-            value.IntZ = (int)(left._z * right);
+            value._x = (long) (left._x * right);
+            value._y = (long)(left._y * right);
+            value._z = (long)(left._z * right);
             return value;
         }
 
         public static KInt3 operator *(int right, KInt3 left)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
-            value.IntZ = left._z * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
+            value._z = left._z * right;
             return value;
         }
 
         public static KInt3 operator *( short right, KInt3 left)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x * right;
-            value.IntY = left._y * right;
-            value.IntZ = left._z * right;
+            value._x = left._x * right;
+            value._y = left._y * right;
+            value._z = left._z * right;
             return value;
         }
 
         public static KInt3 operator *( float right, KInt3 left)
         {
             KInt3 value = new KInt3();
-            value.IntX = (int)(left._x * right);
-            value.IntY = (int)(left._y * right);
-            value.IntZ = (int)(left._z * right);
+            value._x = (long)(left._x * right);
+            value._y = (long)(left._y * right);
+            value._z = (long)(left._z * right);
             return value;
         }
 
@@ -1443,9 +1427,9 @@ namespace KFrameWork
         public static KInt3 operator /(KInt3 left, KInt3 right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x * divscale / right._x;
-            value.IntY = left._y * divscale / right._y;
-            value.IntZ = left._z * divscale / right._z;
+            value._x = left._x * divscale / right._x;
+            value._y = left._y * divscale / right._y;
+            value._z = left._z * divscale / right._z;
             return value;
         }
 
@@ -1453,9 +1437,9 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = (int)(left._x / right.x);
-            value.IntY = (int)(left._y / right.y);
-            value.IntZ = (int)(left._z / right.z);
+            value._x = (long)(left._x / right.x);
+            value._y = (long)(left._y / right.y);
+            value._z = (long)(left._z / right.z);
             return value;
         }
 
@@ -1463,63 +1447,63 @@ namespace KFrameWork
         {
             //keep one scale
             KInt3 value = new KInt3();
-            value.IntX = (int)(left.x * divscale / right._x);
-            value.IntY = (int)(left.y * divscale / right._y);
-            value.IntZ = (int)(left.z * divscale / right._z);
+            value._x = (long)(left.x * divscale / right._x);
+            value._y = (long)(left.y * divscale / right._y);
+            value._z = (long)(left.z * divscale / right._z);
             return value;
         }
 
         public static KInt3 operator /(KInt3 left, int right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
-            value.IntZ = left._z / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
+            value._z = left._z / right;
             return value;
         }
 
         public static KInt3 operator /(KInt3 left, short right)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
-            value.IntZ = left._z / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
+            value._z = left._z / right;
             return value;
         }
 
         public static KInt3 operator /(KInt3 left, float right)
         {
             KInt3 value = new KInt3();
-            value.IntX = (int)(left._x / right);
-            value.IntY = (int)(left._y / right);
-            value.IntZ = (int)(left._z / right);
+            value._x = (long)(left._x / right);
+            value._y = (long)(left._y / right);
+            value._z = (long)(left._z / right);
             return value;
         }
 
         public static KInt3 operator /( int right, KInt3 left)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
-            value.IntZ = left._z / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
+            value._z = left._z / right;
             return value;
         }
 
         public static KInt3 operator /( short right, KInt3 left)
         {
             KInt3 value = new KInt3();
-            value.IntX = left._x / right;
-            value.IntY = left._y / right;
-            value.IntZ = left._z / right;
+            value._x = left._x / right;
+            value._y = left._y / right;
+            value._z = left._z / right;
             return value;
         }
 
         public static KInt3 operator /( float right, KInt3 left)
         {
             KInt3 value = new KInt3();
-            value.IntX = (int)(left._x / right);
-            value.IntY = (int)(left._y / right);
-            value.IntZ = (int)(left._z / right);
+            value._x = (long)(left._x / right);
+            value._y = (long)(left._y / right);
+            value._z = (long)(left._z / right);
             return value;
         }
 

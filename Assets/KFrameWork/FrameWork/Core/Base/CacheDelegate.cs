@@ -20,28 +20,28 @@ namespace KFrameWork
         /// </summary>
         private List<int> caches ;
 
-        private Dictionary<int,List<Object>> listDic;
+        private Dictionary<int,List<Object>> callbackListMap;
 
-        private Dictionary<int ,Action<Object,int>> dic;
+        private Dictionary<int ,Action<Object,int>> callbackMap;
 
         private Queue<KeyValuePair<int, Object>> loadQueue ;
 
         public InstanceCacheDelegate()
         {
             this.caches = new List<int>(8);
-            this.dic = new Dictionary<int, Action<object, int>>(8);
-            this.listDic = new Dictionary<int, List<object>>(8);
+            this.callbackMap = new Dictionary<int, Action<object, int>>(8);
+            this.callbackListMap = new Dictionary<int, List<object>>(8);
             this.loadQueue = new Queue<KeyValuePair<int, Object>>();
         }
 
         public void Dump(MainLoopEvent mainloopevent)
         {
 #if UNITY_EDITOR
-            var en = this.dic.GetEnumerator();
+            var en = this.callbackMap.GetEnumerator();
             while (en.MoveNext())
             {
                 Action<object, int> act = en.Current.Value ;
-                if (act != null && listDic[en.Current.Key].Count >0)
+                if (act != null && callbackListMap[en.Current.Key].Count >0)
                 {
                     System.Delegate d = act as System.Delegate;
                     Delegate[] delegates = d.GetInvocationList();
@@ -52,7 +52,7 @@ namespace KFrameWork
                 }
             }
 
-            var listen = this.listDic.GetEnumerator();
+            var listen = this.callbackListMap.GetEnumerator();
             while (listen.MoveNext())
             {
                 List<object> list = listen.Current.Value ;
@@ -87,9 +87,9 @@ namespace KFrameWork
 
         public List<Object> Get(int hashcode)
         {
-            if(listDic.ContainsKey(hashcode))//logn
+            if(callbackListMap.ContainsKey(hashcode))//logn
             {
-                return listDic[hashcode];
+                return callbackListMap[hashcode];
             }
             return null;
         }
@@ -105,25 +105,29 @@ namespace KFrameWork
         {
             for(int i=0;i < this.caches.Count;++i)
             {
-                int id = this.caches[i];
-                if(id !=0 && this.listDic.ContainsKey(id)  )
+                int idx = this.caches[i];
+                if(idx !=0 && this.callbackListMap.ContainsKey(idx)  )
                 {
-                    if(!this.dic.ContainsKey(id))
+                    if(!this.callbackMap.ContainsKey(idx))
                     {
                         LogMgr.Log("缓存中不存在此回调");
                     }
                     else
                     {
-                        List<Object> list =listDic[id];
-                        for(int j= list.Count -1 ; j>=0;--j)
+                        List<Object> elements =ListPool.TrySpawn<List<Object>>();
+                        elements.AddRange(callbackListMap[idx]);
+     
+                        for(int j= elements.Count -1 ; j>=0;--j)
                         {
-                            dic[id](list[j], arg);
+                            callbackMap[idx](elements[j], arg);
                         }
+
+                        ListPool.TryDespawn(elements);
 
                         while (loadQueue.Count > 0)
                         {
                             var cell = loadQueue.Dequeue();
-                            listDic[cell.Key].Insert(0,cell.Value);
+                            callbackListMap[cell.Key].Insert(0,cell.Value);
                         }
                     }
                 }
@@ -132,23 +136,23 @@ namespace KFrameWork
 
         private void TryPushtoDic(int id,Action<Object,int> t)
         {
-            if(!this.dic.ContainsKey(id))
+            if(!this.callbackMap.ContainsKey(id))
             {
-                this.dic.Add(id,t);
+                this.callbackMap.Add(id,t);
             }
         }
 
         private void TryPushtoListDic(int id,Object t)
         {
-            if(!this.listDic.ContainsKey(id))
+            if(!this.callbackListMap.ContainsKey(id))
             {
                 List<Object> list = new List<object>(8);
-                this.listDic.Add(id,list);
+                this.callbackListMap.Add(id,list);
                 loadQueue.Enqueue(new KeyValuePair<int, object>(id, t));
             }
             else
             {
-                List<Object> list =this.listDic[id];
+                List<Object> list =this.callbackListMap[id];
                 if(!list.Contains(t))
                 {
                     loadQueue.Enqueue(new KeyValuePair<int, object>(id, t));
@@ -165,9 +169,9 @@ namespace KFrameWork
                 this.caches.Add(hashcode);
 
                 List<Object> list = new List<object>(8);
-                this.listDic.Add(hashcode,list);
+                this.callbackListMap.Add(hashcode,list);
 
-                this.dic[hashcode] =t;
+                this.callbackMap[hashcode] =t;
                 //this.TryPushtoDic(hashcode,t);
             }
         }
@@ -186,7 +190,8 @@ namespace KFrameWork
         public bool Remove(int hashcode)
         {
             List<Object> list = this.Get(hashcode);
-            list.Clear();
+            if(list != null)
+                list.Clear();
             return false;
         }
 
@@ -208,20 +213,20 @@ namespace KFrameWork
         /// <summary>
         /// key = methodid value is delegate
         /// </summary>
-        private List<KeyValuePair< int, Action<int>>> cachesDic = new List<KeyValuePair< int, Action<int>>>();
+        private List<KeyValuePair< int, Action<int>>> cachesMap = new List<KeyValuePair< int, Action<int>>>();
 
         public int Count
         {
             get
             {
-               return this.cachesDic.Count;
+               return this.cachesMap.Count;
             }
         }
 
         public void Dump(MainLoopEvent mainloopevent)
         {
 #if UNITY_EDITOR
-            var en = this.cachesDic.GetEnumerator();
+            var en = this.cachesMap.GetEnumerator();
             while (en.MoveNext())
             {
                 Action<int> act = en.Current.Value;
@@ -240,9 +245,9 @@ namespace KFrameWork
 
         public bool Contains(Action<int> Action)
         {
-            for(int i =0; i < this.cachesDic.Count;++i)
+            for(int i =0; i < this.cachesMap.Count;++i)
             {
-                KeyValuePair<int,Action<int>> kv = this.cachesDic[i];
+                KeyValuePair<int,Action<int>> kv = this.cachesMap[i];
                 if(kv.Value == Action)
                     return true;
             }
@@ -254,32 +259,30 @@ namespace KFrameWork
             if (!Contains(act))
             {
                 bool insert =false;
-                for(int i =0; i < this.cachesDic.Count;++i)
+                for(int i =0; i < this.cachesMap.Count;++i)
                 {
-                    KeyValuePair<int,Action<int>> kv = this.cachesDic[i];
+                    KeyValuePair<int,Action<int>> kv = this.cachesMap[i];
      
                     if(kv.Key > priority)
                     {
-                        this.cachesDic.Insert(i,new KeyValuePair<int, Action<int>>(priority,act));
+                        this.cachesMap.Insert(i,new KeyValuePair<int, Action<int>>(priority,act));
                         insert =true;
                         break;
                     }
                 }
 
                 if(!insert)
-                    this.cachesDic.Add(new KeyValuePair<int, Action<int>>(priority,act));
+                    this.cachesMap.Add(new KeyValuePair<int, Action<int>>(priority,act));
             }
         }
 
         public void Invoke(int value)
         {
-            if (this.cachesDic.Count > 0)
+            if (this.cachesMap.Count > 0)
             {
-                for (int i = 0; i < this.cachesDic.Count; ++i)
+                for (int i = 0; i < this.cachesMap.Count; ++i)
                 {
-                    KeyValuePair<int,Action<int>> kv = this.cachesDic[i];
-  
-                    kv.Value(value);
+                    cachesMap[i].Value(value);
                 }
             }
         }
@@ -287,12 +290,12 @@ namespace KFrameWork
 
         public void Rmove(Action<int> act)
         {
-            for(int i =0; i < this.cachesDic.Count;++i)
+            for(int i =0; i < this.cachesMap.Count;++i)
             {
-                KeyValuePair<int,Action<int>> kv = this.cachesDic[i];
+                KeyValuePair<int,Action<int>> kv = this.cachesMap[i];
                 if(kv.Value == act)
                 {
-                    this.cachesDic.RemoveAt(i);
+                    this.cachesMap.RemoveAt(i);
                     return;
                 }
             }

@@ -70,3 +70,6 @@ https://github.com/topameng/tolua<br>
 
 0.0.01bVersion ----- 2016.11.3：<br>
 增加资源导入监听接口，并添加了部分例子
+
+0.0.100a -------------- 2018.1.18
+添加可视编辑器，状态机，fix some bugs

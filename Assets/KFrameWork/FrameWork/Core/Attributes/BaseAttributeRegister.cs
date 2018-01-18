@@ -18,22 +18,18 @@ namespace KFrameWork
         /// </summary>
         public delegate void GameAttriHandler(object o, object target);
 
-        #region 容器
-
-        private Dictionary<int, Queue<KeyValuePair<Type, GameAttriHandler>>> _attributeHandlers = new Dictionary<int, Queue<KeyValuePair<Type, GameAttriHandler>>>();
-
-        #endregion
+        private Dictionary<int, List<KeyValuePair<Type, GameAttriHandler>>> _attributeHandlers = new Dictionary<int, List<KeyValuePair<Type, GameAttriHandler>>>();
 
         public void RegisterHandler(RegisterType tp, Type target, GameAttriHandler handler)
         {
             if (!this._attributeHandlers.ContainsKey((int)tp))
             {
-                this._attributeHandlers.Add((int)tp, new Queue<KeyValuePair<Type, GameAttriHandler>>());
+                this._attributeHandlers.Add((int)tp, new List<KeyValuePair<Type, GameAttriHandler>>());
             }
 
             var queue = this._attributeHandlers[(int)tp];
 
-            queue.Enqueue(new KeyValuePair<Type, GameAttriHandler>(target, handler));
+            queue.Add(new KeyValuePair<Type, GameAttriHandler>(target, handler));
         }
 
         private void SortTypes(Type[] types)
@@ -57,9 +53,8 @@ namespace KFrameWork
             return leftOrder - rightOrder;
         }
 
-        private void InitAttributes(Type passtp)
+        private void InitAttributes(Assembly asm)
         {
-            Assembly asm = passtp.Assembly;
             Type[] types = asm.GetTypes();
 
             SortTypes(types);
@@ -71,72 +66,75 @@ namespace KFrameWork
                 RegisterType registerTp = (RegisterType)i;
                 if(this._attributeHandlers.ContainsKey(i))
                 {
-                    var queue = this._attributeHandlers[i];
-                    while (queue.Count > 0)
+                    var list = this._attributeHandlers[i];
+                    for(int j = 0; j < list.Count;++j)
                     {
-                        KeyValuePair<Type, GameAttriHandler> tupledata = queue.Dequeue();
                         for (int m = 0; m < types.Length; ++m)
                         {
-                            Type tp = types[m];
-                            if (registerTp == RegisterType.ClassAttr)
-                            {
-                                object[] att = tp.GetCustomAttributes(tupledata.Key, false);
-
-                                if (att != null && att.Length == 1)
-                                {
-                                    tupledata.Value(att[0], tp);
-                                }
-                            }
-                            else if (registerTp == RegisterType.MethodAtt)
-                            {
-                                MethodInfo[] methods = tp.GetMethods( BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
-
-                                for (int j = 0; j < methods.Length; ++j)
-                                {
-                                    object[] att = methods[j].GetCustomAttributes(tupledata.Key, false);
-                                    if (att != null && att.Length > 0 && methods[j].IsStatic)
-                                    {
-                                        tupledata.Value(att[0], methods[j]);
-                                    }
-                                    else if (att != null && att.Length > 0 && !methods[j].IsStatic)
-                                    {
-                                        LogMgr.LogError("虽然注册了，但是不是静态函数 =>" + methods[j].Name);
-                                    }
-                                }
-                            }
-                            else if (registerTp == RegisterType.InstacenMethodAttr)
-                            {
-                                MethodInfo[] methods = tp.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-
-                                for (int j = 0; j < methods.Length; ++j)
-                                {
-                                    object[] att = methods[j].GetCustomAttributes(tupledata.Key, false);
-                                    if (att != null && att.Length > 0)
-                                    {
-                                        tupledata.Value(att[0], methods[j]);
-                                    }
-                                }
-                            }
-                            else if (registerTp == RegisterType.Register)
-                            {
-                                MethodInfo[] methods = tp.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
-
-                                for (int j = 0; j < methods.Length; ++j)
-                                {
-                                    object[] att = methods[j].GetCustomAttributes(tupledata.Key, false);
-                                    if (att != null && att.Length > 0)
-                                    {
-                                        tupledata.Value(att[0], new KeyValuePair<BaseAttributeRegister,MethodInfo>(this, methods[j]));
-                                    }
-                                }
-                            }
+                            ReadAttribute(types[m], list[j], registerTp);
                         }
                     }
-
                 }
             }
 
         }
+
+        private void ReadAttribute(Type targetType, KeyValuePair<Type, GameAttriHandler> attributedata, RegisterType registerTp)
+        {
+            if (registerTp == RegisterType.ClassAttr)
+            {
+                object[] att = targetType.GetCustomAttributes(attributedata.Key, false);
+
+                if (att != null && att.Length == 1)
+                {
+                    attributedata.Value(att[0], targetType);
+                }
+            }
+            else if (registerTp == RegisterType.MethodAtt)
+            {
+                MethodInfo[] methods = targetType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
+
+                for (int j = 0; j < methods.Length; ++j)
+                {
+                    object[] att = methods[j].GetCustomAttributes(attributedata.Key, false);
+                    if (att != null && att.Length > 0 && methods[j].IsStatic)
+                    {
+                        attributedata.Value(att[0], methods[j]);
+                    }
+                    else if (att != null && att.Length > 0 && !methods[j].IsStatic)
+                    {
+                        LogMgr.LogError("虽然注册了，但是不是静态函数 =>" + methods[j].Name);
+                    }
+                }
+            }
+            else if (registerTp == RegisterType.InstacenMethodAttr)
+            {
+                MethodInfo[] methods = targetType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+                for (int j = 0; j < methods.Length; ++j)
+                {
+                    object[] att = methods[j].GetCustomAttributes(attributedata.Key, false);
+                    if (att != null && att.Length > 0)
+                    {
+                        attributedata.Value(att[0], methods[j]);
+                    }
+                }
+            }
+            else if (registerTp == RegisterType.Register)
+            {
+                MethodInfo[] methods = targetType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
+
+                for (int j = 0; j < methods.Length; ++j)
+                {
+                    object[] att = methods[j].GetCustomAttributes(attributedata.Key, false);
+                    if (att != null && att.Length > 0)
+                    {
+                        attributedata.Value(att[0], new KeyValuePair<BaseAttributeRegister, MethodInfo>(this, methods[j]));
+                    }
+                }
+            }
+        }
+
 #if UNITY_EDITOR
         private RegisterCachedTypes InitAttributesToCache(Type passtp,string path)
         {
@@ -144,19 +142,7 @@ namespace KFrameWork
             if (sparray.Length == 1)
                 path += ".asset";
 
-            RegisterCachedTypes cachedTypes = Resources.Load<RegisterCachedTypes>(sparray[0]);
-            bool first = false;
-            if (cachedTypes == null)
-            {
-                first = true;
-                cachedTypes = ScriptableObject.CreateInstance<RegisterCachedTypes>(); ;
-            }
-            else
-            {
-                cachedTypes.Clear();
-            }
-
-            cachedTypes.CachedTime = DateTime.Now.ToString();
+            RegisterCachedTypes cachedTypes = ScriptableObject.CreateInstance<RegisterCachedTypes>(); 
 
             Assembly asm = passtp.Assembly;
             Type[] types = asm.GetTypes();
@@ -170,70 +156,59 @@ namespace KFrameWork
                 RegisterType registerTp = (RegisterType)i;
                 if (this._attributeHandlers.ContainsKey(i))
                 {
-                    var queue = this._attributeHandlers[i];
-                    while (queue.Count > 0)
+                    var list = this._attributeHandlers[i];
+                    for (int j = 0; j < list.Count; ++j)
                     {
-                        KeyValuePair<Type, GameAttriHandler> tupledata = queue.Dequeue();
                         for (int m = 0; m < types.Length; ++m)
                         {
-                            Type tp = types[m];
-
-                            if (registerTp == RegisterType.ClassAttr )
-                            {
-                                object[] att = tp.GetCustomAttributes(tupledata.Key, false);
-
-                                if (att != null && att.Length == 1)
-                                {
-                                    cachedTypes.LoadTypes(registerTp, tp, tupledata.Key);
-                                }
-                            }
-                            else if (registerTp == RegisterType.MethodAtt || registerTp == RegisterType.Register)
-                            {
-                                MethodInfo[] methods = tp.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                                List<MethodInfo> methodList = new List<MethodInfo>();
-                                for (int j = 0; j < methods.Length; ++j)
-                                {
-                                    object[] att = methods[j].GetCustomAttributes(tupledata.Key, false);
-                                    if (att != null && att.Length > 0 && methods[j].IsStatic)
-                                    {
-                                        methodList.Add(methods[j]);
-                                        if (registerTp == RegisterType.Register)
-                                        {
-                                            methods[j].Invoke(null,new object[] { this});
-                                        }
-                                    }
-                                    else if (att != null && att.Length > 0 && !methods[j].IsStatic)
-                                    {
-                                        LogMgr.LogError("虽然注册了，但是不是静态函数 =>" + methods[j].Name);
-                                    }
-                                }
-
-                                if (methodList.Count > 0)
-                                {
-                                    cachedTypes.LoadTypes(registerTp, tp, tupledata.Key, methodList);
-
-                                }
-                            }
+                            ReadType(cachedTypes,types[m], list[j], registerTp);
                         }
                     }
                 }
             }
 
-
-            //
-            if (first)
-            {
-                AssetDatabase.CreateAsset(cachedTypes, "Assets/Resources/" + path);
-            }
-            else
-            {
-                EditorUtility.SetDirty(cachedTypes);
-            }
-
+            AssetDatabase.CreateAsset(cachedTypes, "Assets/Resources/" + path);
             AssetDatabase.Refresh();
-
-
             return cachedTypes;
+        }
+
+        private void ReadType(RegisterCachedTypes cachedTypes,Type tp, KeyValuePair<Type, GameAttriHandler> tupledata, RegisterType registerTp)
+        {
+            if (registerTp == RegisterType.ClassAttr)
+            {
+                object[] att = tp.GetCustomAttributes(tupledata.Key, false);
+
+                if (att != null && att.Length == 1)
+                {
+                    cachedTypes.LoadTypes(registerTp, tp, tupledata.Key);
+                }
+            }
+            else if (registerTp == RegisterType.MethodAtt || registerTp == RegisterType.Register)
+            {
+                MethodInfo[] methods = tp.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                List<MethodInfo> methodList = new List<MethodInfo>();
+                for (int j = 0; j < methods.Length; ++j)
+                {
+                    object[] att = methods[j].GetCustomAttributes(tupledata.Key, false);
+                    if (att != null && att.Length > 0 && methods[j].IsStatic)
+                    {
+                        methodList.Add(methods[j]);
+                        if (registerTp == RegisterType.Register)
+                        {
+                            methods[j].Invoke(null, new object[] { this });
+                        }
+                    }
+                    else if (att != null && att.Length > 0 && !methods[j].IsStatic)
+                    {
+                        LogMgr.LogError("虽然注册了，但是不是静态函数 =>" + methods[j].Name);
+                    }
+                }
+
+                if (methodList.Count > 0)
+                {
+                    cachedTypes.LoadTypes(registerTp, tp, tupledata.Key, methodList);
+                }
+            }
         }
 #endif
 
@@ -261,15 +236,15 @@ namespace KFrameWork
                 {
                     if (this._attributeHandlers.ContainsKey(i))
                     {
-                        var queue = this._attributeHandlers[i];
-                        while (queue.Count > 0)
+                        var list = this._attributeHandlers[i];
+                        for (int j = 0; j < list.Count; ++j)
                         {
-                            var queueTuple = queue.Dequeue();
-                            for (int j = 0; j < tuples.TypeList.Count; j++)
+                            KeyValuePair<Type,GameAttriHandler> typedata = list[j];
+                            for (int m = 0; m < tuples.TypeList.Count; m++)
                             {
-                                if (tuples.TypeList[j].attributename.Equals(queueTuple.Key.FullName))
+                                if (tuples.TypeList[m].attributename.Equals(typedata.Key.FullName))
                                 {
-                                    cachedTypes.Analyze(this,i, tuples.TypeList[j], queueTuple.Key, queueTuple.Value);
+                                    cachedTypes.Analyze(this,i, tuples.TypeList[m], typedata.Key, typedata.Value);
                                 }
                             }
                         }
@@ -284,7 +259,12 @@ namespace KFrameWork
 
         protected virtual void Start(Type passtp)
         {
-            this.InitAttributes(passtp);
+            this.InitAttributes(passtp.Assembly);
+        }
+
+        protected virtual void Start(Assembly asm)
+        {
+            this.InitAttributes(asm);
         }
 #if UNITY_EDITOR
         protected virtual RegisterCachedTypes StartToCache(Type passtype,string path)

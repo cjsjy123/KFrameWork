@@ -53,25 +53,23 @@ public class Render2Logic  {
         this.left = 0;
     }
 
-    float getTimeDelta()
-    {
-        if (ignoreScale)
-        {
-            return Time.unscaledDeltaTime;
-        }
-        else
-        {
-            return Time.deltaTime;
-        }
 
+    public void RenderUpdateByFrame()
+    {
+        DeltaFrame = 1;
+        logicValue++;
+        if (eachUpdate != null)
+        {
+            eachUpdate();
+        }
     }
 
     /// <summary>
     /// when render update //call
     /// </summary>
-    public void RenderUpdate()
+    public void RenderUpdate( float deltatime)
     {
-        this.left += getTimeDelta();
+        this.left += ignoreScale ?deltatime :deltatime * Time.timeScale;
         int cnt = 0;
         while (this.left > this.delta)
         {

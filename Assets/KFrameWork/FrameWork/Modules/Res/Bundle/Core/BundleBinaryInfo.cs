@@ -6,9 +6,6 @@ using System.IO;
 using KUtils;
 #if USE_TANGAB
 
-
-
-
 namespace KFrameWork
 {
     public class BundleBinaryInfo : BundleInfoFilter
@@ -64,18 +61,19 @@ namespace KFrameWork
                 {
                     deps[i] = names[sr.ReadInt32()];
                 }
-                //if (name.Contains("ai_")|| shortFileName.Contains("ai_"))
-                //{
-                //    LogMgr.LogError("--");
-                //}
+
 
                 BundlePkgInfo pkg = new BundlePkgInfo(hash, name, shortFileName, assetpath, BundlePkgInfo.ChooseType(assetpath), deps);
 
+#if UNITY_EDITOR
+
+                TryAdd(assetpath,pkg);
+                TryAdd(shortFileName, pkg);
+                TryAdd(name,pkg);
+
+#else
                 this.caches[shortFileName] = pkg;
                 this.caches[name] = pkg;//hashvalue
-
-#if UNITY_EDITOR
-                this.caches[assetpath] = pkg;
 #endif
 
                 if (BundleConfig.SAFE_MODE)
@@ -91,7 +89,20 @@ namespace KFrameWork
 
             sr.Close();
         }
+#if UNITY_EDITOR
+        void TryAdd(string key, BundlePkgInfo pkg)
+        {
+            if(caches.ContainsKey(key))
+            {
+                LogMgr.LogErrorFormat("{0} will replace {1}", pkg.BundleName,caches[key].BundleName);
+            }
+            else
+            {
+                caches[key] = pkg;
+            }
+        }
 
+#endif
 
         public BundlePkgInfo SeekInfo(string name)
         {

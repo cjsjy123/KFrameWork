@@ -217,13 +217,6 @@ namespace KFrameWork
             this.target = ScriptTarget.Unknown;
         }
 
-        public override void RemovedFromPool()
-        {
-            base.RemovedFromPool();
-            this._Gparams = null;
-            this._RParams = null;
-            this._Initparams = null;
-        }
 
     }
 }

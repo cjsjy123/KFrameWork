@@ -31,10 +31,28 @@ namespace KFrameWork
     [Serializable]
     public class RegisterCachedTypes : ScriptableObject
     {
-        public string CachedTime;
-
         [SerializeField]
         private TypeCachedDictionary types = new TypeCachedDictionary();
+
+        public List<TypeListWrapper> getAlltypeWrappers()
+        {
+            List<TypeListWrapper> TypeList = null;
+            if (types != null)
+            {
+                for (int i =0; i < types.ReadOnlyValues.Count;++i)
+                {
+                    if(TypeList == null )
+                    {
+                        TypeList = types.ReadOnlyValues[i].TypeList;
+                    }
+                    else
+                    {
+                        TypeList.AddRange(types.ReadOnlyValues[i].TypeList);
+                    }
+                }
+            }
+            return TypeList;
+        }
 
         public CachedListStringWrapper getTypes(int registertype)
         {

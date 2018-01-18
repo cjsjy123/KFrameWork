@@ -266,7 +266,7 @@ namespace KFrameWork
                 ResBundleMgr.mIns.Cache.RemoveLoading(pkg.BundleName);
                 if (FrameWorkConfig.Open_DEBUG)
                 {
-                    LogMgr.LogFormat("成功加载了 :{0} => {1} => {2}",this.UID, pkg.BundleName,pkg.AbFileName);
+                    LogMgr.LogFormat("成功加载了 :{0} => {1} => {2} => RefCnt :{3} =>SelfRefCnt:{4}",this.UID, pkg.BundleName,pkg.AbFileName,bundle.InstanceRefCount, bundle.SelfRefCount);
                 }
                 this.RefreshLoaded();
             }
@@ -367,15 +367,6 @@ namespace KFrameWork
             this.LoadedRefs.Clear();
         }
 
-        public override void RemovedFromPool()
-        {
-            base.RemovedFromPool();
-            this.LoadQueue.Clear();
-            this.LoadQueue =null;
-            this.m_task = null;
-            this.LoadedRefs.Clear();
-            this.LoadedRefs = null;
-        }
         /// <summary>
         /// 创建bundleref
         /// </summary>

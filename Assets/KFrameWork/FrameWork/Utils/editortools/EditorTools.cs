@@ -37,19 +37,22 @@ namespace KFrameWork
         {
             try
             {
-                //string s = "{0!b},{ex:ArmorDef,CharaDef,EventDef,GameConstDef,GunsDef,MapDef,OrderDef,ShellDef,SkillAndPerkDef,TankDef}";
-                //Dbg.enabled = false;
                 //属性检查编辑器类
                 EditorAttRegister.Register(this);
-                this.Start(this.GetType());
+
+                var asmes = AppDomain.CurrentDomain.GetAssemblies();
+                for(int i =0; i < asmes.Length;++i)
+                {
+                    var data = asmes[i];
+                    if(data.FullName.StartsWith("Assembly"))
+                    {
+                        this.Start(data);
+                    }
+                }
+
                 this.End();
 
-                //twice检查
-                EditorAttRegister.Register(this);
-                this.Start(typeof(MainLoop));
-                this.End();
-
-                //其他插件
+                ////其他插件
                 SceneListCheck.Generate();
             }
             catch(Exception ex)

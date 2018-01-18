@@ -9,10 +9,11 @@ namespace KFrameWork
     /// <summary>
     /// 资源引用，只负责由此bundle 加载出来的实例对象，tip:因为存在unload false，所以之前存在的对象将不收到此bundle管理，
     /// </summary>
-    public class BundleRef : IBundleRef, IPool
+    public class BundleRef : IBundleRef
     {
+        public const float deltatime = 30f;
 
-        private SharedPtr<KAssetBundle> Res;
+        private KAssetBundle Res;
         /// <summary>
         /// 这里完全依赖mono的gc来做引用检查
         /// </summary>
@@ -65,34 +66,25 @@ namespace KFrameWork
 
         public UnityEngine.Object MainObject { get; private set; }
 
+        private float CreateTime;
+
         private BundleRef()
         {
-
+            this.UpdateTime();
         }
 
-        public static BundleRef  Create(SharedPtr<KAssetBundle> ab,string abname, string loadname,string bundlename)
+        public static BundleRef  Create(KAssetBundle ab,string abname, string loadname,string bundlename)
         {
-            BundleRef bundle = null;
-            if (KObjectPool.mIns != null)
-            {
-                bundle = KObjectPool.mIns.Pop<BundleRef>();
-            }
-
-            if(bundle == null)
-            {
-                bundle = new BundleRef();
-            }
+            BundleRef bundle = new BundleRef();
 
             bundle.Res = ab;
-            bundle.Res.AddRef();
 
             bundle.depends = new List<IBundleRef>();
             bundle.refs = new List<WeakReference>();
 
-            KAssetBundle kab = ab.get();
-            if (kab.isStreamedSceneAssetBundle)
+            if (ab.isStreamedSceneAssetBundle)
             {
-                bundle.LoadName = System.IO.Path.GetFileNameWithoutExtension( kab.GetAllScenePaths()[0]);
+                bundle.LoadName = System.IO.Path.GetFileNameWithoutExtension(ab.GetAllScenePaths()[0]);
             }
             else
                 bundle.LoadName = BundlePathConvert.EditorName2AssetName(loadname);
@@ -101,6 +93,44 @@ namespace KFrameWork
             bundle.filename = abname;
             return bundle;
         }
+
+        void UpdateTime()
+        {
+            CreateTime = GameSyncCtr.mIns.FrameWorkTime;
+        }
+
+        public static bool  operator  == (BundleRef left,BundleRef right)
+        {
+            bool leftempty = left.Res == null || left.Res.isEmpty();
+            bool rightempty = right.Res == null || left.Res.isEmpty();
+            if (leftempty == rightempty)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public static bool operator !=(BundleRef left, BundleRef right)
+        {
+            bool leftempty = left.Res == null || left.Res.isEmpty();
+            bool rightempty = right.Res == null || left.Res.isEmpty();
+            if (leftempty != rightempty)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
 
         public void NeedThis(IBundleRef dep)
         {
@@ -127,21 +157,6 @@ namespace KFrameWork
             }
         }
 
-        public void Lock(LockType tp = LockType.DontDestroy | LockType.OnlyReadNoWrite)
-        {
-            if (this.Res != null)
-            {
-                this.Res.Lock(tp);
-            }
-        }
-
-        public void UnLock(LockType tp = LockType.DontDestroy | LockType.OnlyReadNoWrite)
-        {
-            if (this.Res != null)
-            {
-                this.Res.UnLock(tp);
-            }
-        }
 
         private bool CheckRes()
         {
@@ -168,7 +183,7 @@ namespace KFrameWork
             }
             else
             {
-                return Res.get().AsyncLoad(this.LoadName);
+                return Res.AsyncLoad(this.LoadName);
             }
         }
 
@@ -180,7 +195,7 @@ namespace KFrameWork
                 return false;
             }
 
-            target = Res.get().Load(this.LoadName);
+            target = Res.Load(this.LoadName);
             return true;
         }
 
@@ -192,7 +207,7 @@ namespace KFrameWork
                 return false;
             }
 
-            target = Res.get().Load(abname);
+            target = Res.Load(abname);
             return true;
         }
 
@@ -204,13 +219,13 @@ namespace KFrameWork
                 return false;
             }
 
-            target = Res.get().LoadAll<UnityEngine.Object>();
+            target = Res.LoadAll<UnityEngine.Object>();
             return true;
         }
 
         public string[] GetAllAssetNames()
         {
-            KAssetBundle ab = Res.get();
+            KAssetBundle ab = Res;
             if (ab == null)
             {
                 return null;
@@ -235,7 +250,7 @@ namespace KFrameWork
             {
                 LoadAsset(out prefab);
             }
-            target = this.InstantiateWithBundle(prefab, c);
+            target = InstantiateWithBundle(prefab, c);
             return true;
         }
 
@@ -283,35 +298,20 @@ namespace KFrameWork
 
         public void UnLoad(bool all)
         {
-            if (this.Res != null && this.Res.isLock(LockType.DontDestroy))
+            if (this.Res != null && this.DependCount == 0 )
             {
-                LogMgr.LogErrorFormat("this is an DontDestory Object with name {0}", this.LoadName);
-                return;
-            }
-
-            if (this.Res != null && this.DependCount == 0)
-            {
-                ///
-                if (this.InstanceRefCount != 0)
+                if (!all && GameSyncCtr.mIns.FrameWorkTime - this.CreateTime < deltatime)
                 {
-                    all = false;
+                    LogMgr.LogErrorFormat("Reject the {0} Asset  {1} Desotry  ", this.name, all);
+                    return ;
                 }
+                LogMgr.LogErrorFormat("{0} Asset Will {1} Desotry  ", this.name, all);
+                //if (FrameWorkConfig.Open_DEBUG)
 
-                if (this.Res.isLock(LockType.DontDestroy))
-                {
-                    LogMgr.LogErrorFormat("{0} is an DontDestrory Object Should Be Unlock first", this.LoadName);
-                }
-                else
-                {
-                    if (FrameWorkConfig.Open_DEBUG)
-                        LogMgr.LogFormat("{0} Asset Will {1} Desotry  ", this.LoadName, all);
 
-                    ResBundleMgr.mIns.Cache.Remove(this.filename);
-                    this.Res.get().Unload(all);
-
-                    KObjectPool.mIns.Push(this);
-                }
-
+                ResBundleMgr.mIns.Cache.Remove(this.filename);
+                this.Res.Unload(all);
+                this.Dispose();
             }
         }
 
@@ -326,6 +326,7 @@ namespace KFrameWork
         public void Retain()
         {
             this.SelfRefCount++;
+            this.UpdateTime();
         }
 
         public void Retain(UnityEngine.Object o)
@@ -340,6 +341,7 @@ namespace KFrameWork
             }
 
             this.refs.Add(new WeakReference(o));
+            this.UpdateTime();
         }
 
         public void Release()
@@ -360,39 +362,21 @@ namespace KFrameWork
             }
         }
 
-        private void Dispose(bool disposing)
+        private void Dispose()
         {
-            if (!disposing)
+
+            for (int i = 0; i < this.depends.Count; ++i)
             {
-                this.Res.RemoveRef();
-                if (this.Res.Count != 0 && this.SelfRefCount != 0)
-                    LogMgr.LogErrorFormat("Res RefCount Error : {0}", this.Res.Count);
-
-                for (int i = 0; i < this.depends.Count; ++i)
-                {
-                    this.depends[i].Release();
-                }
-
-                this.refs.Clear();
-                this.depends.Clear();
-                this.LoadName = null;
-                this.Res = null;
-                this.refs = null;
-                this.depends = null;
+                this.depends[i].Release();
             }
+
+            this.refs.Clear();
+            this.depends.Clear();
+            this.LoadName = null;
+            this.Res = null;
+            this.refs = null;
+            this.depends = null;
         }
-
-        public void RemoveToPool()
-        {
-            this.Dispose(false);
-        }
-
-        public void RemovedFromPool()
-        {
-            this.Dispose(true);
-        }
-
-
     }
 }
 

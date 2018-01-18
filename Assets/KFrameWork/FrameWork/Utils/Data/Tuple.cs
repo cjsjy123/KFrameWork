@@ -28,9 +28,9 @@ namespace KUtils
         /// <returns></returns>
         public bool Equals(KVTuple<T, U> other)
         {
-            if(object.ReferenceEquals(other,null)) return false;
-            if(!other.Key.Equals(this.Key)) return false;
-            if(!other.Value.Equals(this.Value)) return false;
+            if (object.ReferenceEquals(other, null)) return false;
+            if (!other.Key.Equals(this.Key)) return false;
+            if (!other.Value.Equals(this.Value)) return false;
 
             return true;
         }
@@ -43,7 +43,7 @@ namespace KUtils
 
         public U Value;
 
-        public ClsTuple(T t,U k)
+        public ClsTuple(T t, U k)
         {
             Key = t;
             Value = k;
@@ -65,16 +65,16 @@ namespace KUtils
     }
 
 
-    public struct Tuple<T,Y,K> : IEquatable<Tuple<T, Y,K>>
+    public struct Tuple<T, Y, K> : IEquatable<Tuple<T, Y, K>>
     {
         public T k1;
         public Y k2;
         public K k3;
 
-        public Tuple(T t,Y y,K k)
+        public Tuple(T t, Y y, K k)
         {
-            this.k1=  t;
-            this.k2=  y;
+            this.k1 = t;
+            this.k2 = y;
             this.k3 = k;
         }
 
@@ -88,14 +88,14 @@ namespace KUtils
         }
     }
 
-    public struct Tuple<T, Y, K,U> : IEquatable<Tuple<T, Y, K,U>>
+    public struct Tuple<T, Y, K, U> : IEquatable<Tuple<T, Y, K, U>>
     {
         public T k1;
         public Y k2;
         public K k3;
         public U k4;
 
-        public Tuple(T t, Y y, K k,U u)
+        public Tuple(T t, Y y, K k, U u)
         {
             this.k1 = t;
             this.k2 = y;
@@ -136,7 +136,7 @@ namespace KUtils
                     throw new IndexOutOfRangeException();
 
                 return this.args[index];
- 
+
             }
             set
             {
@@ -151,7 +151,7 @@ namespace KUtils
                 {
                     args[index] = value;
                 }
- 
+
             }
         }
 

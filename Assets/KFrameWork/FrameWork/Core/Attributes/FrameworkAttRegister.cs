@@ -29,7 +29,7 @@ namespace KFrameWork
             MethodInfo method = tp.GetMethod(methodname, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if (method != null)
             {
-                MainLoop.getLoop().UnRegisterStaticEvent(loopevent, method);
+                MainLoop.getInstance().UnRegisterStaticEvent(loopevent, method);
             }
             else
             {
@@ -42,7 +42,7 @@ namespace KFrameWork
             MethodInfo method = tp.GetMethod(methodname, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if (method != null)
             {
-                MainLoop.getLoop().UnRegisterLoopEvent(loopevent, method);
+                MainLoop.getInstance().UnRegisterLoopEvent(loopevent, method);
             }
             else
             {
@@ -117,6 +117,15 @@ namespace KFrameWork
                 loop.gameObject.AddComponent<FPS>();
 
             GameSyncCtr.mIns.StartSync();
+
+            if (loop.OpenLua)
+            {
+#if TOLUA
+                new LuaResLoader();
+                loop.gameObject.AddComponent(typeof(GameLuaClient));
+#endif
+            }
+
         }
 
     }

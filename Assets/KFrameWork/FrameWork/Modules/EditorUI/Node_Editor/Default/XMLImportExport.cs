@@ -224,7 +224,7 @@ namespace NodeEditorFramework.IO
 						if (variable.Name != "Variable" && variable.Name != "Port")
 						{
 							string varName = variable.GetAttribute("name");
-							object varValue = DeserializeFieldFromXML(variable, node.type);
+							object varValue = DeserializeFieldFromXMLType(variable, node.type);
 							VariableData varData = new VariableData(varName);
 							varData.value = varValue;
 							node.variables.Add(varData);
@@ -320,10 +320,10 @@ namespace NodeEditorFramework.IO
 		private object DeserializeFieldFromXML(XmlElement xmlElement, object obj)
 		{
 			Type type = obj.GetType();
-			return DeserializeFieldFromXML(xmlElement, type, obj);
+			return DeserializeFieldFromXMLType(xmlElement, type, obj);
 		}
 
-		private object DeserializeFieldFromXML(XmlElement xmlElement, Type type, object obj = null)
+		private object DeserializeFieldFromXMLType(XmlElement xmlElement, Type type, object obj = null)
 		{
 			string fieldName = xmlElement.GetAttribute("name");
 			FieldInfo field = type.GetField(fieldName);

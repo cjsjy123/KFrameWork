@@ -1,14 +1,9 @@
 ﻿
-#define Scene_optimize
 using UnityEngine;
-using System.Collections;
 using System;
 using System.Threading;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using Priority_Queue;
-using KUtils;
 using System.Diagnostics;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -27,54 +22,53 @@ namespace KFrameWork
     [AdvancedInspector]
 #endif
     [TimeSetAttribute(1f/FrameWorkConfig.PHYSTEP_VALUE)]
-    [DefaultExecutionOrder(-9999)]
+    [ScriptInitOrderAttribute(-9999)]
     public sealed class MainLoop : MonoBehaviour
     {
-
-
-#if UNITY_EDITOR
-        public const bool OpenABMode = false;
-#else
-        public const bool OpenABMode = true;
+#if Advance
+        [Inspect(0), Descriptor("版本号", ""), ReadOnly]
 #endif
-
-#if UNITY_EDITOR
-        public const bool OpenLua = true;
-#else
-        public const bool OpenLua = true;
+        public string Version = "0.0.100a";
+#if Advance
+        [Inspect(1), Descriptor("ab模式", "")]
 #endif
-
+        public bool OpenABMode = false;
 
 #if Advance
-        [Inspect(2), Descriptor("唤醒时候开启log", "")]
+        [Inspect(2), Descriptor("Lua模式", "")]
+#endif
+        public bool OpenLua = true;
+
+#if Advance
+        [Inspect(3), Descriptor("唤醒时候开启log", "")]
         public bool AwakeLogMode = true;
-
-        [Inspect(1), Descriptor("运行时log状态", "")]
-        public bool RunningLogmode
-        {
-            get
-            {
-                return LogMgr.OpenLog;
-            }
-        }
-
 #else
         public bool AwakeLogMode = true;
 #endif
 #if Advance
-        [Inspect(3), Descriptor("开启fps", "")]
-        public bool OpenFps = true;
-#else
-        public bool OpenFps = true;
+        [Inspect(4), Descriptor("开启fps", "")]
 #endif
+        public bool OpenFps = true; 
+
 
 #if Advance
-        [Inspect(4), Descriptor("启用lua GC lOG", "")]
+        [Inspect(5), Descriptor("启用lua GC lOG", "")]
         public bool OpenLuaLOG =true;
 #else
         public bool OpenLuaLOG = true;
 #endif
-        public const string Version = "0.0.100a";
+
+#if Advance
+        [Inspect(6), Descriptor("异步初始化", "开启异步初始化")]
+#endif
+        public bool AsyncInit = false;
+
+#if Advance
+        [Inspect(7), Descriptor("从缓存中加载类型信息", "")]
+#endif
+        public bool LoadFromCache = false;
+
+
         private FrameworkAttRegister framework;
 
         private Dictionary<int, Action<int>> eventList = new Dictionary<int, Action<int>>();
@@ -82,58 +76,33 @@ namespace KFrameWork
         private Dictionary<int, StaticDelegate> methodDic= new Dictionary<int, StaticDelegate>();
 
         private Dictionary<int, InstanceCacheDelegate> attEvents = new Dictionary<int, InstanceCacheDelegate>();
-        /// <summary>
-        /// 异步初始化完成事件分发
-        /// </summary>
-        public Action AsyncDoneEvent;
 
-        public Action FrameWorkEvent;
-
-
-#if Advance
-        [Inspect(6),Descriptor("异步初始化","开启异步初始化")]
-#endif
-        public bool AsyncInit = false;
+        public Action FrameWorkDoneEvent;
 
         private Thread thread;
 
-        private int flag =0;
+        private int flag = 0;
 
         public bool HasInit
         {
             get
             {
-                return flag ==2;
+                return flag == 2;
             }
         }
-
-        private static MainLoop _mIns;
-#if Advance
-        [Inspect(100), Descriptor("gameobject重命名", "")]
-        public void Rename()
-        {
-            this.gameObject.name = "KFrameWork";
-        }
-
-        [Inspect(101), Descriptor("开关log按钮", "")]
-        public void OpenLogBtn()
-        {
-            LogMgr.OpenLog = !LogMgr.OpenLog;
-        }
-#endif
-#if Advance
-        [Inspect(7), Descriptor("从缓存中加载类型信息", "")]
-#endif
-        public bool LoadFromCache =false;
 
         private RegisterCachedTypes cached;
 
         private string MainLoopAsset = "MainLoopAsset";
 
-        private Stopwatch initwatch ;
+        private Stopwatch initwatch;
+
+        private static MainLoop _mIns;
+
+
 
 #if Advance
-        [Inspect(102), Descriptor("保存类型信息到缓存中", "")]
+        [Inspect(100), Descriptor("保存类型信息到缓存中", "")]
         public void SaveTypeCache()
         {
 #if UNITY_EDITOR
@@ -152,7 +121,7 @@ namespace KFrameWork
 #endif
         }
 #endif
-        public static MainLoop getLoop()
+        public static MainLoop getInstance()
         {
             return _mIns;
         }
@@ -176,7 +145,9 @@ namespace KFrameWork
 
         void Awake()
         {
-           
+#if !UNITY_EDITOR
+            OpenABMode = true;
+#endif
             LogMgr.OpenLog = this.AwakeLogMode;
             GameObject fkObject = GameObject.Find("KFrameWork");
 
@@ -186,7 +157,7 @@ namespace KFrameWork
             }
 
             if(Application.isPlaying)
-                DontDestroyOnLoad(this.gameObject);
+                DontDestroyOnLoad(gameObject);
 
             _mIns = this;
             initwatch = new Stopwatch();
@@ -221,7 +192,6 @@ namespace KFrameWork
 
         private void _Init()
         {
-
             Stopwatch watch = Stopwatch.StartNew();  
             watch.Start();
 
@@ -239,9 +209,6 @@ namespace KFrameWork
             flag++;
 
             watch.Stop();
-
-            if(FrameWorkConfig.Open_DEBUG)
-                LogMgr.Log(":::Framework init Finished");
 
             LogMgr.LogFormat("::::FrameWork Cost Time :{0}",watch.Elapsed.TotalSeconds.ToString());
         }
@@ -439,23 +406,19 @@ namespace KFrameWork
         {
             this.framework.InitFrameWorkModuldes(this);
 #if UNITY_EDITOR
-            Scene s = EditorSceneManager.GetActiveScene();
-            if (s.IsValid())
-                this._tryCall(MainLoopEvent.OnLevelWasLoaded, s.buildIndex);
+            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.GetActiveScene();
+            if (scene.IsValid())
+                this._tryCall(MainLoopEvent.OnLevelWasLoaded, scene.buildIndex);
             else
                 this._tryCall(MainLoopEvent.OnLevelWasLoaded, 0);
 #else
             this._tryCall(MainLoopEvent.OnLevelWasLoaded, 0);
 #endif
 
-            if (FrameWorkEvent != null)
-                FrameWorkEvent();
+            if (FrameWorkDoneEvent != null)
+                FrameWorkDoneEvent();
 
-            if(AsyncDoneEvent != null)
-                AsyncDoneEvent();
-
-            AsyncDoneEvent = null;
-            FrameWorkEvent =null;
+            FrameWorkDoneEvent =null;
 
             this._tryCall(MainLoopEvent.Start);
         }
@@ -470,6 +433,8 @@ namespace KFrameWork
                 initwatch.Stop();
 
                 LogMgr.LogFormat("::::MainLoop All Inited Cost Time :{0}", initwatch.Elapsed.TotalSeconds.ToString());
+
+                initwatch = null;
             }
         }
 
@@ -537,9 +502,6 @@ namespace KFrameWork
 #if UNITY_5_5 || UNITY_5_4 || UNITY_5_6
         private void OnSceneLoad(Scene scene, LoadSceneMode mode)
         {
-#if !Scene_optimize
-            this._tryCall(MainLoopEvent.OnLevelLeaved, GameSceneCtr.mIns.CurScene.buildIndex);
-#endif
             this._tryCall(MainLoopEvent.OnLevelWasLoaded, GameSceneCtr.mIns.nextScene.buildIndex);
         }
 #else
@@ -550,15 +512,21 @@ namespace KFrameWork
             this._tryCall(MainLoopEvent.OnLevelWasLoaded, GameSceneCtr.mIns.nextScene.buildIndex);
         }
 #endif
-#if Scene_optimize
-        /// <summary>
-        /// 因为OnLevelLeaved 通知不准时，增加这个函数尽量使用框架使用的函数
-        /// </summary>
-        public void CallSceneLeave()
+
+        [Script_SharpLogic((int)FrameWorkCmdDefine.SceneLeave)]
+        static void Leave(AbstractParams p)
         {
-            this._tryCall(MainLoopEvent.OnLevelLeaved, GameSceneCtr.mIns.CurScene.buildIndex);
+            if(p != null && p.ArgCount ==1)
+            {
+                int value = p.ReadInt();
+                getInstance()._tryCall(MainLoopEvent.OnLevelLeaved, value);
+            }
+            else
+            {
+                LogMgr.LogErrorFormat("params ：{0} Error",p);
+            }
         }
-#endif
+
         void OnEnable()
         {
             this._tryCall(MainLoopEvent.OnEnable);
@@ -571,7 +539,6 @@ namespace KFrameWork
 
         void OnDestroy()
         {
-            this._tryCall(MainLoopEvent.OnLevelLeaved, GameSceneCtr.mIns.CurScene.buildIndex);
             this._tryCall(MainLoopEvent.OnDestroy);
 #if UNITY_5_5 || UNITY_5_4 || UNITY_5_6
             SceneManager.sceneLoaded -= this.OnSceneLoad;

@@ -155,8 +155,6 @@ namespace KFrameWork
         private static void ListenerScene(int lv)
         {
             mIns.eventsystem = null;
-            mIns.Dump();
-            mIns.ClearUI(false);
         }
 
         public void Destroy()

@@ -168,10 +168,6 @@ namespace KFrameWork
             NetByteBuffer buffer =  null;
             if(KObjectPool.mIns != null)
             {
-                int byslen =0;
-                if(bys  != null)
-                    byslen = bys.Length;
-
                 buffer = KObjectPool.mIns.Pop<NetByteBuffer>();
                 if (buffer != null)
                 {
@@ -192,10 +188,6 @@ namespace KFrameWork
             this._Reset();
         }
 
-        public void RemovedFromPool ()
-        {
-            this.sourceArray = null;
-        }
 
         public static void ThrowErrorFormat<A>(string format, A s1)
         {

@@ -31,63 +31,67 @@ namespace KFrameWork
 
             public long recordFrame { get; private set; }
 
-            public readonly float InvokeTime;
-
-            public long TargetFrame
-            {
-                get
-                {
-                    if (GameSyncCtr.mIns.FrameWorkTime > this.InvokeTime && totalCnt >0)
-                    {
-                        return this.recordFrame + this.DeltaFrame * totalCnt;
-                    }
-                    return this.recordFrame;
-                }
-            }
+            public readonly long InvokeTime;
 
             public readonly int totalCnt;
 
             private float deltatime;
-
             public int RepeatCount { get; private set; }
 
-            public ScheduleData(float invoke,int repeat ,float delta,long deltaFrame, ScheduleType schType, object callvalue,Action<object,int> cbk)
+            public ScheduleData(long invokeframe,int repeat ,float delta, object callvalue,Action<object,int> cbk)
             {
-                this.InvokeTime = invoke;
+                this.InvokeTime = invokeframe;
                 this.RepeatCount = repeat;
                 this.Delta = delta;
-                this.deltatime = Delta;
+                this.deltatime = -1f;
                 this.Callback= cbk;
                 this.callparams = callvalue;
-                this.Schedule_Type = schType;
+                this.Schedule_Type =  ScheduleType.DeltaTime;
+                this.DeltaFrame = -1;
+                this.recordFrame = -1;
+                this.totalCnt = this.RepeatCount;
+            }
+
+            public ScheduleData(long invokeframe, int repeat, long deltaFrame, object callvalue, Action<object, int> cbk)
+            {
+                this.InvokeTime = invokeframe;
+                this.RepeatCount = repeat;
+                this.Delta = -1;
+                this.deltatime = -1f;
+                this.Callback = cbk;
+                this.callparams = callvalue;
+                this.Schedule_Type = ScheduleType.DeltaFrame;
                 this.DeltaFrame = deltaFrame;
                 this.recordFrame = -1;
                 this.totalCnt = this.RepeatCount;
             }
 
-            public void StartFrameCounter()
-            {
-                if(this.recordFrame == -1)
-                    this.recordFrame = GameSyncCtr.mIns.RenderFrameCount;
-            }
 
             public void CallEvent()
             {
                 if (this.Schedule_Type == ScheduleType.DeltaFrame)
                 {
-                    if (this.DeltaFrame > 0  )
+                    if (this.DeltaFrame > 0  && recordFrame >0 )
                     {
-                        if (this.RepeatCount < 0 && (GameSyncCtr.mIns.RenderFrameCount -this.recordFrame  ) % this.DeltaFrame == 0)
+                        bool frameenable = (GameSyncCtr.mIns.RenderFrameCount - this.recordFrame) % this.DeltaFrame == 0;
+                        if (this.RepeatCount < 0 && frameenable)
                         {
                             if (this.Callback != null)
                                 this.Callback(this.callparams, this.RepeatCount);
                         }
-                        else if ((this.TargetFrame - GameSyncCtr.mIns.RenderFrameCount) % this.DeltaFrame == 0)
+                        else if (frameenable)
                         {
                             this.RepeatCount--;
                             if (this.Callback != null)
                                 this.Callback(this.callparams, this.RepeatCount);
                         }
+                    }
+                    else
+                    {
+                        this.RepeatCount--;
+                        this.recordFrame = GameSyncCtr.mIns.RenderFrameCount;
+                        if (this.Callback != null)
+                            this.Callback(this.callparams, this.RepeatCount);
                     }
                 }
                 else if (this.Schedule_Type == ScheduleType.DeltaTime)
@@ -103,7 +107,7 @@ namespace KFrameWork
                         }
                         else
                         {
-                            this.deltatime -= Time.deltaTime;
+                            this.deltatime -= GameSyncCtr.mIns.RenderDeltaTime;
                         }
                     }
                     else if (this.RepeatCount < 0)
@@ -116,7 +120,7 @@ namespace KFrameWork
                         }
                         else
                         {
-                            this.deltatime -= Time.deltaTime;
+                            this.deltatime -= GameSyncCtr.mIns.RenderDeltaTime;
                         }
                     }
                 }
@@ -127,18 +131,22 @@ namespace KFrameWork
 
         public Schedule()
         {
-            if(MainLoop.getLoop()!= null)
-                MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,UpdateSchedule);
+            if(MainLoop.getInstance()!= null)
+                MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.BeforeUpdate,UpdateSchedule);
         }
 
         public void Destroy()
         {
-            if (MainLoop.getLoop() != null)
-                MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.BeforeUpdate, UpdateSchedule);
+            if (MainLoop.getInstance() != null)
+                MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.BeforeUpdate, UpdateSchedule);
             scheduleList.Clear();
-            scheduleList = null;
         }
-            
+        /// <summary>
+        /// just one invoke
+        /// </summary>
+        /// <param name="delay"></param>
+        /// <param name="o"></param>
+        /// <param name="callback"></param>
         public void ScheduleInvoke(float delay,object o,Action<object,int> callback)
         {
             if(delay < 0f)
@@ -147,7 +155,7 @@ namespace KFrameWork
                 return;
             }
 
-            float invoketime = GameSyncCtr.mIns.FrameWorkTime + delay;
+            long invoketime = GameSyncCtr.mIns.RenderFrameCount + Mathf.RoundToInt( delay * GameSyncCtr.mIns.FrameRate);
 
             bool insert = false;
             for (int i = 0; i < scheduleList.Count; ++i)
@@ -155,7 +163,7 @@ namespace KFrameWork
                 ScheduleData data = scheduleList[i];
                 if (data.InvokeTime > invoketime)
                 {
-                    this.scheduleList.Insert(i, new ScheduleData(invoketime, 1, 0f, 0, ScheduleType.DeltaTime, o, callback));
+                    this.scheduleList.Insert(i, new ScheduleData(invoketime, 1,0f, o, callback));
                     insert = true;
                     break;
                 }
@@ -164,12 +172,15 @@ namespace KFrameWork
 
             if (!insert)
             {
-                this.scheduleList.Add(new ScheduleData(invoketime, 1, 0f, 0, ScheduleType.DeltaTime, o, callback));
+                this.scheduleList.Add(new ScheduleData(invoketime, 1, 0f, o, callback));
             }
         }
 
         public void UnScheduleInvoke(Action<object,int> callback)
         {
+            if (scheduleList == null)
+                return;
+
             for(int i = scheduleList.Count -1; i >= 0; --i)
             {
                 ScheduleData data = scheduleList[i];
@@ -197,8 +208,8 @@ namespace KFrameWork
                 return;
             }
 
-            float invoketime = GameSyncCtr.mIns.FrameWorkTime + delay;
-            if(this.scheduleList.Count >0)
+            long invoketime = GameSyncCtr.mIns.RenderFrameCount + Mathf.RoundToInt(delay * GameSyncCtr.mIns.FrameRate);
+            if (this.scheduleList.Count >0)
             {
                 bool inserted =false;
                 for(int i = scheduleList.Count - 1; i >= 0; --i)
@@ -206,7 +217,7 @@ namespace KFrameWork
                     ScheduleData data = scheduleList[i];
                     if (data.InvokeTime > invoketime)
                     {
-                        this.scheduleList.Insert(i,new ScheduleData(invoketime,Repeat,delta,0, ScheduleType.DeltaTime, o,callback));
+                        this.scheduleList.Insert(i,new ScheduleData(invoketime,Repeat,delta, o,callback));
                         inserted =true;
                         break;
                     }
@@ -214,16 +225,16 @@ namespace KFrameWork
 
                 if(!inserted)
                 {
-                    this.scheduleList.Add(new ScheduleData(invoketime,Repeat,delta, 0, ScheduleType.DeltaTime, o, callback));
+                    this.scheduleList.Add(new ScheduleData(invoketime,Repeat,delta, o, callback));
                 }
             }
             else
             {
-                this.scheduleList.Add(new ScheduleData(invoketime,Repeat,delta, 0, ScheduleType.DeltaTime, o, callback));
+                this.scheduleList.Add(new ScheduleData(invoketime,Repeat,delta, o, callback));
             }
         }
 
-        public void ScheduleRepeatFrameInvoke(float delay, int deltaFrame, int Repeat, object o, Action<object, int> callback)
+        public void ScheduleRepeatFrameInvoke(int delay, int deltaFrame, int Repeat, object o, Action<object, int> callback)
         {
             if (Repeat == 0 || deltaFrame < 0f )
             {
@@ -231,14 +242,14 @@ namespace KFrameWork
                 return;
             }
 
-            float invoketime = GameSyncCtr.mIns.FrameWorkTime + delay;
+            long invoketime = GameSyncCtr.mIns.RenderFrameCount + delay;
             bool inserted = false;
             for (int i = scheduleList.Count - 1; i >= 0; --i)
             {
                 ScheduleData data = scheduleList[i];
                 if (data.InvokeTime > invoketime)
                 {
-                    this.scheduleList.Insert(0, new ScheduleData(invoketime, Repeat, 0, deltaFrame, ScheduleType.DeltaFrame, o, callback));
+                    this.scheduleList.Insert(0, new ScheduleData(invoketime, Repeat,deltaFrame,o,callback));
                     inserted = true;
                     break;
                 }
@@ -246,45 +257,30 @@ namespace KFrameWork
 
             if (!inserted)
             {
-                this.scheduleList.Add(new ScheduleData(invoketime, Repeat, 0, deltaFrame, ScheduleType.DeltaFrame, o, callback));
+                this.scheduleList.Add(new ScheduleData(invoketime, Repeat, deltaFrame, o, callback));
             }
         }
 
         private void UpdateSchedule(int value)
         {
-            float now = GameSyncCtr.mIns.FrameWorkTime;
-
             List<ScheduleData> listv = ListPool.TrySpawn<List<ScheduleData>>();
             listv.AddRange(this.scheduleList);
             for (int i = 0; i <  listv.Count; ++i)
             {
                 ScheduleData data = listv[i];
 
-                if(data.InvokeTime < now )
+                if(data.InvokeTime <= GameSyncCtr.mIns.RenderFrameCount)
                 {
-                    if (data.Schedule_Type == ScheduleType.DeltaTime)
-                    {
-                        data.CallEvent();
+                    data.CallEvent();
 
-                        if (data.RepeatCount == 0)
-                        {
-                            this.scheduleList.Remove(data);
-                        }
-                    }
-                    else if (data.Schedule_Type == ScheduleType.DeltaFrame)
+                    if (data.RepeatCount == 0)
                     {
-                        data.StartFrameCounter();
-                        data.CallEvent();
-                        if (data.TargetFrame <= GameSyncCtr.mIns.RenderFrameCount)
-                        {
-                            this.scheduleList.Remove(data);
-                        }
+                        this.scheduleList.Remove(data);
                     }
                 }
             }
 
             ListPool.TryDespawn(listv);
-
         }
 
     }

@@ -36,10 +36,6 @@ namespace KFrameWork
                     this.Loader.Reset();
             }
 
-            public void RemovedFromPool ()
-            {
-                this._script= null;
-            }
 
             public void Dispose()
             {
@@ -185,7 +181,7 @@ namespace KFrameWork
 #if TOLUA
                     dic[(int)target] = ScriptPkg.CreateLua(attvalue);
 #else
-                    throw new FrameWorkException("Missing Lua");
+                    LogMgr.LogError("Missing Lua");
 #endif
                 }
 

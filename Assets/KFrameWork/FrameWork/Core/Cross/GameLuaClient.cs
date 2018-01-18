@@ -10,7 +10,7 @@ using LuaInterface;
 namespace KFrameWork
 {
     #if TOLUA
-    [DefaultExecutionOrder(-8000)]
+    [ScriptInitOrderAttribute(-8000)]
     public class GameLuaClient : LuaClient
     {
         public bool isDone = false;
@@ -27,22 +27,18 @@ namespace KFrameWork
 
         protected override void LoadLuaFiles()
         {
-            ResBundleMgr.YieldInited(ResDone);
-        }
-
-        void ResDone(WaitTaskCommand cmd)
-        {
             if (ResBundleMgr.mIns != null && ResBundleMgr.mIns.isDone)
             {
                 base.LoadLuaFiles();
 #if UNITY_EDITOR
-                if (GameConfig.Open_DEBUG || MainLoop.getLoop().OpenLuaLOG)
+                if (GameConfig.Open_DEBUG || MainLoop.getInstance().OpenLuaLOG)
                     this.luaState.LogGC = true;
 #endif
 
                 isDone = true;
             }
         }
+
     }
 #endif
 }

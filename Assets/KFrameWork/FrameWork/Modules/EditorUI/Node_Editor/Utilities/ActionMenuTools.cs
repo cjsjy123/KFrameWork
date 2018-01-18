@@ -12,7 +12,7 @@ using UnityEditor;
 using System.Reflection;
 
 
-
+[TypeInit(-10)]
 /// <summary>
 /// cache for windows
 /// </summary>
@@ -107,8 +107,6 @@ public class ActionMenuTools {
                     }
                 };
             }
-           // AssetDatabase.CreateAsset(asset, baseassetpath);
-            //AssetDatabase.SaveAssets();
             EditorUtility.SetDirty(asset);
         }
     }

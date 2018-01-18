@@ -12,9 +12,9 @@ namespace KUtils
     public interface IPool
     {
         void RemoveToPool();
-        void RemovedFromPool();
     }
 
+    [SingleTon]
     /// <summary>
     /// 引用类型对象池
     /// </summary>
@@ -22,26 +22,44 @@ namespace KUtils
     /// 
     public sealed class KObjectPool
     {
-        private static KObjectPool _mIns;
-        public static KObjectPool mIns
-        {
-            get
-            {
-                if (_mIns == null)
-                    _mIns = new KObjectPool();
-                return _mIns;
-            }
-        }
+        public static KObjectPool mIns;
+        //public static KObjectPool mIns
+        //{
+        //    get
+        //    {
+        //        if (_mIns == null)
+        //            _mIns = new KObjectPool();
+        //        return _mIns;
+        //    }
+        //}
 
-        public const int EachRemoveCount = 5;
+        public const int EachRemoveCount = 4;
 
-        public const float RmovedDelta = 10f;
+        public const float RemoveDeltaTime = 30f;
 
         private Dictionary<Type, List<System.Object>> queue = new Dictionary<Type, List<System.Object>>(16);
 
-        public void ClearPool()
+        [FrameWorkStart]
+        static void StartPoolSechedule(int value)
         {
-            queue.Clear();
+            Schedule.mIns.ScheduleRepeatInvoke(0f, RemoveDeltaTime, -1, null, RmoveOld);
+        }
+
+        static void RmoveOld(System.Object o,int left)
+        {
+            var en = mIns.queue.GetEnumerator();
+            while(en.MoveNext())
+            {
+                List<System.Object> objs = en.Current.Value;
+                if(objs.Count >0)
+                {
+                    int removecnt = Mathf.Min(objs.Count, EachRemoveCount);
+                    for(int i = removecnt-1; i >=0; i--)
+                    {
+                        objs.RemoveAt(i);
+                    }
+                }
+            }
         }
 
         public void Push(System.Object data)
@@ -67,10 +85,10 @@ namespace KUtils
                     (data as IPool).RemoveToPool();
                 }
 
-                //if (FrameWorkConfig.Open_DEBUG)
-                //{
-                //    LogMgr.LogFormat("{0}进入缓存池 ", data);
-                //}
+                if (FrameWorkConfig.Open_DEBUG)
+                {
+                    LogMgr.LogFormat("{0}进入缓存池 ", data);
+                }
             }
 #if UNITY_EDITOR
             else
@@ -85,36 +103,6 @@ namespace KUtils
         //    FrameworkAttRegister.DestroyStaticAttEvent(MainLoopEvent.OnLevelLeaved, typeof(KObjectPool), "SceneRemoveUnUsed");
         //}
 
-        //private void RemoveSomeOlded()
-        //{
-        //    float now = UnityEngine.Time.realtimeSinceStartup;
- 
-        //    int removedCount = 0;
-
-        //    var en = this.queue.GetEnumerator();
-        //    while (en.MoveNext())
-        //    {
-        //        var kv = en.Current;
-        //        List<float> list = this.deltalist[kv.Key];
-        //        for (int i = list.Count - 1; i >= 0; i--)
-        //        {
-        //            if (now - list[i] > RmovedDelta)
-        //            {
-        //                list.RemoveAt(i);
-        //                object kvvalue = kv.Value[i];
-        //                if (kvvalue is IPool)
-        //                {
-        //                    (kvvalue as IPool).RemoveToPool();
-        //                }
-        //                kv.Value.RemoveAt(i);
-        //                removedCount++;
-
-        //                if (removedCount >= EachRemoveCount)
-        //                    break;
-        //            }
-        //        }
-        //    }
-        //}
 
         public T Seek<T,U>(Func<T,U,int> seekFunc,U userdata,int seekTimes =-1) 
         {

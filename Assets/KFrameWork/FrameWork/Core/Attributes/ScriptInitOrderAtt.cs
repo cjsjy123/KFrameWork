@@ -61,20 +61,6 @@ namespace KFrameWork
     }
 
     /// <summary>
-    /// sortinglayer定义属性
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class)][Obsolete("can use at the moment")]
-    public class SortingLayerSetAttribute : Attribute
-    {
-        public List<string> layers;
-
-        public SortingLayerSetAttribute(params string[] ts)
-        {
-            this.layers = new List<string>();
-            this.layers.AddRange(ts);
-        }
-    }
-    /// <summary>
     /// 脚本宏定义属性
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]

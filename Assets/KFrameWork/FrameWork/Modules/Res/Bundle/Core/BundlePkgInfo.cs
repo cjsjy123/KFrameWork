@@ -81,7 +81,7 @@ namespace KFrameWork
             {
                 return PkgResType.Material;
             }
-            else if (extensionName.Equals("png") || extensionName.Equals("tga"))
+            else if (extensionName.Equals("png") || extensionName.Equals("tga") || extensionName.Equals("jpg"))
             {
                 return PkgResType.Image;
             }

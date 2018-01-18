@@ -155,15 +155,8 @@ public abstract class CacheCommand
         if (this._state != CommandState.Running && this._state != CommandState.Paused)
         {
             this._state = CommandState.Running;
-            if (FrameWorkConfig.Open_DEBUG)
-            {
-                if (RunningList.Contains(this))
-                {
-                    LogMgr.LogError("has it In List");
-                }
-            }
 
-            RunningList.Add(this);
+            RunningList.TryAdd(this);
         }
     }
 

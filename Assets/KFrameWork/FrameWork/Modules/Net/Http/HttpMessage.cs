@@ -102,11 +102,6 @@ namespace KFrameWork
             }
         }
 
-        public virtual void RemovedFromPool()
-        {
-            fields.Clear();
-            fields = null;
-        }
     }
 }
 

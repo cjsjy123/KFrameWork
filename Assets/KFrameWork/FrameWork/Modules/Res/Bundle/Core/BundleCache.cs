@@ -20,7 +20,7 @@ namespace KFrameWork
         /// <summary>
         /// ab 引用缓存
         /// </summary>
-        private SimpleDictionary<string,SharedPtr<KAssetBundle>> ptrcaches ;
+        private SimpleDictionary<string, KAssetBundle> ptrcaches ;
         /// <summary>
         /// bundle(上层类) 引用缓存
         /// </summary>
@@ -61,7 +61,7 @@ namespace KFrameWork
 
         public BundleCache()
         {
-            this.ptrcaches = new SimpleDictionary<string, SharedPtr<KAssetBundle>>(16,true);
+            this.ptrcaches = new SimpleDictionary<string, KAssetBundle>(16,true);
             this.RefCaches = new SimpleDictionary<string, IBundleRef>(16,true);
             this.LoadingCaches = new SimpleDictionary<string, BaseBundleLoader>(4,true);
             this.loadingBundleCaches = new SimpleDictionary<string, Action<string>>(4,true);
@@ -82,7 +82,6 @@ namespace KFrameWork
             var reflist = this.RefCaches.Values;
             for (int i = 0; i < reflist.Count; ++i)
             {
-                reflist[i].UnLock();
                 reflist[i].UnLoad(false);
             }
 
@@ -138,34 +137,15 @@ namespace KFrameWork
 
         }
 
-        private SharedPtr<KAssetBundle> TryGetPtr(string abname, AssetBundle ab)
+        private KAssetBundle TryGetPtr(string abname, AssetBundle ab)
         {
-            SharedPtr<KAssetBundle> ptr = null;
+            KAssetBundle ptr = null;
             if (this.ptrcaches.ContainsKey(abname))
             {
-                ptr = this.ptrcaches[abname];
-                if (ptr != null )
-                {
-                    if (!ptr.isAlive)
-                    {
-                        ptr.Restore(new KAssetBundle(ab));
-                    }
-                    else if (ptr.isAlive && ptr.get().Equals(ab))
-                    {
-                        return ptr;
-                    }
-                    else if (ptr.isAlive && !ptr.get().Equals(ab))
-                    {
-                        BundlePkgInfo pkginfo = ResBundleMgr.mIns.BundleInformation.SeekInfo(abname);
-
-                        throw new FrameWorkException(string.Format( "assetbundle :{0} 资源引用异常", pkginfo != null? pkginfo.BundleName:abname));
-                    }
-
-                    return ptr;
-                }
+                return this.ptrcaches[abname];
             }
 
-            ptr = new SharedPtr<KAssetBundle>(new KAssetBundle(ab));
+            ptr = new KAssetBundle(ab);
             this.ptrcaches[abname] = ptr;
 
             return ptr;

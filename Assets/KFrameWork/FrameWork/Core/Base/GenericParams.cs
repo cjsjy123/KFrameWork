@@ -206,27 +206,6 @@ namespace KFrameWork
             _NextReadIndex =0;
         }
 
-
-        public override void RemovedFromPool ()
-        {
-            intList = null;
-            shortlist = null;
-            boollist = null;
-            longList = null;
-            strlist = null;
-            objList = null;
-            UnityObjList = null;
-            floatList = null;
-            doubleList = null;
-
-            ArgSortList.Clear();
-            ArgSortList = null;
-            _ArgCount =0;
-            _virtualArg =0;
-            _OriginArgCount =-1;
-            _NextReadIndex =0;
-        }
-
         public override AbstractParams InsertInt (int index, int v)
         {
             if(intList == null)

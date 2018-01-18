@@ -16,7 +16,7 @@ namespace KFrameWork
 
         public static void Register(EditorTools tools)
         {
-            
+
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PostAllAssetNameAttribute),_Register_AllAssets);
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PostImportAssetNameAttribute),_Register_PostImportAssets);
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PostDelAssetNameAttribute),_Register_PostDelAssets);
@@ -34,14 +34,13 @@ namespace KFrameWork
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareAudioAttribute),_Register_PostAudioAttribute);
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareModelAttribute),_Register_PrepareModelAttribute);
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareSpeedTreeAttribute),_Register_PrepareSpeedTreeAttribute);
-            tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareTextureAttribute),_Register_PrepareSpeedTreeAttribute);
+            tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareTextureAttribute),_Register_PrepareTextureAttribute);
             tools.RegisterHandler(RegisterType.MethodAtt,typeof(PrepareAnimationAttribute),_Register_PrepareAnimationAttribute);
             tools.RegisterHandler(RegisterType.MethodAtt, typeof(NoteEditorMenuAttribute), Register_NoteEditorMenuAtt);
 
             tools.RegisterHandler(RegisterType.ClassAttr, typeof(TimeSetAttribute), Register_Fixed);
             tools.RegisterHandler(RegisterType.ClassAttr, typeof(TagSetAttribute), Register_TagAdd);
             tools.RegisterHandler(RegisterType.ClassAttr, typeof(LayerSetAttribute), Register_LayerAdd);
-            tools.RegisterHandler(RegisterType.ClassAttr, typeof(SortingLayerSetAttribute), Register_SortingLayerAdd);
 
             tools.RegisterHandler(RegisterType.ClassAttr,typeof(ScriptMarcoDefineAttribute), Register_ScriptMarce);
         }
@@ -53,17 +52,6 @@ namespace KFrameWork
 
             if (attribute != null)
             {
-                //Action<float, float> callback = (Action<float, float>)Delegate.CreateDelegate(typeof(Action<float, float>), method);
-                //Action foldercbk = null;
-                //if (!string.IsNullOrEmpty(attribute.func))
-                //{
-                //    MethodInfo funcmethod = method.DeclaringType.GetMethod(attribute.func, BindingFlags.Public | BindingFlags.NonPublic);
-                //    if(funcmethod != null)
-                //    {
-                //        foldercbk = (Action)Delegate.CreateDelegate(typeof(Action), funcmethod);
-                //    }
-                //}
-
                 ActionMenuTools.GetInstance().AddMenuaction(attribute.menuname, attribute, method);
             }
         }
@@ -117,48 +105,6 @@ namespace KFrameWork
                 else
                 {
                     PlayerSettings.SetScriptingDefineSymbolsForGroup(BuildTargetGroup.Standalone,marcos);
-                }
-            }
-        }
-
-        static void Register_SortingLayerAdd(object att, object target)
-        {
-            SortingLayerSetAttribute attribute = att as SortingLayerSetAttribute;
-            if (attribute != null)
-            {
-                SerializedObject result = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
-                SerializedProperty it = result.GetIterator();
-                while (it.NextVisible(true))
-                {
-
-                    if (it.name.Equals("m_SortingLayers"))
-                    {
-                        //HashSet<string> keys = new HashSet<string>(attribute.layers);
-
-                        //for (int i =0; i < it.arraySize; i++)
-                        //{
-                        //    SerializedProperty dataPoint = it.GetArrayElementAtIndex(i);
-
-                        //    if (!string.IsNullOrEmpty(dataPoint.displayName))
-                        //    {
-                        //        keys.Add(dataPoint.displayName);
-                        //    }
-                        //}
-
-                        //it.arraySize = keys.Count ;
-
-                        //int j = 0;
-                        //foreach (var asset in keys)
-                        //{
-                        //    SerializedProperty dataPoint = it.GetArrayElementAtIndex(j);
-                        //    dataPoint.stringValue = asset;
-                        //    j++;
-                        //}
-
-
-                        //result.ApplyModifiedProperties();
-                        //return;
-                    }
                 }
             }
         }
@@ -416,6 +362,7 @@ namespace KFrameWork
 
         static void _Register_PostTextureAttribute(object att,object target)
         {
+
             MethodInfo method = target as MethodInfo;
             PostTextureAttribute attribute = att as PostTextureAttribute;
             if(method.LogStaticMethod() && attribute.LogInfo(method))
@@ -477,6 +424,7 @@ namespace KFrameWork
         {
             MethodInfo method = target as MethodInfo;
             PrepareSpeedTreeAttribute attribute = att as PrepareSpeedTreeAttribute;
+
             if(method.LogStaticMethod() && attribute.LogInfo(method))
             {
                 attribute.SetDelegate(method);

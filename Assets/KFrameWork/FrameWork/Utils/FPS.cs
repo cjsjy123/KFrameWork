@@ -9,7 +9,7 @@ public class FPS : MonoBehaviour {
 
 
     void Start () {
-        if(!MainLoop.getLoop().OpenFps){
+        if(!MainLoop.getInstance().OpenFps){
            
             enabled = false;
         }

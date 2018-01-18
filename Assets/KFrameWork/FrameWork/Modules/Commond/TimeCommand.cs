@@ -82,7 +82,7 @@ namespace KFrameWork
 
         public static void Destroy()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
+            MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID);
         }
 
         public override void Excute ()
@@ -94,7 +94,7 @@ namespace KFrameWork
                     base.Excute();
                     this.m_starttime = GameSyncCtr.mIns.FrameWorkTime;
                     ///因为update中还有处理处理逻辑，当帧事件穿插在逻辑之间的时候，可能导致某些依赖此对象的帧逻辑判断错误，目前先放在late中
-                    MainLoop.getLoop().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+                    MainLoop.getInstance().RegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
                 }
             }
             catch(FrameWorkException ex)
@@ -173,7 +173,7 @@ namespace KFrameWork
 
         public override void Cancel()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
+            MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate, methodID, this);
             this.Callback = null;
             this.CallBackWithParams = null;
             base.Cancel();
@@ -182,7 +182,7 @@ namespace KFrameWork
 
         protected override void SetFinished()
         {
-            MainLoop.getLoop().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
+            MainLoop.getInstance().UnRegisterCachedAction(MainLoopEvent.BeforeUpdate,methodID,this);
 
             if (this.Callback != null)
             {
@@ -226,15 +226,6 @@ namespace KFrameWork
             this.m_pausedstarttime =0f;
             this.m_delay =0f;
             this.m_starttime =0f;
-            this.Callback = null;
-            this.CallBackWithParams = null;
-            this.cacheParams = null;
-        }
-
-
-        public override void RemovedFromPool ()
-        {
-            base.RemovedFromPool();
             this.Callback = null;
             this.CallBackWithParams = null;
             this.cacheParams = null;

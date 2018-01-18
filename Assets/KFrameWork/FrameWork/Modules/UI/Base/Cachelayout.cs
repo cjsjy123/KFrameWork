@@ -10,6 +10,7 @@ namespace KFrameWork
 {
     public abstract class DontDestoryLayout : BaseLayout
     {
+
         protected Canvas canvas;
 
         protected override void ChangeOrder(int old, int value)
@@ -60,7 +61,7 @@ namespace KFrameWork
             //set canvas
             Canvas uicanvas = canvasObject.AddComponent<Canvas>();
             uicanvas.renderMode = RenderMode.ScreenSpaceCamera;
-            uicanvas.worldCamera = UIcamera ? UIcamera: Camera.main;
+            uicanvas.worldCamera = getUICamera();
             uicanvas.planeDistance = 100;
             uicanvas.overrideSorting = true;
             uicanvas.sortingLayerName = this.sortingLayer;

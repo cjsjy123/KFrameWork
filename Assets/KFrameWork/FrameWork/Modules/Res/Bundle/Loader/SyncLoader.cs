@@ -24,15 +24,6 @@ namespace KFrameWork
             this.current =0;
         }
 
-        public override void RemovedFromPool ()
-        {
-            base.RemovedFromPool ();
-            this.loaderqueue.Clear();
-            this.loaderqueue =null;
-            this.total =0;
-            this.current =0;
-        }
-
         public override void DownLoad(string url)
         {
             

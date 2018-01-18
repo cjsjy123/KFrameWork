@@ -30,16 +30,17 @@ namespace KFrameWork
         private Script_LuaLogicAttribute attribute;
 
         private LuaTable Luatable;
-#endif
         private string luafilepath;
+#endif
+
 
         public string methodname { get; private set; }
 
         static LuaScriptLoader()
         {
- #if UNITY_EDITOR && TOLUA
+            #if UNITY_EDITOR && TOLUA
             LogMgr.LogFormat("<color=#00B500FF>ToLua Version : {0}</color>",LuaDLL.version);
- #endif
+            #endif
         }
 #if TOLUA
         public static LuaTable TryGetClassLuaFunction(string filename)
@@ -58,9 +59,10 @@ namespace KFrameWork
 
         public void Init (AbstractParams InitParams)
         {
- #if TOLUA
+#if TOLUA
             attribute = InitParams.ReadObject() as Script_LuaLogicAttribute;
 #endif
+
         }
 
         void TryInit(Script_LuaLogicAttribute att)

@@ -725,13 +725,13 @@ namespace KFrameWork
             {
                 if (mIns.EnableSelfUpdate)
                 {
-                    MainLoop.getLoop().RegisterLoopEvent(MainLoopEvent.Update, UpdateEvent);
+                    MainLoop.getInstance().RegisterLoopEvent(MainLoopEvent.Update, UpdateEvent);
                 }
             }
 
             internal void EndUpdate()
             {
-                MainLoop.getLoop().UnRegisterLoopEvent(MainLoopEvent.Update, UpdateEvent);
+                MainLoop.getInstance().UnRegisterLoopEvent(MainLoopEvent.Update, UpdateEvent);
             }
 
             void UpdateEvent(int cnt)
@@ -761,11 +761,11 @@ namespace KFrameWork
                                 if (laststate != current)
                                 {
                                     // LogMgr.LogError("this is  " + nodecanvas);
-                                    ScriptCommand exitcmd = ScriptCommand.Create((int)FSMCmdDef.CallExit);
+                                    ScriptCommand exitcmd = ScriptCommand.Create((int)FrameWorkCmdDefine.FSMCallExit);
                                     exitcmd.CallParams.WriteObject(laststate);
                                     exitcmd.ExcuteAndRelease();
 
-                                    ScriptCommand entercmd = ScriptCommand.Create((int)FSMCmdDef.CallEnter);
+                                    ScriptCommand entercmd = ScriptCommand.Create((int)FrameWorkCmdDefine.FSMCallEnter);
                                     entercmd.CallParams.WriteObject(current);
                                     entercmd.ExcuteAndRelease();
                                 }
@@ -773,7 +773,7 @@ namespace KFrameWork
                             else
                             {
                                 // LogMgr.LogError("this is  " + nodecanvas);
-                                ScriptCommand cmd = ScriptCommand.Create((int)FSMCmdDef.CallEnter);
+                                ScriptCommand cmd = ScriptCommand.Create((int)FrameWorkCmdDefine.FSMCallEnter);
                                 cmd.CallParams.WriteObject(current);
                                 cmd.ExcuteAndRelease();
                             }
@@ -790,7 +790,7 @@ namespace KFrameWork
                                 }
                                 else
                                 {
-                                    ScriptCommand exitcmd = ScriptCommand.Create((int)FSMCmdDef.CallExit);
+                                    ScriptCommand exitcmd = ScriptCommand.Create((int)FrameWorkCmdDefine.FSMCallExit);
                                     exitcmd.CallParams.WriteObject(current);
                                     exitcmd.ExcuteAndRelease();
 
